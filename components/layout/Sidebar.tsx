@@ -1,11 +1,11 @@
-﻿import React from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { BookOpen, Home, Settings, Target } from 'lucide-react';
 
 export function Sidebar() {
   const navItems = [
     { name: 'Dashboard', href: '/student', icon: Home },
-    { name: 'My Courses', href: '/student/courses', icon: BookOpen },
+    { name: 'Courses (কোর্সসমূহ)', href: '/courses', icon: BookOpen },
     { name: 'Goals', href: '/student/goals', icon: Target },
     { name: 'Settings', href: '/student/settings', icon: Settings },
   ];
