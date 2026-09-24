@@ -1,5 +1,53 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST() {
-  return NextResponse.json({ status: "success", message: "Payment confirmed" });
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { courseId, status } = body as { courseId: string; status: string };
+
+    // Validate required fields
+    if (!courseId || !status) {
+      return NextResponse.json(
+        { message: 'courseId এবং status আবশ্যক।' },
+        { status: 400 }
+      );
+    }
+
+    // Only accept known statuses
+    const validStatuses = ['success', 'failed', 'pending'] as const;
+    type ValidStatus = (typeof validStatuses)[number];
+
+    if (!validStatuses.includes(status as ValidStatus)) {
+      return NextResponse.json(
+        { message: 'অবৈধ payment status।' },
+        { status: 400 }
+      );
+    }
+
+    // Status-specific messages (Bangla)
+    const messages: Record<ValidStatus, string> = {
+      success: 'পেমেন্ট সফল হয়েছে এবং কোর্সে ভর্তি নিশ্চিত হয়েছে।',
+      failed: 'পেমেন্ট ব্যর্থ হয়েছে। কার্ড/মোবাইল তথ্য যাচাই করুন।',
+      pending: 'পেমেন্ট যাচাই প্রক্রিয়াধীন। নিশ্চিত হলে ইমেইলে জানানো হবে।',
+    };
+
+    // In production: save enrollment to DB, fire confirmation email, etc.
+    const response = {
+      transactionId: `TXN-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)
+        .toUpperCase()}`,
+      courseId,
+      status: status as ValidStatus,
+      message: messages[status as ValidStatus],
+      timestamp: new Date().toISOString(),
+    };
+
+    return NextResponse.json(response, { status: 200 });
+  } catch {
+    return NextResponse.json(
+      { message: 'সার্ভার ত্রুটি। পরে আবার চেষ্টা করুন।' },
+      { status: 500 }
+    );
+  }
 }

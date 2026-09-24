@@ -7,12 +7,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Auth ──────────────────────────────────────────────────────────────────
+
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  password     String
-  role         String   @default("STUDENT")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("STUDENT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A student can be enrolled in many courses
+  enrollments Enrollment[]
+}
+
+// ─── Courses ───────────────────────────────────────────────────────────────
+
+/// Represents an instructor profile embedded inside a Course.
+/// Stored as a separate table so the same person can teach multiple courses.
+model Instructor {
+  id      String   @id @default(uuid())
+  name    String
+  role    String   // e.g. "সিনিয়র ফুলস্ট্যাক ইঞ্জিনিয়ার"
+  avatar  String   // URL
+  bio     String
+
+  courses Course[]
+}
+
+/// Top-level course catalogue entry.
+model Course {
+  id               String   @id                // e.g. "fullstack-nextjs"
+  title            String
+  tagline          String
+  description      String
+  category         String                       // enum slug: "web-dev" | "data-science" …
+  categoryBangla   String
+  level            String                       // "বিগিনার" | "ইন্টারমিডিয়েট" | "অ্যাডভান্সড"
+  rating           Float
+  totalRatings     Int
+  studentsEnrolled Int
+  duration         String                       // Bangla string e.g. "৪৫ ঘণ্টা"
+  totalLessons     Int
+  price            Int                          // BDT (integer taka, no decimals)
+  originalPrice    Int
+  thumbnailUrl     String
+
+  instructorId     String
+  instructor       Instructor  @relation(fields: [instructorId], references: [id])
+
+  // JSON columns (SQLite stores them as TEXT; Prisma reads them as String)
+  // We store arrays of strings as JSON-serialised text for simplicity.
+  learningOutcomes String      // JSON: string[]
+  prerequisites    String      // JSON: string[]
+
+  modules          Module[]
+  enrollments      Enrollment[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+/// A numbered module (chapter) inside a course.
+model Module {
+  id       String   @id              // e.g. "m1", "ml-m1"
+  title    String
+  duration String                    // Bangla string e.g. "৬ ঘণ্টা"
+  order    Int      @default(0)      // display order within the course
+
+  courseId String
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  lessons  Lesson[]
+}
+
+/// A single lesson (video/reading) inside a module.
+model Lesson {
+  id       String  @id              // e.g. "l1", "ml-l1"
+  title    String
+  duration String                   // Bangla string e.g. "৪৫ মিনিট"
+  isFree   Boolean @default(false)  // true → visible without enrollment
+  order    Int     @default(0)      // display order within the module
+
+  moduleId String
+  module   Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+// ─── Enrollments ───────────────────────────────────────────────────────────
+
+/// Records which student has enrolled in which course, and the payment outcome.
+model Enrollment {
+  id            String   @id @default(uuid())
+  userId        String
+  courseId      String
+  paymentStatus String   @default("pending")  // "pending" | "success" | "failed"
+  transactionId String?                        // gateway TXN id on success
+  enrolledAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])  // one enrollment per user per course
 }

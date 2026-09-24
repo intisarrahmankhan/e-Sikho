@@ -7,20 +7,17 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 
-export default function AuthPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
-    role: 'STUDENT',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -30,50 +27,20 @@ export default function AuthPage() {
     setError(null);
 
     try {
-      if (isLogin) {
-        const result = await signIn('credentials', {
-          redirect: false,
-          email: formData.email,
-          password: formData.password,
-        });
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      });
 
-        if (result?.error) {
-          setError('Invalid email or password');
-        } else {
-          router.push('/dashboard'); // Middleware will handle role-based redirect
-          router.refresh();
-        }
+      if (result?.error) {
+        setError('Invalid email or password');
       } else {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            role: formData.role,
-          }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || 'Registration failed');
-        }
-
-        // Auto login after signup
-        await signIn('credentials', {
-          redirect: false,
-          email: formData.email,
-          password: formData.password,
-        });
-        
         router.push('/dashboard');
         router.refresh();
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.message || 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +54,7 @@ export default function AuthPage() {
             e-Shikho
           </h1>
           <p className="text-sm text-gray-500 mt-2">
-            {isLogin ? 'Sign in to your account' : 'Create a new account'}
+            Sign in to your account
           </p>
         </div>
 
@@ -98,23 +65,6 @@ export default function AuthPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
-              <Input
-                name="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="John Doe"
-                className="w-full"
-              />
-            </div>
-          )}
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email Address
@@ -125,7 +75,7 @@ export default function AuthPage() {
               required
               value={formData.email}
               onChange={handleChange}
-              placeholder="you@example.com"
+              placeholder="user@eshikho.com"
               className="w-full"
             />
           </div>
@@ -145,46 +95,20 @@ export default function AuthPage() {
             />
           </div>
 
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                I am a...
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              >
-                <option value="STUDENT">Student</option>
-                <option value="INSTRUCTOR">Instructor</option>
-              </select>
-            </div>
-          )}
-
           <Button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 transition-all"
             disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            {isLogin ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-              }}
-              className="text-blue-600 font-semibold hover:underline"
-              type="button"
-            >
-              {isLogin ? 'Sign up' : 'Sign in'}
-            </button>
-          </p>
+        <div className="mt-6 pt-6 border-t border-gray-100 text-xs text-gray-500 space-y-1 text-center">
+          <p className="font-semibold text-gray-700">Demo Accounts:</p>
+          <p>Admin: <span className="font-mono text-gray-800">admin@eshikho.com / admin123456</span></p>
+          <p>Instructor: <span className="font-mono text-gray-800">instructor@eshikho.com / instructor123</span></p>
+          <p>Student: <span className="font-mono text-gray-800">student@eshikho.com / student123</span></p>
         </div>
       </Card>
     </div>
