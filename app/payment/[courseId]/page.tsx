@@ -28,8 +28,8 @@ import { COURSES_DATA } from '@/lib/courses-data';
 type Tab = 'card' | 'mobile' | 'bank';
 type PaymentStatus = 'idle' | 'processing' | 'success' | 'failed' | 'pending';
 
-const SUCCESS_CARDS   = ['4111111111111111'];
-const PENDING_CARDS   = ['4000000000000010'];
+const SUCCESS_CARDS = ['4111111111111111'];
+const PENDING_CARDS = ['4000000000000010'];
 const SUCCESS_MOBILES = ['01700000001'];
 const PENDING_MOBILES = ['01800000003'];
 
@@ -49,8 +49,8 @@ function determineStatus(tab: Tab, card: string, mobile: string, pin: string): P
 }
 
 export default function PaymentPage() {
-  const params  = useParams();
-  const router  = useRouter();
+  const params = useParams();
+  const router = useRouter();
   const courseId = params?.courseId as string;
 
   const course = COURSES_DATA.find(c => c.id === courseId);
@@ -59,14 +59,14 @@ export default function PaymentPage() {
   const [status, setStatus] = useState<PaymentStatus>('idle');
 
   // Card fields
-  const [cardNumber, setCardNumber]   = useState('');
-  const [cardName, setCardName]       = useState('');
-  const [cardExpiry, setCardExpiry]   = useState('');
-  const [cardCvv, setCardCvv]         = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
 
   // Mobile fields
   const [mobileNumber, setMobileNumber] = useState('');
-  const [mobilePin, setMobilePin]       = useState('');
+  const [mobilePin, setMobilePin] = useState('');
 
   // Bank field
   const [bankRef, setBankRef] = useState('');
@@ -250,18 +250,17 @@ export default function PaymentPage() {
             {/* Method tabs */}
             <div className="flex border-b border-slate-200">
               {([
-                { id: 'card',   icon: <CreditCard className="h-4 w-4" />,  label: 'ডেবিট/ক্রেডিট কার্ড' },
-                { id: 'mobile', icon: <Smartphone className="h-4 w-4" />,  label: 'মোবাইল ব্যাংকিং' },
-                { id: 'bank',   icon: <Building2 className="h-4 w-4" />,   label: 'ব্যাংক ট্রান্সফার' },
+                { id: 'card', icon: <CreditCard className="h-4 w-4" />, label: 'ডেবিট/ক্রেডিট কার্ড' },
+                { id: 'mobile', icon: <Smartphone className="h-4 w-4" />, label: 'মোবাইল ব্যাংকিং' },
+                { id: 'bank', icon: <Building2 className="h-4 w-4" />, label: 'ব্যাংক ট্রান্সফার' },
               ] as { id: Tab; icon: React.ReactNode; label: string }[]).map(m => (
                 <button
                   key={m.id}
                   onClick={() => setTab(m.id)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition border-b-2 ${
-                    tab === m.id
+                  className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition border-b-2 ${tab === m.id
                       ? 'border-[#00A859] text-[#00A859] bg-green-50'
                       : 'border-transparent text-slate-500 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {m.icon}
                   <span className="hidden sm:block">{m.label}</span>
@@ -274,10 +273,6 @@ export default function PaymentPage() {
               {/* CARD TAB */}
               {tab === 'card' && (
                 <div className="space-y-4">
-                  <p className="text-[11px] text-slate-400 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                    পরীক্ষা: সফল → <strong>4111 1111 1111 1111</strong> &nbsp;|&nbsp; ব্যর্থ → <strong>4000 0000 0000 0002</strong> &nbsp;|&nbsp; প্রক্রিয়াধীন → <strong>4000 0000 0000 0010</strong>
-                  </p>
 
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-slate-700">কার্ড নম্বর *</label>
@@ -333,11 +328,6 @@ export default function PaymentPage() {
               {/* MOBILE BANKING TAB */}
               {tab === 'mobile' && (
                 <div className="space-y-4">
-                  <p className="text-[11px] text-slate-400 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                    পরীক্ষা: সফল → <strong>01700000001</strong> PIN <strong>1234</strong> &nbsp;|&nbsp; ব্যর্থ → <strong>01900000002</strong> PIN <strong>0000</strong> &nbsp;|&nbsp; প্রক্রিয়াধীন → <strong>01800000003</strong> PIN <strong>9999</strong>
-                  </p>
-
                   {/* Mobile brand logos */}
                   <div className="grid grid-cols-4 gap-2">
                     {['bKash', 'Nagad', 'Rocket', 'Upay'].map(brand => (
