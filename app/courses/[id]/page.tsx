@@ -1,40 +1,48 @@
-import React from "react";
+'use client';
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { 
-  BookOpen, 
-  Clock, 
-  Star, 
-  Users, 
-  CheckCircle2, 
-  Award, 
-  ChevronLeft, 
-  PlayCircle, 
-  FileText, 
-  ShieldCheck, 
-  Share2,
+import { useRouter, useParams } from "next/navigation";
+import {
+  BookOpen,
+  Clock,
+  Star,
+  Users,
+  CheckCircle2,
+  Award,
+  ChevronLeft,
+  PlayCircle,
+  FileText,
+  ShieldCheck,
   Lock,
-  Sparkles
+  Sparkles,
+  Loader2,
+  CreditCard,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getCourseById, COURSES_DATA } from "@/lib/courses-data";
+import { getCourseById } from "@/lib/courses-data";
 
-interface Props {
-  params: {
-    id: string;
-  };
-}
+/**
+ * CourseDetailsPage — displays full course information and a sticky enroll
+ * sidebar. Clicking "এখনই ভর্তি হন" navigates to the SSLCommerz-style
+ * payment gateway at /payment/[courseId].
+ *
+ * NOTE: generateStaticParams is intentionally removed here because this file
+ * is now a Client Component ('use client'). Static params for the [id] route
+ * are handled at the layout/server-segment level if needed.
+ */
+export default function CourseDetailsPage() {
+  const router   = useRouter();
+  const params   = useParams();
+  const courseId = params?.id as string;
 
-export function generateStaticParams() {
-  return COURSES_DATA.map((course) => ({
-    id: course.id,
-  }));
-}
+  // Track button loading state while navigating to the payment gateway
+  const [enrolling, setEnrolling] = useState(false);
 
-export default function CourseDetailsPage({ params }: Props) {
-  const course = getCourseById(params.id);
+  const course = getCourseById(courseId);
 
   if (!course) {
     notFound();
@@ -44,12 +52,18 @@ export default function CourseDetailsPage({ params }: Props) {
     ((course.originalPrice - course.price) / course.originalPrice) * 100
   );
 
+  /** Navigate to the SSLCommerz-style payment gateway for this course. */
+  function handleEnroll() {
+    setEnrolling(true);
+    router.push(`/payment/${courseId}`);
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-16">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link 
-          href="/courses" 
+        <Link
+          href="/courses"
           className="inline-flex items-center gap-1 hover:text-primary-600 transition"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -258,8 +272,30 @@ export default function CourseDetailsPage({ params }: Props) {
             </div>
 
             <CardContent className="p-6 space-y-6">
-              <Button size="lg" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-base shadow-md py-6">
-                এখনই কোর্সে ভর্তি হোন
+              {/* ──────────────────────────────────────────────────────────────
+                   Enroll button — navigates to /payment/[courseId] which
+                   renders the SSLCommerz-style gateway (card, mobile, bank).
+                ────────────────────────────────────────────────────────────── */}
+              <Button
+                id="btn-enroll-now"
+                size="lg"
+                onClick={handleEnroll}
+                disabled={enrolling}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-base shadow-md py-6 gap-2"
+              >
+                {enrolling ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>পেমেন্ট পেইজে যাওয়া হচ্ছে…</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5" />
+                    <span>
+                      এখনই ভর্তি হন — ৳{course.price.toLocaleString('bn-BD')}
+                    </span>
+                  </>
+                )}
               </Button>
 
               <div className="space-y-3 pt-2 border-t border-slate-100">
