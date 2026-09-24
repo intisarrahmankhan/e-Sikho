@@ -1,6 +1,7 @@
-﻿import React from "react"
+import React from "react"
 import { Search } from "lucide-react"
 import { Button } from "@/components/ui/Button"
+import Link from "next/link"
 
 export function EmptyEnrollments() {
   return (
@@ -12,7 +13,9 @@ export function EmptyEnrollments() {
       <p className="text-slate-500 mb-6 max-w-sm">
         You are not currently enrolled in any courses. Browse the catalog to start learning and tracking your progress.
       </p>
-      <Button>Browse Catalog</Button>
+      <Link href="/courses">
+        <Button>Browse Catalog</Button>
+      </Link>
     </div>
   )
 }
