@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { 
   BookOpen, 
   Clock, 
@@ -14,16 +14,20 @@ import {
   Award, 
   Sparkles,
   ArrowRight,
-  Filter
+  Filter,
+  Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
+import { Loader } from "@/components/ui/Loader";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
 
 export default function CoursesPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [loadingCourseId, setLoadingCourseId] = useState<string | null>(null);
 
   const categories = [
     { id: "all", label: "সকল কোর্স" },
@@ -46,6 +50,11 @@ export default function CoursesPage() {
       return matchesCategory && matchesSearch;
     });
   }, [searchQuery, selectedCategory]);
+
+  const handleCourseClick = (courseId: string) => {
+    setLoadingCourseId(courseId);
+    router.push(`/courses/${courseId}`);
+  };
 
   return (
     <div className="space-y-8 pb-12 max-w-7xl mx-auto">
@@ -150,7 +159,12 @@ export default function CoursesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
-            <CourseCardItem key={course.id} course={course} />
+            <CourseCardItem 
+              key={course.id} 
+              course={course} 
+              isLoading={loadingCourseId === course.id}
+              onClick={() => handleCourseClick(course.id)}
+            />
           ))}
         </div>
       )}
@@ -158,13 +172,34 @@ export default function CoursesPage() {
   );
 }
 
-function CourseCardItem({ course }: { course: Course }) {
+function CourseCardItem({ 
+  course, 
+  isLoading, 
+  onClick 
+}: { 
+  course: Course; 
+  isLoading?: boolean;
+  onClick: () => void;
+}) {
   const discountPercent = Math.round(
     ((course.originalPrice - course.price) / course.originalPrice) * 100
   );
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden hover:shadow-lg transition-all duration-200 border-slate-200 group bg-white">
+    <Card 
+      onClick={onClick}
+      className="relative flex flex-col h-full overflow-hidden hover:shadow-lg transition-all duration-200 border-slate-200 group bg-white cursor-pointer select-none"
+    >
+      {/* Loading Overlay */}
+      {isLoading && (
+        <Loader 
+          overlay 
+          text="কোর্স লোড হচ্ছে..." 
+          subtext="একটু অপেক্ষা করুন" 
+          size="md" 
+        />
+      )}
+
       {/* Course Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
         <img
@@ -244,12 +279,23 @@ function CourseCardItem({ course }: { course: Course }) {
             </div>
           </div>
 
-          <Link href={`/courses/${course.id}`}>
-            <Button size="sm" className="gap-1 bg-primary-600 hover:bg-primary-700 text-white font-medium">
-              <span>বিস্তারিত</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <Button 
+            size="sm" 
+            disabled={isLoading}
+            className="gap-1 bg-primary-600 hover:bg-primary-700 text-white font-medium"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>লোড হচ্ছে...</span>
+              </>
+            ) : (
+              <>
+                <span>বিস্তারিত</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </>
+            )}
+          </Button>
         </div>
       </CardContent>
     </Card>
