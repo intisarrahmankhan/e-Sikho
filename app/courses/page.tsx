@@ -15,7 +15,8 @@ import {
   Sparkles,
   ArrowRight,
   Filter,
-  Loader2
+  Loader2,
+  SlidersHorizontal
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -23,11 +24,16 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Loader } from "@/components/ui/Loader";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
 
+type SortOption = "popular" | "newest" | "price-low" | "price-high" | "rating";
+
 export default function CoursesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("popular");
   const [loadingCourseId, setLoadingCourseId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   const categories = [
     { id: "all", label: "সকল কোর্স" },
@@ -38,22 +44,57 @@ export default function CoursesPage() {
     { id: "app-dev", label: "অ্যাপ ডেভেলপমেন্ট" },
   ];
 
+  const levels = [
+    { id: "all", label: "সকল লেভেল" },
+    { id: "বিগিনার", label: "বিগিনার" },
+    { id: "ইন্টারমিডিয়েট", label: "ইন্টারমিডিয়েট" },
+    { id: "অ্যাডভান্সড", label: "অ্যাডভান্সড" },
+  ];
+
   const filteredCourses = useMemo(() => {
-    return COURSES_DATA.filter((course) => {
+    let result = COURSES_DATA.filter((course) => {
       const matchesCategory =
         selectedCategory === "all" || course.category === selectedCategory;
+      const matchesLevel = 
+        selectedLevel === "all" || course.level === selectedLevel;
       const matchesSearch =
         course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.tagline.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.instructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         course.categoryBangla.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesLevel && matchesSearch;
     });
-  }, [searchQuery, selectedCategory]);
+
+    // Apply sorting
+    switch (sortBy) {
+      case "price-low":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price-high":
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case "rating":
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case "popular":
+      default:
+        result.sort((a, b) => b.studentsEnrolled - a.studentsEnrolled);
+        break;
+    }
+
+    return result;
+  }, [searchQuery, selectedCategory, selectedLevel, sortBy]);
 
   const handleCourseClick = (courseId: string) => {
     setLoadingCourseId(courseId);
     router.push(`/courses/${courseId}`);
+  };
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+    setSelectedLevel("all");
+    setSortBy("popular");
   };
 
   return (
@@ -97,44 +138,112 @@ export default function CoursesPage() {
         <div className="absolute right-32 bottom-0 h-48 w-48 rounded-full bg-blue-400/15 blur-2xl pointer-events-none" />
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        {/* Search Input */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="কোর্স বা ইন্সট্রাক্টরের নাম দিয়ে খুঁজুন..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 transition"
-          />
+      {/* Filter and Search Section */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-4 flex flex-col md:flex-row gap-4 justify-between items-center border-b border-slate-100">
+          {/* Search Input */}
+          <div className="relative w-full md:max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="কোর্স বা ইন্সট্রাক্টরের নাম দিয়ে খুঁজুন..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 transition"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <Button 
+              variant="outline" 
+              className="flex-1 md:flex-none gap-2 border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>ফিল্টার ও সর্ট</span>
+              {(selectedCategory !== 'all' || selectedLevel !== 'all') && (
+                <span className="flex h-2 w-2 rounded-full bg-primary-600 ml-1"></span>
+              )}
+            </Button>
+          </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-thin">
-          <Filter className="h-4 w-4 text-slate-400 hidden sm:block shrink-0" />
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                selectedCategory === cat.id
-                  ? "bg-primary-600 text-white shadow-sm font-semibold"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        {/* Expandable Smart Filters */}
+        {showFilters && (
+          <div className="p-5 bg-slate-50/50 flex flex-col md:flex-row gap-6 border-b border-slate-100 animate-in fade-in slide-in-from-top-2">
+            {/* Categories */}
+            <div className="flex-1 space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ক্যাটাগরি</label>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      selectedCategory === cat.id
+                        ? "bg-primary-600 text-white shadow-sm"
+                        : "bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-700"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Level */}
+            <div className="space-y-2 min-w-[200px]">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">লেভেল</label>
+              <div className="flex flex-wrap gap-2">
+                {levels.map((lvl) => (
+                  <button
+                    key={lvl.id}
+                    onClick={() => setSelectedLevel(lvl.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      selectedLevel === lvl.id
+                        ? "bg-slate-800 text-white shadow-sm"
+                        : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800"
+                    }`}
+                  >
+                    {lvl.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sort */}
+            <div className="space-y-2 min-w-[200px]">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">সর্ট করুন</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 cursor-pointer"
+              >
+                <option value="popular">জনপ্রিয়তা</option>
+                <option value="rating">সেরা রেটিং</option>
+                <option value="price-low">মূল্য: কম থেকে বেশি</option>
+                <option value="price-high">মূল্য: বেশি থেকে কম</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Course Count */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900">
-          উপলব্ধ কোর্সসমূহ ({filteredCourses.length})
+        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+          উপলব্ধ কোর্সসমূহ
+          <Badge className="bg-primary-100 text-primary-700 hover:bg-primary-200">{filteredCourses.length}</Badge>
         </h2>
+        {(selectedCategory !== 'all' || selectedLevel !== 'all' || searchQuery !== '') && (
+          <button 
+            onClick={resetFilters}
+            className="text-sm font-medium text-slate-500 hover:text-rose-500 transition-colors"
+          >
+            ফিল্টার মুছে ফেলুন
+          </button>
+        )}
       </div>
 
       {/* Courses Grid */}
