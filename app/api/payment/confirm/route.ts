@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { message: 'অ্যানঅথরাইজড। লগইন করুন।' },
+        { status: 401 }
+      );
+    }
+
+    const userId = (session.user as any).id;
+    if (!userId) {
+      return NextResponse.json(
+        { message: 'ইউজার আইডি পাওয়া যায়নি।' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { courseId, status } = body as { courseId: string; status: string };
 
@@ -31,12 +49,33 @@ export async function POST(req: NextRequest) {
       pending: 'পেমেন্ট যাচাই প্রক্রিয়াধীন। নিশ্চিত হলে ইমেইলে জানানো হবে।',
     };
 
-    // In production: save enrollment to DB, fire confirmation email, etc.
+    const transactionId = `TXN-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase()}`;
+
+    // Save enrollment to DB
+    await prisma.enrollment.upsert({
+      where: {
+        userId_courseId: {
+          userId,
+          courseId,
+        },
+      },
+      update: {
+        paymentStatus: status,
+        transactionId: status === 'success' ? transactionId : null,
+      },
+      create: {
+        userId,
+        courseId,
+        paymentStatus: status,
+        transactionId: status === 'success' ? transactionId : null,
+      },
+    });
+
     const response = {
-      transactionId: `TXN-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)
-        .toUpperCase()}`,
+      transactionId,
       courseId,
       status: status as ValidStatus,
       message: messages[status as ValidStatus],
@@ -44,7 +83,8 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json(response, { status: 200 });
-  } catch {
+  } catch (error) {
+    console.error('Payment confirm error:', error);
     return NextResponse.json(
       { message: 'সার্ভার ত্রুটি। পরে আবার চেষ্টা করুন।' },
       { status: 500 }
