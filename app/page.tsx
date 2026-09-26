@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import Image from "next/image";
 
 export default function Home() {
@@ -66,4 +67,11 @@ export default function Home() {
       </main>
     </div>
   );
+=======
+﻿import { redirect } from "next/navigation";
+
+export default function Home() {
+  // Redirect to student dashboard for Sprint 1
+  redirect("/student");
+>>>>>>> cb320e181950610cf95396a6e2f8ae1981ea39cf
 }

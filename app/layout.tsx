@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -24,6 +25,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
+=======
+﻿import './globals.css';
+import type { Metadata } from 'next';
+import { AppShell } from '@/components/layout/AppShell';
+
+export const metadata: Metadata = {
+  title: 'e-Shikho',
+  description: 'Professional course marketplace platform',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
+>>>>>>> cb320e181950610cf95396a6e2f8ae1981ea39cf
     </html>
   );
 }
