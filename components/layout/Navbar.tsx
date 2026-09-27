@@ -18,7 +18,9 @@ export function Navbar() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await signOut({ callbackUrl: '/login' });
+    const isPublicPage = pathname === '/' || pathname.startsWith('/courses');
+    const callbackUrl = isPublicPage ? pathname : '/login';
+    await signOut({ callbackUrl });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
