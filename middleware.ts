@@ -22,9 +22,14 @@ export default auth((req) => {
     return null;
   };
 
-  // If user is logged in and visits auth page (/login), redirect to their respective dashboard
+  // If user is logged in and visits auth page (/login), redirect to callbackUrl or their dashboard
   if (isAuthPage) {
     if (isLoggedIn) {
+      const callbackUrl = req.nextUrl.searchParams.get('callbackUrl');
+      if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')) {
+        return NextResponse.redirect(new URL(callbackUrl, req.url));
+      }
+
       const dashboard = getRoleDashboard(role);
       if (dashboard) {
         return NextResponse.redirect(new URL(dashboard, req.url));
@@ -38,12 +43,14 @@ export default auth((req) => {
   // Require auth for protected routes if not logged in
   const isProtectedRoute =
     pathname === '/dashboard' ||
+    pathname.startsWith('/payment') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/instructor') ||
     pathname.startsWith('/student');
 
   if (!isLoggedIn && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    const callbackUrl = encodeURIComponent(pathname + req.nextUrl.search);
+    return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, req.url));
   }
 
   // Generic /dashboard redirect to role-specific dashboard

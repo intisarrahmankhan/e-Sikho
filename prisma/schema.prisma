@@ -15,6 +15,7 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("STUDENT")
+  status    String   @default("APPROVED")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
