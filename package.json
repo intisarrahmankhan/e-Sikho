@@ -1,39 +1,13 @@
 {
-<<<<<<< HEAD
   "name": "e_shikho",
-=======
-  "name": "e-shikho",
->>>>>>> cb320e181950610cf95396a6e2f8ae1981ea39cf
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-<<<<<<< HEAD
     "lint": "eslint",
-    "postinstall": "prisma skills sync || exit 0"
-  },
-  "dependencies": {
-    "@prisma/client": "5.22.0",
-    "bcryptjs": "^3.0.3",
-    "next": "16.3.5",
-    "next-auth": "^5.0.0-beta.32",
-    "prisma": "5.22.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20.19.43",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.5",
-    "tailwindcss": "^4",
-=======
-    "lint": "next lint",
+    "test:e2e": "playwright test",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -42,33 +16,29 @@
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.395.0",
-    "next": "14.2.3",
+    "next": "^14.2.3",
     "next-auth": "^5.0.0-beta.32",
-    "react": "^18",
-    "react-dom": "^18",
-    "tailwind-merge": "^2.3.0"
+    "prisma": "^5.22.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20",
+    "@types/node": "^20.19.43",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "autoprefixer": "^10.6.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.3",
-    "postcss": "^8",
-    "prisma": "^5.22.0",
-    "tailwindcss": "^3.4.1",
->>>>>>> cb320e181950610cf95396a6e2f8ae1981ea39cf
+    "eslint-config-next": "^14.2.3",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.19",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   },
   "prisma": {
-<<<<<<< HEAD
     "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
-  
-=======
-    "seed": "ts-node --transpile-only prisma/seed.ts"
-  }
->>>>>>> cb320e181950610cf95396a6e2f8ae1981ea39cf
 }
