@@ -94,7 +94,7 @@ test.describe('e-Shikho Platform & Admin E2E Tests', () => {
     await expect(page.locator('button[type="submit"]')).toContainText('Signing in...');
 
     // Wait for the auth attempt to either redirect or complete with notification
-    const resultIndicator = page.locator('.bg-red-50, aside nav');
+    const resultIndicator = page.locator('.bg-red-50, aside').first();
     await expect(resultIndicator).toBeVisible({ timeout: 15000 });
   });
 

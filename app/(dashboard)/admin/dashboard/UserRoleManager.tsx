@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateUserRole, toggleUserSuspend } from '../actions';
+import { updateUserRole, toggleUserSuspend } from '@/actions/admin';
 
 interface User {
   id: string;

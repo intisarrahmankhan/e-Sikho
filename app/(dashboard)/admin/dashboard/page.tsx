@@ -2,7 +2,7 @@ import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PendingApprovals from './PendingApprovals';
-import UserRoleManager from './UserRoleManager';
+import PaginatedUsersList from './PaginatedUsersList';
 import CourseApprovals from './CourseApprovals';
 
 export default async function DashboardPage() {
@@ -156,7 +156,7 @@ export default async function DashboardPage() {
           <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">
             User Role & Account Status Management
           </h3>
-          <UserRoleManager activeUsers={activeUsers} />
+          <PaginatedUsersList />
         </section>
       </main>
     </div>

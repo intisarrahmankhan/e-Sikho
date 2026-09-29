@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { approveCourse, rejectCourse } from '../actions';
+import { approveCourse, rejectCourse } from '@/actions/admin';
 
 interface Course {
   id: string;

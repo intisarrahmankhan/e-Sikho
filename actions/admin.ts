@@ -40,14 +40,14 @@ export async function updateUserRole(
 
 // ─── Sprint 3 Admin Governance Actions ────────────────────────────────────
 
-// ST-116: Approve Course Workflow
+
 export async function approveCourse(courseId: string) {
   try {
     await prisma.course.update({
       where: { id: courseId },
-      data: { 
-        status: 'PUBLISHED', 
-        rejectionReason: null 
+      data: {
+        status: 'PUBLISHED',
+        rejectionReason: null
       },
     });
 
@@ -59,14 +59,14 @@ export async function approveCourse(courseId: string) {
   }
 }
 
-// ST-118 & ST-119: Reject Course with Feedback Workflow
+//  Reject Course with Feedback Workflow
 export async function rejectCourse(courseId: string, reason: string) {
   try {
     await prisma.course.update({
       where: { id: courseId },
-      data: { 
-        status: 'REJECTED', 
-        rejectionReason: reason 
+      data: {
+        status: 'REJECTED',
+        rejectionReason: reason
       },
     });
 
@@ -78,7 +78,7 @@ export async function rejectCourse(courseId: string, reason: string) {
   }
 }
 
-// ST-121: Toggle Account Suspension (Ban / Unban)
+//  Toggle Account Suspension (Ban / Unban)
 export async function toggleUserSuspend(userId: string, currentStatus: string) {
   try {
     const nextStatus = currentStatus === 'SUSPENDED' ? 'APPROVED' : 'SUSPENDED';
