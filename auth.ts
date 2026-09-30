@@ -1,65 +1,59 @@
 import NextAuth from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-import { authConfig } from '@/auth.config';
+import Google from 'next-auth/providers/google';
+import dbConnect from '@/lib/mongoose';
+import User from '@/models/User';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  ...authConfig,
   providers: [
-    Credentials({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
-
-        if (!user || !user.password) {
-          return null;
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
-      },
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+  pages: {
+    signIn: '/login',
+  },
   callbacks: {
-    ...authConfig.callbacks,
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role;
+    async signIn({ user, account }) {
+      // On first Google login, upsert the user into MongoDB
+      if (account?.provider === 'google' && user.email) {
+        await dbConnect();
+        await User.findOneAndUpdate(
+          { email: user.email },
+          {
+            $set: { image: user.image ?? '' },
+            $setOnInsert: {
+              name: user.name ?? 'User',
+              email: user.email,
+              role: 'STUDENT',
+              status: 'APPROVED',
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (account?.provider === 'google' && token.email) {
+        // Fetch the stored role from MongoDB on every new login
+        await dbConnect();
+        const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.role = dbUser.role;
+          token.status = dbUser.status;
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).role = token.role;
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role ?? 'STUDENT';
+        (session.user as any).status = token.status ?? 'APPROVED';
       }
       return session;
     },
-  },
-  pages: {
-    signIn: '/login',
   },
 });

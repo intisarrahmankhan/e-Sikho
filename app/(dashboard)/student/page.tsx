@@ -6,7 +6,9 @@ import { UpcomingExamsWidget } from "@/components/dashboard/UpcomingExamsWidget"
 import { LeaderboardSnippet } from "@/components/dashboard/LeaderboardSnippet";
 import { EmptyEnrollments } from "@/components/dashboard/EmptyEnrollments";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongoose";
+import Enrollment from "@/models/Enrollment";
+import InstructorRequest from "@/models/InstructorRequest";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -51,20 +53,20 @@ export default async function StudentDashboardPage() {
   }
 
   // Fetch actual enrolled courses for this user
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      userId: userId,
-      paymentStatus: 'success', // Only show fully paid / successful enrollments
-    },
-    include: {
-      course: true,
-    }
-  });
-  const instructorRequest = await prisma.instructorRequest.findUnique({ where: { userId } });
+  await dbConnect();
+  const enrollmentsList = await Enrollment.find({
+    userId: userId,
+    paymentStatus: 'success', // Only show fully paid / successful enrollments
+  }).populate('course').lean();
+  
+  const req = await InstructorRequest.findOne({ userId }).lean();
+  
+  const enrollments: any[] = enrollmentsList || [];
+  const instructorRequest: any = req || null;
 
   // Format to match what the component expects
   const enrolledCourses = enrollments.map(e => ({
-    id: e.course.id,
+    id: e.course._id ? e.course._id.toString() : e.course.id,
     title: e.course.title,
     thumbnailUrl: e.course.thumbnailUrl,
     progressPercentage: 35, // Demo progress percentage

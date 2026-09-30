@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getPaginatedUsers } from '@/actions/users';
-import { updateUserRole, toggleUserSuspend } from '@/actions/admin';
+import { updateUserRole } from '@/actions/admin';
 
 interface User {
   id: string;
@@ -34,7 +34,6 @@ export default function PaginatedUsersList() {
     }
   };
 
-  // Fetch when page, limit changes
   useEffect(() => {
     fetchUsers();
   }, [page, limit]);
@@ -49,7 +48,7 @@ export default function PaginatedUsersList() {
     setActionLoadingId(userId);
     await updateUserRole(userId, role);
     setActionLoadingId(null);
-    fetchUsers(); // Refresh the list
+    fetchUsers();
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -124,7 +123,6 @@ export default function PaginatedUsersList() {
                     <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
                     <td className="px-4 py-3">{user.email}</td>
 
-                    {/* Role Dropdown */}
                     <td className="px-4 py-3">
                       <select
                         disabled={actionLoadingId === user.id || user.role === 'SUPERADMIN'}
@@ -139,21 +137,20 @@ export default function PaginatedUsersList() {
                       </select>
                     </td>
 
-                    {/* Status Badge */}
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-block px-2 py-0.5 text-xs rounded-full font-semibold ${userStatus === 'SUSPENDED'
+                        className={`inline-block px-2 py-0.5 text-xs rounded-full font-semibold ${
+                          userStatus === 'SUSPENDED'
                             ? 'bg-rose-100 text-rose-700'
                             : userStatus === 'APPROVED'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-amber-100 text-amber-700'
-                          }`}
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
                       >
                         {userStatus}
                       </span>
                     </td>
 
-                    {/* Quick Promote to Instructor (as requested) */}
                     <td className="px-4 py-3 text-right">
                       {user.role === 'STUDENT' && (
                         <button
@@ -184,14 +181,14 @@ export default function PaginatedUsersList() {
           <div className="flex gap-2">
             <button
               disabled={page === 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Previous
             </button>
             <button
               disabled={page >= totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Next

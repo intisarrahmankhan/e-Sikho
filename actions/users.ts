@@ -1,6 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import dbConnect from '@/lib/mongoose';
+import User from '@/models/User';
 
 export async function getPaginatedUsers({
   page = 1,
@@ -11,23 +12,31 @@ export async function getPaginatedUsers({
   limit?: number;
   searchEmail?: string;
 }) {
+  await dbConnect();
   const skip = (page - 1) * limit;
   
-  // We want to fetch all users but allow searching by email
-  const where = searchEmail
-    ? { email: { contains: searchEmail, mode: 'insensitive' as const } }
+  const query = searchEmail
+    ? { email: { $regex: searchEmail, $options: 'i' } }
     : {};
 
   const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, email: true, role: true, status: true, createdAt: true },
-    }),
-    prisma.user.count({ where }),
+    User.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select('_id name email role status createdAt')
+      .lean(),
+    User.countDocuments(query),
   ]);
 
-  return { users, total };
+  const formattedUsers = users.map(u => ({
+    id: (u as any)._id.toString(),
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    status: u.status,
+    createdAt: u.createdAt,
+  }));
+
+  return { users: formattedUsers, total };
 }
