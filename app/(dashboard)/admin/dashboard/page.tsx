@@ -2,7 +2,11 @@ import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PendingApprovals from './PendingApprovals';
+import PaginatedUsersList from './PaginatedUsersList';
+import CourseApprovals from './CourseApprovals';
 import UserRoleManager from './UserRoleManager';
+import InstructorRequests from './InstructorRequests';
+import CourseReviews from './CourseReviews';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -19,9 +23,35 @@ export default async function DashboardPage() {
   });
 
   const activeUsers = await prisma.user.findMany({
-    where: { status: 'APPROVED' },
-    select: { id: true, name: true, email: true, role: true },
+    where: { status: { in: ['APPROVED', 'SUSPENDED'] } },
+    select: { id: true, name: true, email: true, role: true, status: true },
     orderBy: { createdAt: 'desc' },
+  });
+
+  // Fetch pending courses for moderation queue
+  const pendingCourses = await prisma.course.findMany({
+    where: { status: 'PENDING_REVIEW' },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+      createdAt: true,
+      instructor: {
+        select: {
+          name: true,
+          role: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  const instructorRequests = await prisma.instructorRequest.findMany({
+    where: { status: { in: ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED'] } },
+    include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: 'asc' },
+  });
+  const courseReviews = await prisma.course.findMany({
+    where: { approvalStatus: 'PENDING_REVIEW' },
+    include: { instructor: { select: { name: true } } }, orderBy: { submittedAt: 'asc' },
   });
 
   const totalCourses = await prisma.course.count();
@@ -56,8 +86,8 @@ export default async function DashboardPage() {
             <a href="#overview" className="block rounded-md bg-slate-800 px-4 py-2.5 text-sm font-medium text-white shadow-sm">
               📊 Overview
             </a>
-            <a href="#courses" className="block rounded-md px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
-              📚 Course Management
+            <a href="#course-approvals" className="block rounded-md px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              🎓 Course Moderation
             </a>
             <a href="#users" className="block rounded-md px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
               👥 User Accounts
@@ -88,8 +118,8 @@ export default async function DashboardPage() {
       <main className="flex-1 p-8 overflow-y-auto">
         <header className="flex items-center justify-between pb-6 border-b border-gray-200">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Platform Management</h2>
-            <p className="text-sm text-gray-500">Overview of courses, active users, and registration requests.</p>
+            <h2 className="text-2xl font-bold text-gray-800">Platform Governance & Management</h2>
+            <p className="text-sm text-gray-500">Overview of platform metrics, user moderation, and course approvals.</p>
           </div>
           <button className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700">
             + Create New Course
@@ -111,38 +141,46 @@ export default async function DashboardPage() {
             <p className="mt-1 text-2xl font-semibold text-gray-900">{totalFaculty}</p>
           </div>
           <div className="rounded-lg bg-white p-5 shadow-sm border border-gray-200">
-            <p className="text-sm font-medium text-gray-500">Pending Requests</p>
+            <p className="text-sm font-medium text-gray-500">Pending User Requests</p>
             <p className="mt-1 text-2xl font-semibold text-amber-600">{pendingUsers.length}</p>
           </div>
         </div>
 
-        {/* Pending Approvals Section */}
+        {/* Pending User Registration Approvals Section */}
         <section id="approvals" className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">
-            Pending Registration Approvals
+            Pending User Registration Approvals
           </h3>
           <PendingApprovals pendingUsers={pendingUsers} />
         </section>
 
-        {/* User Accounts & Role Management Section */}
-        <section id="users" className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">
-            User Role Management (Promote / Demote)
-          </h3>
-          <UserRoleManager activeUsers={activeUsers} />
+        {/* Instructor Promotion Requests Section */}
+        <section className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Instructor promotion requests</h3>
+          <p className="mb-4 text-sm text-gray-500">Both an ADMIN and SUPERADMIN must approve before the student is promoted.</p>
+          <InstructorRequests requests={instructorRequests} />
         </section>
 
-        {/* Courses Section */}
-        <section id="courses" className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between border-b pb-3 mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Course Catalog</h3>
-            <button className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-              Manage Categories
-            </button>
-          </div>
-          <p className="text-sm text-gray-500">
-            No courses found. Click "+ Create New Course" above to add the first course to the platform.
-          </p>
+        {/* Course Submissions for Review */}
+        <section className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Course submissions for review</h3>
+          <CourseReviews courses={courseReviews} />
+        </section>
+
+        {/* Pending Course Moderation Queue Section */}
+        <section id="course-approvals" className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">
+            Course Approval Queue
+          </h3>
+          <CourseApprovals pendingCourses={pendingCourses} />
+        </section>
+
+        {/* User Accounts & Role/Status Management Section */}
+        <section id="users" className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">
+            User Role & Account Status Management
+          </h3>
+          <PaginatedUsersList />
         </section>
       </main>
     </div>

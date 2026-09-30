@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateUserStatus } from '../actions';
+import { updateUserStatus } from '@/actions/admin';
 
 interface PendingUser {
   id: string;
