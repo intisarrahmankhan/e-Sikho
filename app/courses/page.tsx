@@ -27,10 +27,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = 'force-dynamic';
 
 type SortOption = "popular" | "newest" | "price-low" | "price-high" | "rating";
 
-function CoursesCatalog() {
+function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?: Course[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -59,7 +62,7 @@ function CoursesCatalog() {
   ];
 
   const filteredCourses = useMemo(() => {
-    let result = COURSES_DATA.filter((course) => {
+    let result = [...COURSES_DATA, ...additionalCourses].filter((course) => {
       const matchesCategory =
         selectedCategory === "all" || course.category === selectedCategory;
       const matchesLevel = 
@@ -339,14 +342,23 @@ function CoursesCatalog() {
   );
 }
 
-export default function CoursesPage() {
+export default async function CoursesPage() {
+  const submittedCourses = await prisma.course.findMany({ where: { approvalStatus: 'APPROVED' }, include: { instructor: true, modules: { include: { lessons: true }, orderBy: { order: 'asc' } } } });
+  const additionalCourses: Course[] = submittedCourses.map((course) => ({
+    id: course.id, title: course.title, tagline: course.tagline, description: course.description,
+    category: (['web-dev', 'data-science', 'app-dev', 'programming', 'system-design'].includes(course.category) ? course.category : 'programming') as Course['category'],
+    categoryBangla: course.categoryBangla, level: course.level as Course['level'], rating: course.rating, totalRatings: course.totalRatings,
+    studentsEnrolled: course.studentsEnrolled, duration: course.duration, totalLessons: course.totalLessons, price: course.price,
+    originalPrice: course.originalPrice, thumbnailUrl: course.thumbnailUrl, instructor: course.instructor,
+    learningOutcomes: JSON.parse(course.learningOutcomes), prerequisites: JSON.parse(course.prerequisites), modules: course.modules,
+  }));
   return (
     <Suspense fallback={
       <div className="min-h-[400px] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
     }>
-      <CoursesCatalog />
+      <CoursesCatalog additionalCourses={additionalCourses} />
     </Suspense>
   );
 }
