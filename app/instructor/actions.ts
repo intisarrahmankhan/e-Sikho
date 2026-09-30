@@ -1,7 +1,11 @@
 'use server';
 
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import dbConnect from '@/lib/mongoose';
+import Course from '@/models/Course';
+import Instructor from '@/models/Instructor';
+import Module from '@/models/Module';
+import Lesson from '@/models/Lesson';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
@@ -36,23 +40,37 @@ export async function createCourse(formData: FormData) {
   if (!Number.isInteger(price) || price < 0) return { error: 'Price must be a non-negative whole number.' };
 
   try {
+    await dbConnect();
     const thumbnailUrl = await saveThumbnail(formData.get('thumbnail') as File);
-    const instructor = await prisma.instructor.create({
-      data: { name: user.name || 'Instructor', role: 'Instructor', avatar: '', bio: 'e-Sikho instructor' },
+    const instructor = await Instructor.create({
+      name: user.name || 'Instructor', role: 'Instructor', avatar: '', bio: 'e-Sikho instructor'
     });
-    const baseId = slugify(title) || `course-${Date.now()}`;
-    const id = `${baseId}-${Date.now().toString(36)}`;
-    await prisma.course.create({
-      data: {
-        id, title, tagline: String(formData.get('tagline') || title), description,
-        category: String(formData.get('category') || 'general'), categoryBangla: String(formData.get('category') || 'General'),
-        level: String(formData.get('level') || 'beginner'), rating: 0, totalRatings: 0, studentsEnrolled: 0,
-        duration: String(formData.get('duration') || '1 hour'), totalLessons: 1, price, originalPrice: price,
-        thumbnailUrl, instructorId: instructor.id, createdById: user.id, approvalStatus: 'PENDING_REVIEW', submittedAt: new Date(),
-        learningOutcomes: JSON.stringify([]), prerequisites: JSON.stringify([]),
-        modules: { create: { id: `${id}-module-1`, title: String(formData.get('moduleTitle') || 'Course content'), duration: '1 hour', order: 0, lessons: { create: { id: `${id}-lesson-1`, title: lessonTitle, content: lessonContent, duration: '30 minutes', isFree: true, order: 0 } } } },
-      },
+    
+    const course = await Course.create({
+      title, tagline: String(formData.get('tagline') || title), description,
+      category: String(formData.get('category') || 'general'), categoryBangla: String(formData.get('category') || 'General'),
+      level: String(formData.get('level') || 'beginner'), rating: 0, totalRatings: 0, studentsEnrolled: 0,
+      duration: String(formData.get('duration') || '1 hour'), totalLessons: 1, price, originalPrice: price,
+      thumbnailUrl, instructorId: instructor._id, createdById: user.id, approvalStatus: 'PENDING_REVIEW', submittedAt: new Date(),
+      learningOutcomes: JSON.stringify([]), prerequisites: JSON.stringify([]),
     });
+
+    const module = await Module.create({
+      title: String(formData.get('moduleTitle') || 'Course content'),
+      duration: '1 hour',
+      order: 0,
+      courseId: course._id,
+    });
+
+    await Lesson.create({
+      title: lessonTitle,
+      content: lessonContent,
+      duration: '30 minutes',
+      isFree: true,
+      order: 0,
+      moduleId: module._id,
+    });
+
     revalidatePath('/instructor');
     revalidatePath('/admin/dashboard');
     return { success: true };

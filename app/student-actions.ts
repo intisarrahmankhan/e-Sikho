@@ -1,7 +1,8 @@
 'use server';
 
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import dbConnect from '@/lib/mongoose';
+import InstructorRequest from '@/models/InstructorRequest';
 import { revalidatePath } from 'next/cache';
 
 export async function requestInstructorRole(formData: FormData) {
@@ -13,16 +14,19 @@ export async function requestInstructorRole(formData: FormData) {
   if (!userId || role !== 'STUDENT') return { error: 'Only students can submit this request.' };
   if (reason.length < 20) return { error: 'Please provide at least 20 characters explaining your experience.' };
 
-  const existing = await prisma.instructorRequest.findUnique({ where: { userId } });
+  await dbConnect();
+  
+  const existing = await InstructorRequest.findOne({ userId });
   if (existing && ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED', 'APPROVED'].includes(existing.status)) {
     return { error: 'You already have an active instructor request.' };
   }
 
-  await prisma.instructorRequest.upsert({
-    where: { userId },
-    update: { reason, status: 'PENDING', adminApprovedAt: null, superadminApprovedAt: null, reviewedAt: null },
-    create: { userId, reason },
-  });
+  await InstructorRequest.findOneAndUpdate(
+    { userId },
+    { reason, status: 'PENDING', adminApprovedAt: null, superadminApprovedAt: null, reviewedAt: null },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
   revalidatePath('/student');
   revalidatePath('/admin/dashboard');
   return { success: true };

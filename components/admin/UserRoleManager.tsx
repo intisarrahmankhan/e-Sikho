@@ -18,7 +18,6 @@ export default function UserRoleManager({ activeUsers }: { activeUsers: User[] }
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedUserForSuspend, setSelectedUserForSuspend] = useState<User | null>(null);
 
-  // Client-side search and filtering logic
   const filteredUsers = activeUsers.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,7 +109,6 @@ export default function UserRoleManager({ activeUsers }: { activeUsers: User[] }
                     <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
                     <td className="px-4 py-3">{user.email}</td>
 
-                    {/* Role Dropdown */}
                     <td className="px-4 py-3">
                       <select
                         disabled={loadingId === user.id || user.role === 'SUPERADMIN'}
@@ -125,7 +123,6 @@ export default function UserRoleManager({ activeUsers }: { activeUsers: User[] }
                       </select>
                     </td>
 
-                    {/* Status Badge */}
                     <td className="px-4 py-3">
                       <span
                         className={`inline-block px-2 py-0.5 text-xs rounded-full font-semibold ${
@@ -140,7 +137,6 @@ export default function UserRoleManager({ activeUsers }: { activeUsers: User[] }
                       </span>
                     </td>
 
-                    {/* Suspend Toggle Button */}
                     <td className="px-4 py-3 text-right">
                       <button
                         disabled={loadingId === user.id || user.role === 'SUPERADMIN'}

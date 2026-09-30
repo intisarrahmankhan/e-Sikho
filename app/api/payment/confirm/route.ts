@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import dbConnect from '@/lib/mongoose';
+import Enrollment from '@/models/Enrollment';
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,24 +56,18 @@ export async function POST(req: NextRequest) {
       .toUpperCase()}`;
 
     // Save enrollment to DB
-    await prisma.enrollment.upsert({
-      where: {
-        userId_courseId: {
-          userId,
-          courseId,
-        },
-      },
-      update: {
-        paymentStatus: status,
-        transactionId: status === 'success' ? transactionId : null,
-      },
-      create: {
+    await dbConnect();
+    await Enrollment.findOneAndUpdate(
+      {
         userId,
         courseId,
+      },
+      {
         paymentStatus: status,
         transactionId: status === 'success' ? transactionId : null,
       },
-    });
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     const response = {
       transactionId,
