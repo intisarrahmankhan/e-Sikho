@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import PendingApprovals from './PendingApprovals';
 import UserRoleManager from './UserRoleManager';
+import InstructorRequests from './InstructorRequests';
+import CourseReviews from './CourseReviews';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -22,6 +24,14 @@ export default async function DashboardPage() {
     where: { status: 'APPROVED' },
     select: { id: true, name: true, email: true, role: true },
     orderBy: { createdAt: 'desc' },
+  });
+  const instructorRequests = await prisma.instructorRequest.findMany({
+    where: { status: { in: ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED'] } },
+    include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: 'asc' },
+  });
+  const courseReviews = await prisma.course.findMany({
+    where: { approvalStatus: 'PENDING_REVIEW' },
+    include: { instructor: { select: { name: true } } }, orderBy: { submittedAt: 'asc' },
   });
 
   const totalCourses = await prisma.course.count();
@@ -122,6 +132,17 @@ export default async function DashboardPage() {
             Pending Registration Approvals
           </h3>
           <PendingApprovals pendingUsers={pendingUsers} />
+        </section>
+
+        <section className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Instructor promotion requests</h3>
+          <p className="mb-4 text-sm text-gray-500">Both an ADMIN and SUPERADMIN must approve before the student is promoted.</p>
+          <InstructorRequests requests={instructorRequests} />
+        </section>
+
+        <section className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Course submissions for review</h3>
+          <CourseReviews courses={courseReviews} />
         </section>
 
         {/* User Accounts & Role Management Section */}
