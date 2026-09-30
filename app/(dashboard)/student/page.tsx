@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Target
 } from "lucide-react";
+import InstructorRequestForm from './InstructorRequestForm';
 
 // Mock Data for other widgets
 const MOCK_EXAMS = [
@@ -59,6 +60,7 @@ export default async function StudentDashboardPage() {
       course: true,
     }
   });
+  const instructorRequest = await prisma.instructorRequest.findUnique({ where: { userId } });
 
   // Format to match what the component expects
   const enrolledCourses = enrollments.map(e => ({
@@ -194,6 +196,12 @@ export default async function StudentDashboardPage() {
           <LeaderboardSnippet topStudents={MOCK_LEADERBOARD} />
         </div>
       </div>
+
+      <section className="rounded-2xl border border-indigo-100 bg-indigo-50 p-6">
+        <h2 className="text-lg font-bold text-slate-900">Become an instructor</h2>
+        <p className="mt-1 mb-4 text-sm text-slate-600">Share your knowledge on e-Sikho. Your request must be approved by both an admin and the superadmin.</p>
+        <InstructorRequestForm status={instructorRequest?.status} />
+      </section>
     </div>
   );
 }
