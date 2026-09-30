@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from "next/font/google";
 import { AppShell } from '@/components/layout/AppShell';
+import { AuthProvider } from '@/components/providers/AuthProvider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'e-Shikho',
-  description: 'Professional course marketplace platform',
+  title: 'e-Shikho - Professional Online Learning Platform',
+  description: 'Learn modern programming, web development, and tech skills in Bangla',
 };
 
 export default function RootLayout({
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

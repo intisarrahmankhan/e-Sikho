@@ -1,21 +1,27 @@
-import React from "react"
-import { Search } from "lucide-react"
-import { Button } from "@/components/ui/Button"
-import Link from "next/link"
+import React from "react";
+import { BookOpen, Sparkles, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 
 export function EmptyEnrollments() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-      <div className="bg-white p-4 rounded-full shadow-sm mb-4 border border-slate-100">
-        <Search className="w-8 h-8 text-slate-400" />
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 space-y-4">
+      <div className="h-16 w-16 rounded-2xl bg-primary-100/80 border border-primary-200/80 flex items-center justify-center text-primary-600 shadow-sm">
+        <BookOpen className="w-8 h-8" />
       </div>
-      <h3 className="text-lg font-semibold text-slate-900 mb-2">No Active Courses</h3>
-      <p className="text-slate-500 mb-6 max-w-sm">
-        You are not currently enrolled in any courses. Browse the catalog to start learning and tracking your progress.
-      </p>
+      <div className="space-y-1.5 max-w-md">
+        <h3 className="text-lg font-bold text-slate-900">এখনো কোনো কোর্সে এনরোল করেননি</h3>
+        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+          আপনার পছন্দমতো কোর্স বেছে নিয়ে শেখা শুরু করুন এবং ড্যাশবোর্ডে অগ্রগতি ও কুইজ ট্র্যাক করুন।
+        </p>
+      </div>
       <Link href="/courses">
-        <Button>Browse Catalog</Button>
+        <Button className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md gap-2">
+          <Sparkles className="h-4 w-4" />
+          <span>কোর্স ক্যাটালগ দেখুন</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
       </Link>
     </div>
-  )
+  );
 }

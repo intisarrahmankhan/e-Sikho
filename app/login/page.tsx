@@ -1,103 +1,179 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
+import { BookOpen, ShieldCheck, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const res = await signIn('credentials', {
-        email,
-        password,
+      const result = await signIn('credentials', {
         redirect: false,
+        email: formData.email,
+        password: formData.password,
       });
 
-      if (res?.error) {
-        setError('Invalid credentials or account pending approval.');
+      if (result?.error) {
+        setError('ভুল ইমেইল বা পাসওয়ার্ড প্রদান করা হয়েছে');
       } else {
-        router.push('/admin/dashboard');
+        const destination = callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')
+          ? callbackUrl
+          : '/dashboard';
+        router.push(destination);
         router.refresh();
       }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'একটি অপ্রত্যাশিত সমস্যা হয়েছে');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  const handleDemoFill = (email: string, pass: string) => {
+    setFormData({ email, password: pass });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg border border-gray-200">
-        <div className="text-center mb-6">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600 text-xl font-bold text-white shadow">
-            eS
-          </div>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">Sign in to e-Shikho</h2>
-          <p className="text-xs text-gray-500 mt-1">Enter your account credentials below</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <Card className="w-full max-w-md p-8 shadow-xl border-t-4 border-t-primary-600 bg-white">
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 font-bold text-primary-900 text-2xl mb-2">
+            <div className="h-8 w-8 rounded-lg bg-primary-600 flex items-center justify-center">
+              <span className="text-white text-sm font-bold">eS</span>
+            </div>
+            e-Shikho
+          </Link>
+          <p className="text-sm text-slate-500 mt-1">
+            আপনার একাউন্টে সাইন ইন করুন
+          </p>
+          {callbackUrl && callbackUrl.startsWith('/payment') && (
+            <div className="mt-3 p-2.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>কোর্সটি ক্রয় সম্পন্ন করতে অনুগ্রহ করে আগে লগইন করুন</span>
+            </div>
+          )}
         </div>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-xs font-medium text-red-700 border border-red-200">
+          <div className="mb-4 p-3 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-md">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Email Address
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              ইমেইল এড্রেস
             </label>
-            <input
+            <Input
+              name="email"
               type="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@eshikho.com"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="user@eshikho.com"
+              className="w-full"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Password
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              পাসওয়ার্ড
             </label>
-            <input
+            <Input
+              name="password"
               type="password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleChange}
               placeholder="••••••••"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-50 transition"
+            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 transition-all shadow-sm"
+            disabled={isLoading}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+            {isLoading ? 'সাইন ইন হচ্ছে...' : 'সাইন ইন করুন'}
+          </Button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-gray-100 text-xs text-gray-500 space-y-1 text-center">
-          <p className="font-semibold text-gray-700">Demo Accounts:</p>
-          <p>Admin: <span className="font-mono text-gray-800">admin@eshikho.com / admin123456</span></p>
-          <p>Instructor: <span className="font-mono text-gray-800">instructor@eshikho.com / instructor123</span></p>
-          <p>Student: <span className="font-mono text-gray-800">student@eshikho.com / student123</span></p>
+        <div className="mt-6 pt-6 border-t border-slate-100 text-xs text-slate-500 space-y-2">
+          <p className="font-semibold text-slate-700 text-center">দ্রুত টেস্ট করার জন্য ডেমো একাউন্ট:</p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => handleDemoFill('student@eshikho.com', 'student123')}
+              className="px-2 py-1.5 bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded border border-slate-200 text-center transition"
+            >
+              <div className="font-medium">Student</div>
+              <div className="text-[10px] text-slate-400">student123</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoFill('instructor@eshikho.com', 'instructor123')}
+              className="px-2 py-1.5 bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded border border-slate-200 text-center transition"
+            >
+              <div className="font-medium">Instructor</div>
+              <div className="text-[10px] text-slate-400">instructor123</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDemoFill('admin@eshikho.com', 'admin123456')}
+              className="px-2 py-1.5 bg-slate-50 hover:bg-primary-50 hover:text-primary-700 rounded border border-slate-200 text-center transition"
+            >
+              <div className="font-medium">Admin</div>
+              <div className="text-[10px] text-slate-400">admin123456</div>
+            </button>
+          </div>
         </div>
-      </div>
+
+        <div className="mt-6 text-center text-xs text-slate-500">
+          <Link href="/courses" className="text-primary-600 hover:underline inline-flex items-center gap-1">
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>লগইন না করে কোর্সগুলো দেখতে চান?</span>
+          </Link>
+        </div>
+      </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

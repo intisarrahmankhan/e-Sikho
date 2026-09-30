@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   BookOpen, 
   Clock, 
@@ -12,36 +12,46 @@ import {
   CheckCircle2, 
   GraduationCap, 
   Award, 
-  Sparkles,
-  ArrowRight,
-  Filter,
-  Loader2,
-  SlidersHorizontal
+  Sparkles, 
+  ArrowRight, 
+  Filter, 
+  SlidersHorizontal,
+  X,
+  Flame,
+  Layers,
+  Code2,
+  BrainCircuit,
+  Laptop
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Loader } from "@/components/ui/Loader";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = 'force-dynamic';
 
 type SortOption = "popular" | "newest" | "price-low" | "price-high" | "rating";
 
-export default function CoursesPage() {
+function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?: Course[] }) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const searchParams = useSearchParams();
+  
+  const initialCategory = searchParams.get("category") || "all";
+  const initialSearch = searchParams.get("search") || "";
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("popular");
-  const [loadingCourseId, setLoadingCourseId] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
 
   const categories = [
-    { id: "all", label: "সকল কোর্স" },
-    { id: "web-dev", label: "ওয়েব ডেভেলপমেন্ট" },
-    { id: "data-science", label: "ডাটা সায়েন্স ও এআই" },
-    { id: "programming", label: "প্রোগ্রামিং ফান্ডামেন্টালস" },
-    { id: "system-design", label: "সিস্টেম ডিজাইন" },
-    { id: "app-dev", label: "অ্যাপ ডেভেলপমেন্ট" },
+    { id: "all", label: "সকল কোর্স", icon: Layers },
+    { id: "web-dev", label: "ওয়েব ডেভেলপমেন্ট", icon: Code2 },
+    { id: "data-science", label: "ডাটা সায়েন্স ও এআই", icon: BrainCircuit },
+    { id: "programming", label: "প্রোগ্রামিং ও ডিএসএ", icon: Laptop },
+    { id: "system-design", label: "সিস্টেম ডিজাইন", icon: Layers },
+    { id: "app-dev", label: "অ্যাপ ডেভেলপমেন্ট", icon: Sparkles },
   ];
 
   const levels = [
@@ -52,7 +62,7 @@ export default function CoursesPage() {
   ];
 
   const filteredCourses = useMemo(() => {
-    let result = COURSES_DATA.filter((course) => {
+    let result = [...COURSES_DATA, ...additionalCourses].filter((course) => {
       const matchesCategory =
         selectedCategory === "all" || course.category === selectedCategory;
       const matchesLevel = 
@@ -65,7 +75,6 @@ export default function CoursesPage() {
       return matchesCategory && matchesLevel && matchesSearch;
     });
 
-    // Apply sorting
     switch (sortBy) {
       case "price-low":
         result.sort((a, b) => a.price - b.price);
@@ -85,11 +94,6 @@ export default function CoursesPage() {
     return result;
   }, [searchQuery, selectedCategory, selectedLevel, sortBy]);
 
-  const handleCourseClick = (courseId: string) => {
-    setLoadingCourseId(courseId);
-    router.push(`/courses/${courseId}`);
-  };
-
   const resetFilters = () => {
     setSearchQuery("");
     setSelectedCategory("all");
@@ -97,316 +101,264 @@ export default function CoursesPage() {
     setSortBy("popular");
   };
 
-  return (
-    <div className="space-y-8 pb-12 max-w-7xl mx-auto">
-      {/* Hero Banner in Bangla */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-900 via-primary-700 to-slate-900 text-white p-8 md:p-12 shadow-xl">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md text-primary-100 border border-white/20">
-            <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
-            <span>প্রফেশনাল স্কিল ডেভেলপমেন্ট প্ল্যাটফর্ম</span>
-          </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
-            নিজের ভাষায় শিখুন, ক্যারিয়ার গড়ুন বিশ্বমানের
-          </h1>
-          <p className="text-slate-200 text-base md:text-lg leading-relaxed">
-            শীর্ষস্থানীয় ইন্ডাস্ট্রি এক্সপার্টদের সাথে বাংলায় শিখুন প্রোগ্রামিং, ডাটা সায়েন্স এবং সিস্টেম আর্কিটেকচার।
-          </p>
+  const hasActiveFilters = searchQuery !== "" || selectedCategory !== "all" || selectedLevel !== "all" || sortBy !== "popular";
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-white/15">
-            <div className="flex items-center gap-2 text-sm text-slate-200">
-              <GraduationCap className="h-5 w-5 text-primary-200" />
-              <span>রিয়েল-লাইফ প্রজেক্ট</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-200">
-              <Users className="h-5 w-5 text-primary-200" />
-              <span>২৪/৭ মেন্টর সাপোর্ট</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-200">
-              <Award className="h-5 w-5 text-primary-200" />
-              <span>ভেরিফাইড সার্টিফিকেট</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-200">
-              <CheckCircle2 className="h-5 w-5 text-primary-200" />
-              <span>লাইফটাইম অ্যাক্সেস</span>
-            </div>
-          </div>
+  return (
+    <div className="space-y-10 pb-16 max-w-7xl mx-auto">
+      {/* ─── Header Banner ─── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 text-white p-8 sm:p-12 shadow-xl border border-slate-800">
+        <div className="relative z-10 max-w-2xl space-y-4">
+          <Badge className="bg-primary-500/20 text-primary-300 border-primary-500/30 text-xs px-3 py-1">
+            এক্সপ্লোর করুন
+          </Badge>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white">
+            কোর্স ক্যাটালগ
+          </h1>
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+            প্রফেশনাল সফটওয়্যার ক্যারিয়ারের জন্য তৈরি আমাদের হ্যান্ডস-অন কোর্সগুলো ব্রাউজ করুন এবং আপনার উপযুক্ত কোর্সটি বেছে নিন।
+          </p>
         </div>
 
-        {/* Decorative background glows */}
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-72 w-72 rounded-full bg-primary-500/20 blur-3xl pointer-events-none" />
-        <div className="absolute right-32 bottom-0 h-48 w-48 rounded-full bg-blue-400/15 blur-2xl pointer-events-none" />
-      </div>
-
-      {/* Filter and Search Section */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 flex flex-col md:flex-row gap-4 justify-between items-center border-b border-slate-100">
-          {/* Search Input */}
-          <div className="relative w-full md:max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        {/* Floating Search Bar */}
+        <div className="relative z-10 mt-8 max-w-2xl">
+          <div className="relative flex items-center bg-white rounded-2xl shadow-lg p-1.5 border border-slate-200">
+            <Search className="h-5 w-5 text-slate-400 ml-3 shrink-0" />
             <input
               type="text"
-              placeholder="কোর্স বা ইন্সট্রাক্টরের নাম দিয়ে খুঁজুন..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 transition"
+              placeholder="কোর্সের নাম, টপিক বা ইন্সট্রাক্টর সার্চ করুন..."
+              className="w-full px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none bg-transparent"
             />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <Button 
-              variant="outline" 
-              className="flex-1 md:flex-none gap-2 border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100"
-              onClick={() => setShowFilters(!showFilters)}
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 mr-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            <Button
+              size="sm"
+              className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-xl text-xs shrink-0"
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              <span>ফিল্টার ও সর্ট</span>
-              {(selectedCategory !== 'all' || selectedLevel !== 'all') && (
-                <span className="flex h-2 w-2 rounded-full bg-primary-600 ml-1"></span>
-              )}
+              খুঁজুন
             </Button>
           </div>
         </div>
+      </div>
 
-        {/* Expandable Smart Filters */}
-        {showFilters && (
-          <div className="p-5 bg-slate-50/50 flex flex-col md:flex-row gap-6 border-b border-slate-100 animate-in fade-in slide-in-from-top-2">
-            {/* Categories */}
-            <div className="flex-1 space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ক্যাটাগরি</label>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      selectedCategory === cat.id
-                        ? "bg-primary-600 text-white shadow-sm"
-                        : "bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-700"
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* ─── Category Chips ─── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {categories.map((cat) => {
+          const isSelected = selectedCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer border ${
+                isSelected
+                  ? "bg-primary-600 text-white border-primary-600 shadow-sm scale-[1.02]"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+            >
+              <cat.icon className={`h-4 w-4 ${isSelected ? "text-white" : "text-slate-400"}`} />
+              <span>{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-            {/* Level */}
-            <div className="space-y-2 min-w-[200px]">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">লেভেল</label>
-              <div className="flex flex-wrap gap-2">
-                {levels.map((lvl) => (
-                  <button
-                    key={lvl.id}
-                    onClick={() => setSelectedLevel(lvl.id)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      selectedLevel === lvl.id
-                        ? "bg-slate-800 text-white shadow-sm"
-                        : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800"
-                    }`}
-                  >
-                    {lvl.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sort */}
-            <div className="space-y-2 min-w-[200px]">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">সর্ট করুন</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 cursor-pointer"
+      {/* ─── Filter Bar & Sort Controls ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">লেভেল:</div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {levels.map((lvl) => (
+              <button
+                key={lvl.id}
+                onClick={() => setSelectedLevel(lvl.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  selectedLevel === lvl.id
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
               >
-                <option value="popular">জনপ্রিয়তা</option>
-                <option value="rating">সেরা রেটিং</option>
-                <option value="price-low">মূল্য: কম থেকে বেশি</option>
-                <option value="price-high">মূল্য: বেশি থেকে কম</option>
-              </select>
-            </div>
+                {lvl.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
+
+        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium">সর্ট করুন:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              <option value="popular">সর্বাধিক জনপ্রিয়</option>
+              <option value="rating">সেরা রেটিং</option>
+              <option value="price-low">কম মূল্য থেকে বেশি</option>
+              <option value="price-high">বেশি মূল্য থেকে কম</option>
+            </select>
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={resetFilters}
+              className="text-xs text-rose-600 hover:text-rose-700 font-medium underline"
+            >
+              ফিল্টার মুছুন
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Course Count */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-          উপলব্ধ কোর্সসমূহ
-          <Badge className="bg-primary-100 text-primary-700 hover:bg-primary-200">{filteredCourses.length}</Badge>
-        </h2>
-        {(selectedCategory !== 'all' || selectedLevel !== 'all' || searchQuery !== '') && (
-          <button 
-            onClick={resetFilters}
-            className="text-sm font-medium text-slate-500 hover:text-rose-500 transition-colors"
-          >
-            ফিল্টার মুছে ফেলুন
-          </button>
-        )}
+      {/* ─── Results Counter ─── */}
+      <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+        <span>মোট <strong className="text-slate-900 font-bold">{filteredCourses.length}</strong> টি কোর্স পাওয়া গেছে</span>
       </div>
 
-      {/* Courses Grid */}
+      {/* ─── Courses Grid ─── */}
       {filteredCourses.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <BookOpen className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-          <h3 className="text-lg font-semibold text-slate-800">কোনো কোর্স পাওয়া যায়নি</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            অনুগ্রহ করে অন্য কি-ওয়ার্ড বা ক্যাটাগরি দিয়ে চেষ্টা করুন।
+        <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl space-y-4">
+          <div className="h-14 w-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+            <Search className="h-6 w-6" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-900">কোনো কোর্স পাওয়া যায়নি</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            আপনার অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো কোর্স পাওয়া যায়নি। অনুগ্রহ করে ফিল্টার পরিবর্তন করুন।
           </p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => {
-              setSearchQuery("");
-              setSelectedCategory("all");
-            }}
-          >
-            ফিল্টার রিসেট করুন
+          <Button onClick={resetFilters} variant="outline" size="sm">
+            সকল কোর্স দেখুন
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
-            <CourseCardItem 
-              key={course.id} 
-              course={course} 
-              isLoading={loadingCourseId === course.id}
-              onClick={() => handleCourseClick(course.id)}
-            />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+          {filteredCourses.map((course) => {
+            const discount = Math.round(
+              ((course.originalPrice - course.price) / course.originalPrice) * 100
+            );
+
+            return (
+              <Card
+                key={course.id}
+                className="overflow-hidden border border-slate-200/90 rounded-2xl hover:border-primary-300 hover:shadow-xl transition-all duration-300 flex flex-col bg-white group"
+              >
+                {/* Thumbnail */}
+                <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                  <img
+                    src={course.thumbnailUrl}
+                    alt={course.title}
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <Badge className="bg-primary-600/90 backdrop-blur-sm text-white font-semibold text-xs px-2.5 py-1">
+                      {course.categoryBangla}
+                    </Badge>
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-rose-500 text-white font-bold text-xs shadow-md">
+                      {discount}% OFF
+                    </Badge>
+                  </div>
+
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs">
+                    <span className="bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md font-medium">
+                      লেভেল: {course.level}
+                    </span>
+                    <span className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-md font-semibold text-amber-300">
+                      <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
+                      {course.rating.toFixed(1)} ({course.totalRatings})
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-slate-900 text-base leading-snug line-clamp-2 group-hover:text-primary-600 transition-colors">
+                      {course.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {course.tagline}
+                    </p>
+                  </div>
+
+                  {/* Instructor */}
+                  <div className="flex items-center gap-2.5 pt-2 border-t border-slate-100">
+                    <img
+                      src={course.instructor.avatar}
+                      alt={course.instructor.name}
+                      className="h-8 w-8 rounded-full object-cover border border-slate-200"
+                    />
+                    <div className="text-xs">
+                      <p className="font-semibold text-slate-800 leading-tight">{course.instructor.name}</p>
+                      <p className="text-slate-400 text-[11px] truncate max-w-[180px]">{course.instructor.role}</p>
+                    </div>
+                  </div>
+
+                  {/* Metadata & Pricing */}
+                  <div className="pt-3 border-t border-slate-100 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        {course.duration}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-3.5 w-3.5 text-slate-400" />
+                        {course.totalLessons} টি লেসন
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        <div className="text-xl font-black text-primary-700">
+                          ৳{course.price.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-slate-400 line-through">
+                          ৳{course.originalPrice.toLocaleString()}
+                        </div>
+                      </div>
+
+                      <Link href={`/courses/${course.id}`}>
+                        <Button size="sm" className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-sm">
+                          বিস্তারিত দেখুন
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function CourseCardItem({ 
-  course, 
-  isLoading, 
-  onClick 
-}: { 
-  course: Course; 
-  isLoading?: boolean;
-  onClick: () => void;
-}) {
-  const discountPercent = Math.round(
-    ((course.originalPrice - course.price) / course.originalPrice) * 100
-  );
-
+export default async function CoursesPage() {
+  const submittedCourses = await prisma.course.findMany({ where: { approvalStatus: 'APPROVED' }, include: { instructor: true, modules: { include: { lessons: true }, orderBy: { order: 'asc' } } } });
+  const additionalCourses: Course[] = submittedCourses.map((course) => ({
+    id: course.id, title: course.title, tagline: course.tagline, description: course.description,
+    category: (['web-dev', 'data-science', 'app-dev', 'programming', 'system-design'].includes(course.category) ? course.category : 'programming') as Course['category'],
+    categoryBangla: course.categoryBangla, level: course.level as Course['level'], rating: course.rating, totalRatings: course.totalRatings,
+    studentsEnrolled: course.studentsEnrolled, duration: course.duration, totalLessons: course.totalLessons, price: course.price,
+    originalPrice: course.originalPrice, thumbnailUrl: course.thumbnailUrl, instructor: course.instructor,
+    learningOutcomes: JSON.parse(course.learningOutcomes), prerequisites: JSON.parse(course.prerequisites), modules: course.modules,
+  }));
   return (
-    <Card 
-      onClick={onClick}
-      className="relative flex flex-col h-full overflow-hidden hover:shadow-lg transition-all duration-200 border-slate-200 group bg-white cursor-pointer select-none"
-    >
-      {/* Loading Overlay */}
-      {isLoading && (
-        <Loader 
-          overlay 
-          text="কোর্স লোড হচ্ছে..." 
-          subtext="একটু অপেক্ষা করুন" 
-          size="md" 
-        />
-      )}
-
-      {/* Course Thumbnail */}
-      <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
-        <img
-          src={course.thumbnailUrl}
-          alt={course.title}
-          className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-          loading="lazy"
-        />
-        <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
-          <Badge className="bg-primary-600 text-white font-medium text-xs px-2.5 py-0.5">
-            {course.categoryBangla}
-          </Badge>
-          <Badge variant="secondary" className="bg-white/90 text-slate-800 backdrop-blur-sm text-xs font-semibold">
-            {course.level}
-          </Badge>
-        </div>
-        {discountPercent > 0 && (
-          <div className="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">
-            {discountPercent}% ছাড়
-          </div>
-        )}
+    <Suspense fallback={
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
-
-      {/* Card Content */}
-      <CardContent className="flex flex-col flex-1 p-5 space-y-4">
-        <div className="flex-1 space-y-2">
-          <h3 className="font-bold text-slate-900 text-lg leading-snug group-hover:text-primary-600 transition line-clamp-2">
-            {course.title}
-          </h3>
-          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-            {course.tagline}
-          </p>
-        </div>
-
-        {/* Instructor Info */}
-        <div className="flex items-center gap-2.5 pt-2 border-t border-slate-100">
-          <img
-            src={course.instructor.avatar}
-            alt={course.instructor.name}
-            className="h-7 w-7 rounded-full object-cover border border-slate-200"
-          />
-          <div className="text-xs">
-            <span className="text-slate-400">প্রশিক্ষক: </span>
-            <span className="font-medium text-slate-700">{course.instructor.name}</span>
-          </div>
-        </div>
-
-        {/* Meta details (Duration, Lessons, Rating) */}
-        <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-          <div className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5 text-slate-400" />
-            <span>{course.duration}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <BookOpen className="h-3.5 w-3.5 text-slate-400" />
-            <span>{course.totalLessons} টি লেসন</span>
-          </div>
-          <div className="flex items-center gap-1 font-semibold text-amber-600">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span>{course.rating}</span>
-            <span className="text-slate-400 font-normal">({course.totalRatings})</span>
-          </div>
-        </div>
-
-        {/* Price & Action */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-extrabold text-primary-900">
-                ৳{course.price.toLocaleString("bn-BD")}
-              </span>
-              {course.originalPrice > course.price && (
-                <span className="text-xs text-slate-400 line-through">
-                  ৳{course.originalPrice.toLocaleString("bn-BD")}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <Button 
-            size="sm" 
-            disabled={isLoading}
-            className="gap-1 bg-primary-600 hover:bg-primary-700 text-white font-medium"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>লোড হচ্ছে...</span>
-              </>
-            ) : (
-              <>
-                <span>বিস্তারিত</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </>
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    }>
+      <CoursesCatalog additionalCourses={additionalCourses} />
+    </Suspense>
   );
 }

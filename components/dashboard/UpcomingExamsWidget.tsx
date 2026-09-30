@@ -1,36 +1,48 @@
-﻿import React from "react"
-import { Clock } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
+import React from "react";
+import { Clock, Calendar, AlertCircle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 
 interface Exam {
-  id: string
-  title: string
-  date: string
-  daysLeft: number
+  id: string;
+  title: string;
+  date: string;
+  daysLeft: number;
 }
 
 export function UpcomingExamsWidget({ exams }: { exams: Exam[] }) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-          <Clock className="w-4 h-4" />
-          Upcoming Exams
+    <Card className="border border-slate-200/90 rounded-2xl bg-white shadow-sm overflow-hidden">
+      <CardHeader className="p-5 pb-3 border-b border-slate-100 bg-slate-50/50">
+        <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary-600" />
+            আসন্ন পরীক্ষা ও কুইজ
+          </span>
+          <Badge variant="outline" className="bg-white text-[10px] text-slate-500 font-semibold">
+            {exams.length} টি বাকি
+          </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 space-y-4">
+      <CardContent className="p-5 space-y-3.5">
         {exams.length === 0 ? (
-          <p className="text-sm text-slate-500">No upcoming exams.</p>
+          <p className="text-xs text-slate-500 py-3 text-center">কোনো আসন্ন পরীক্ষা নেই।</p>
         ) : (
           exams.map((exam) => (
-            <div key={exam.id} className="flex justify-between items-start border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-              <div>
-                <p className="text-sm font-medium text-slate-900">{exam.title}</p>
-                <p className="text-xs text-slate-500">{new Date(exam.date).toLocaleDateString()}</p>
+            <div
+              key={exam.id}
+              className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition"
+            >
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-slate-800">{exam.title}</p>
+                <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(exam.date).toLocaleDateString()}
+                </p>
               </div>
-              <div className="text-right">
-                <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/10">
-                  {exam.daysLeft} days left
+              <div>
+                <span className="inline-flex items-center rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600 border border-rose-100">
+                  {exam.daysLeft} দিন বাকি
                 </span>
               </div>
             </div>
@@ -38,5 +50,5 @@ export function UpcomingExamsWidget({ exams }: { exams: Exam[] }) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

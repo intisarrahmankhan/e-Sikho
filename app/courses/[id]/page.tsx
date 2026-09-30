@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useRouter, useParams } from "next/navigation";
@@ -23,7 +23,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getCourseById } from "@/lib/courses-data";
+import { Course, getCourseById } from "@/lib/courses-data";
 
 /**
  * CourseDetailsPage — displays full course information and a sticky enroll
@@ -41,9 +41,15 @@ export default function CourseDetailsPage() {
 
   // Track button loading state while navigating to the payment gateway
   const [enrolling, setEnrolling] = useState(false);
+  const [course, setCourse] = useState<Course | null>(() => getCourseById(courseId) ?? null);
+  const [loading, setLoading] = useState(!course);
 
-  const course = getCourseById(courseId);
+  useEffect(() => {
+    if (course) return;
+    fetch(`/api/courses/${courseId}`).then(response => response.ok ? response.json() : null).then(data => setCourse(data)).finally(() => setLoading(false));
+  }, [course, courseId]);
 
+  if (loading) return <div className="py-12 text-center text-slate-500">Loading course...</div>;
   if (!course) {
     notFound();
   }
