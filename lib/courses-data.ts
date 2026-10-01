@@ -3,6 +3,7 @@ export interface Lesson {
   title: string;
   duration: string;
   isFree?: boolean;
+  videoUrl?: string;
 }
 
 export interface Module {
@@ -28,6 +29,7 @@ export interface Course {
   price: number;
   originalPrice: number;
   thumbnailUrl: string;
+  previewVideoUrl?: string;
   instructor: {
     name: string;
     role: string;

@@ -43,6 +43,7 @@ export default function CourseDetailsPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [course, setCourse] = useState<Course | null>(() => getCourseById(courseId) ?? null);
   const [loading, setLoading] = useState(!course);
+  const [activeVideo, setActiveVideo] = useState<{ title: string; videoUrl: string } | null>(null);
 
   useEffect(() => {
     if (course) return;
@@ -126,21 +127,35 @@ export default function CourseDetailsPage() {
 
           {/* Video Preview / Hero Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-md aspect-video bg-slate-900 border border-slate-200 group">
-            <img
-              src={course.thumbnailUrl}
-              alt={course.title}
-              className="w-full h-full object-cover opacity-85 group-hover:scale-102 transition duration-300"
-            />
-            <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2 text-white">
-                <div className="h-14 w-14 rounded-full bg-primary-600/90 text-white flex items-center justify-center shadow-lg transform transition group-hover:scale-110">
-                  <PlayCircle className="h-8 w-8 ml-0.5" />
+            {course.previewVideoUrl ? (
+              <video src={course.previewVideoUrl} controls className="w-full h-full object-cover" />
+            ) : (
+              <>
+                <img
+                  src={course.thumbnailUrl}
+                  alt={course.title}
+                  className="w-full h-full object-cover opacity-85 group-hover:scale-102 transition duration-300"
+                />
+                <div
+                  onClick={() => {
+                    const firstVideoLesson = course.modules.flatMap(m => m.lessons).find(l => l.videoUrl);
+                    if (firstVideoLesson?.videoUrl) {
+                      setActiveVideo({ title: firstVideoLesson.title, videoUrl: firstVideoLesson.videoUrl });
+                    }
+                  }}
+                  className="absolute inset-0 bg-slate-900/40 flex items-center justify-center cursor-pointer"
+                >
+                  <div className="flex flex-col items-center gap-2 text-white">
+                    <div className="h-14 w-14 rounded-full bg-primary-600/90 text-white flex items-center justify-center shadow-lg transform transition group-hover:scale-110">
+                      <PlayCircle className="h-8 w-8 ml-0.5" />
+                    </div>
+                    <span className="text-xs font-semibold tracking-wide bg-slate-900/60 px-3 py-1 rounded-full backdrop-blur-sm">
+                      কোর্স প্রিভিউ ভিডিও দেখুন
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs font-semibold tracking-wide bg-slate-900/60 px-3 py-1 rounded-full backdrop-blur-sm">
-                  কোর্স প্রিভিউ ভিডিও দেখুন
-                </span>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Course Overview / Description */}
@@ -195,20 +210,35 @@ export default function CourseDetailsPage() {
                     {module.lessons.map((lesson) => (
                       <div
                         key={lesson.id}
-                        className="px-5 py-3 flex items-center justify-between text-xs sm:text-sm hover:bg-slate-50 transition"
+                        onClick={() => {
+                          if (lesson.videoUrl || lesson.isFree) {
+                            setActiveVideo({
+                              title: lesson.title,
+                              videoUrl: lesson.videoUrl || course.previewVideoUrl || '',
+                            });
+                          }
+                        }}
+                        className={`px-5 py-3 flex items-center justify-between text-xs sm:text-sm transition ${
+                          lesson.videoUrl || lesson.isFree ? 'hover:bg-primary-50/50 cursor-pointer' : 'hover:bg-slate-50'
+                        }`}
                       >
                         <div className="flex items-center gap-3">
-                          {lesson.isFree ? (
-                            <PlayCircle className="h-4 w-4 text-primary-600" />
+                          {lesson.isFree || lesson.videoUrl ? (
+                            <PlayCircle className="h-4 w-4 text-primary-600 shrink-0" />
                           ) : (
-                            <Lock className="h-4 w-4 text-slate-400" />
+                            <Lock className="h-4 w-4 text-slate-400 shrink-0" />
                           )}
-                          <span className={lesson.isFree ? "font-medium text-slate-900" : "text-slate-600"}>
+                          <span className={lesson.isFree || lesson.videoUrl ? "font-medium text-slate-900" : "text-slate-600"}>
                             {lesson.title}
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          {lesson.isFree && (
+                          {lesson.videoUrl && (
+                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-[10px] font-semibold border-blue-200">
+                              ভিডিও R2
+                            </Badge>
+                          )}
+                          {lesson.isFree && !lesson.videoUrl && (
                             <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-[10px] font-semibold border-emerald-200">
                               ফ্রি প্রিভিউ
                             </Badge>
@@ -345,6 +375,33 @@ export default function CourseDetailsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Cloudflare R2 Video Player Modal */}
+      {activeVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl bg-slate-900 shadow-2xl border border-slate-700">
+            <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+              <div className="flex items-center gap-2 text-white">
+                <PlayCircle className="h-5 w-5 text-primary-500" />
+                <h3 className="font-bold text-sm sm:text-base truncate">{activeVideo.title}</h3>
+              </div>
+              <button
+                onClick={() => setActiveVideo(null)}
+                className="rounded-lg bg-slate-800 p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white transition"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="aspect-video bg-black flex items-center justify-center">
+              {activeVideo.videoUrl ? (
+                <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+              ) : (
+                <p className="text-sm text-slate-400">এই লেসনের কোনো ভিডিও ইউআরএল পাওয়া যায়নি।</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
