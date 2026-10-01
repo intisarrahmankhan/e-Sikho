@@ -5,25 +5,26 @@ import { CourseCard } from "@/components/dashboard/CourseCard";
 import { UpcomingExamsWidget } from "@/components/dashboard/UpcomingExamsWidget";
 import { LeaderboardSnippet } from "@/components/dashboard/LeaderboardSnippet";
 import { EmptyEnrollments } from "@/components/dashboard/EmptyEnrollments";
-import { auth } from "@/auth";
+
+import { auth } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from "@/lib/mongoose";
 import Enrollment from "@/models/Enrollment";
 import InstructorRequest from "@/models/InstructorRequest";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { 
-  Flame, 
-  Trophy, 
-  BookOpen, 
-  Clock, 
-  Award, 
-  Sparkles, 
-  ArrowRight, 
+import {
+  Flame,
+  Trophy,
+  BookOpen,
+  Clock,
+  Award,
+  Sparkles,
+  ArrowRight,
   CheckCircle2,
   TrendingUp,
   Target
 } from "lucide-react";
-import InstructorRequestForm from './InstructorRequestForm';
+import InstructorRequestForm from '../../../components/dashboard/InstructorRequestForm';
 
 // Mock Data for other widgets
 const MOCK_EXAMS = [
@@ -41,13 +42,13 @@ const MOCK_LEADERBOARD = [
 
 export default async function StudentDashboardPage() {
   const session = await auth();
-  
+
   if (!session || !session.user) {
     redirect('/login');
   }
-  
+
   const userId = (session.user as any).id;
-  
+
   if (!userId) {
     redirect('/login');
   }
@@ -58,9 +59,9 @@ export default async function StudentDashboardPage() {
     userId: userId,
     paymentStatus: 'success', // Only show fully paid / successful enrollments
   }).populate('course').lean();
-  
+
   const req = await InstructorRequest.findOne({ userId }).lean();
-  
+
   const enrollments: any[] = enrollmentsList || [];
   const instructorRequest: any = req || null;
 

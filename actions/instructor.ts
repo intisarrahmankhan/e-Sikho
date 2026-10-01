@@ -1,6 +1,7 @@
 'use server';
 
-import { auth } from '@/auth';
+import { auth } from '@/app/api/auth/[...nextauth]/route';
+
 import dbConnect from '@/lib/mongoose';
 import Course from '@/models/Course';
 import Instructor from '@/models/Instructor';
