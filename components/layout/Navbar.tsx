@@ -33,8 +33,8 @@ export function Navbar() {
     role === 'ADMIN' || role === 'SUPERADMIN'
       ? '/admin'
       : role === 'INSTRUCTOR'
-      ? '/instructor'
-      : '/student';
+        ? '/instructor'
+        : '/student';
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 shadow-sm">
@@ -63,11 +63,10 @@ export function Navbar() {
       <div className="flex items-center gap-1.5 sm:gap-3">
         <Link
           href="/"
-          className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-            pathname === '/'
+          className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname === '/'
               ? 'bg-primary-50 text-primary-700'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
+            }`}
         >
           <Home className="h-4 w-4" />
           <span>হোম</span>
@@ -75,11 +74,10 @@ export function Navbar() {
 
         <Link
           href="/courses"
-          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-            pathname.startsWith('/courses')
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname.startsWith('/courses')
               ? 'bg-primary-50 text-primary-700'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
+            }`}
         >
           <BookOpen className="h-4 w-4" />
           <span>সকল কোর্স</span>
@@ -89,11 +87,10 @@ export function Navbar() {
           <>
             <Link
               href={userDashboardUrl}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                pathname.startsWith('/student') || pathname.startsWith('/instructor') || pathname.startsWith('/admin')
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname.startsWith('/student') || pathname.startsWith('/instructor') || pathname.startsWith('/admin')
                   ? 'bg-primary-50 text-primary-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>ড্যাশবোর্ড</span>
@@ -133,12 +130,7 @@ export function Navbar() {
               <LogIn className="h-4 w-4" />
               <span>লগইন</span>
             </Link>
-            <Link
-              href="/courses"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition"
-            >
-              শেখা শুরু করুন
-            </Link>
+
           </div>
         )}
       </div>

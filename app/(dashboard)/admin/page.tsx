@@ -1,4 +1,5 @@
-import { auth } from '@/auth';
+import { auth } from '@/app/api/auth/[...nextauth]/route';
+
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
