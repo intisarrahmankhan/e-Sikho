@@ -11,7 +11,12 @@
     "postinstall": ""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1144.0",
+    "@aws-sdk/s3-request-presigner": "^3.1144.0",
+    "@base-ui/react": "^1.8.0",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cn": "^0.4.0",
     "lucide-react": "^0.395.0",
     "mongoose": "^9.10.3",
     "next": "^14.2.3",

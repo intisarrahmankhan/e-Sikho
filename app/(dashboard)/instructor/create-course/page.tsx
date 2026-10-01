@@ -1,7 +1,7 @@
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import CourseForm from '@/components/CourseForm';
+import CourseForm from '@/components/instructor/CourseForm';
 import { ArrowLeft, PlusCircle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';

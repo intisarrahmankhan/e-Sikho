@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import CourseForm from '@/components/CourseForm';
+import CourseForm from '@/components/instructor/CourseForm';
 import { createCourse } from '@/actions/instructor';
 
 // Mock the server action

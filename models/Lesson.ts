@@ -7,6 +7,8 @@ export interface ILesson extends Document {
   isFree: boolean;
   order: number;
   moduleId: mongoose.Types.ObjectId | string;
+  videoUrl?: string;
+  videoKey?: string;
 }
 
 const lessonSchema = new Schema<ILesson>(
@@ -17,6 +19,8 @@ const lessonSchema = new Schema<ILesson>(
     isFree: { type: Boolean, default: false },
     order: { type: Number, default: 0 },
     moduleId: { type: Schema.Types.ObjectId, ref: 'Module', required: true },
+    videoUrl: { type: String, default: '' },
+    videoKey: { type: String, default: '' },
   },
   {
     timestamps: false,
