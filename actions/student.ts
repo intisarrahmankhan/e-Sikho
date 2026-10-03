@@ -1,7 +1,5 @@
 'use server';
-
 import { auth } from '@/app/api/auth/[...nextauth]/route';
-
 import dbConnect from '@/lib/mongoose';
 import InstructorRequest from '@/models/InstructorRequest';
 import { revalidatePath } from 'next/cache';
@@ -16,7 +14,7 @@ export async function requestInstructorRole(formData: FormData) {
   if (reason.length < 20) return { error: 'Please provide at least 20 characters explaining your experience.' };
 
   await dbConnect();
-  
+
   const existing = await InstructorRequest.findOne({ userId });
   if (existing && ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED', 'APPROVED'].includes(existing.status)) {
     return { error: 'You already have an active instructor request.' };

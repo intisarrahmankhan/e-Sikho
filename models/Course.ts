@@ -15,6 +15,7 @@ export interface ICourse extends Document {
   price: number;
   originalPrice: number;
   thumbnailUrl: string;
+  previewVideoUrl?: string;
   status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED';
   approvalStatus: string;
   rejectionReason?: string;
@@ -44,6 +45,7 @@ const courseSchema = new Schema<ICourse>(
     price: { type: Number, required: true },
     originalPrice: { type: Number, required: true },
     thumbnailUrl: { type: String, required: true },
+    previewVideoUrl: { type: String, default: '' },
     status: {
       type: String,
       enum: ['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED'],

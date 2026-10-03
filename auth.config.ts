@@ -20,5 +20,15 @@ export const authConfig = {
       if (isProtected) return isLoggedIn;
       return true;
     },
+    // Required so middleware can read role/id/status from the JWT token
+    session({ session, token }: any) {
+      if (session.user) {
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role ?? 'STUDENT';
+        (session.user as any).status = token.status ?? 'APPROVED';
+      }
+      return session;
+    },
   },
 } satisfies NextAuthConfig;
+
