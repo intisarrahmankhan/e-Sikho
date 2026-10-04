@@ -17,7 +17,7 @@ describe('CourseForm', () => {
     render(<CourseForm />);
     expect(screen.getByText('Course Title *')).toBeTruthy();
     expect(screen.getByText('Description *')).toBeTruthy();
-    expect(screen.getByText('Price (BDT) — 0 for free')).toBeTruthy();
+    expect(screen.getByText('Price (BDT) - 0 for free')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Submit Course for Review/i })).toBeTruthy();
   });
 

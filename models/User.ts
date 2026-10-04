@@ -8,6 +8,8 @@ export interface IUser extends Document {
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   createdAt: Date;
   updatedAt: Date;
+  availableBalance: number;
+  totalEarnings: number;
 }
 
 const userSchema = new Schema<IUser>(
@@ -25,6 +27,8 @@ const userSchema = new Schema<IUser>(
       enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
       default: 'PENDING',
     },
+    availableBalance: { type: Number, default: 0 },
+    totalEarnings: { type: Number, default: 0 },
   },
   {
     timestamps: true,

@@ -6,8 +6,10 @@ vi.mock('@/lib/mongoose', () => ({
   default: vi.fn().mockResolvedValue(undefined),
 }));
 
-const mockFind = vi.fn();
-const mockCountDocuments = vi.fn();
+const { mockFind, mockCountDocuments } = vi.hoisted(() => ({
+  mockFind: vi.fn(),
+  mockCountDocuments: vi.fn(),
+}));
 
 vi.mock('@/models/User', () => ({
   default: {

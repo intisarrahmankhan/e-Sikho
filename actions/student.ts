@@ -1,5 +1,5 @@
 'use server';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import dbConnect from '@/lib/mongoose';
 import InstructorRequest from '@/models/InstructorRequest';
 import { revalidatePath } from 'next/cache';

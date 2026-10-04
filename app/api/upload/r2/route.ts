@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { uploadToR2, getR2PresignedUploadUrl } from '@/lib/r2';
 
 export const dynamic = 'force-dynamic';

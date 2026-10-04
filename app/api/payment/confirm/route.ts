@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 import dbConnect from '@/lib/mongoose';
 import Enrollment from '@/models/Enrollment';
+import Course from '@/models/Course';
+import { processEnrollmentCommission } from '@/actions/financial';
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     // Save enrollment to DB
     await dbConnect();
-    await Enrollment.findOneAndUpdate(
+    const enrollment = await Enrollment.findOneAndUpdate(
       {
         userId,
         courseId,
@@ -69,6 +71,13 @@ export async function POST(req: NextRequest) {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+
+    if (status === 'success') {
+      const course = await Course.findById(courseId).select('price');
+      if (course && course.price > 0) {
+        await processEnrollmentCommission(enrollment._id.toString(), courseId, course.price);
+      }
+    }
 
     const response = {
       transactionId,

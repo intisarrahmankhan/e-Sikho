@@ -7,7 +7,7 @@ import { UpcomingExamsWidget } from "@/components/dashboard/UpcomingExamsWidget"
 import { LeaderboardSnippet } from "@/components/dashboard/LeaderboardSnippet";
 import { EmptyEnrollments } from "@/components/dashboard/EmptyEnrollments";
 
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import dbConnect from "@/lib/mongoose";
 import Enrollment from "@/models/Enrollment";
 import InstructorRequest from "@/models/InstructorRequest";
@@ -37,8 +37,19 @@ export default async function StudentDashboardPage() {
   const session = await auth();
   if (!session || !session.user) redirect('/login');
 
-  const userId = (session.user as any).id;
+  let userId = (session.user as any).id;
   if (!userId) redirect('/login');
+
+  await dbConnect();
+
+  // Fallback in case session cookie has the email instead of the ObjectId
+  if (typeof userId === 'string' && userId.includes('@')) {
+    const { default: User } = await import('@/models/User');
+    const userDoc = await User.findOne({ email: userId }).select('_id').lean() as any;
+    if (userDoc) {
+      userId = userDoc._id.toString();
+    }
+  }
 
   await dbConnect();
   const enrollmentsList = await Enrollment.find({
