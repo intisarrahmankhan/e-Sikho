@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import dbConnect from '@/lib/mongoose';
 import Course from '@/models/Course';
 import { redirect } from 'next/navigation';
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { BarChart, DonutChart, ProgressBar } from '@/components/instructor/Charts';
 import { MiniSparkline } from '@/components/instructor/MiniSparkline';
+import InstructorPayout from '@/components/instructor/InstructorPayout';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -60,9 +61,28 @@ export default async function InstructorDashboardPage() {
 
   if (!user?.id || user.role !== 'INSTRUCTOR') redirect('/login');
 
+  let userId = user.id;
+
   await dbConnect();
 
-  const rawCourses = await Course.find({ createdById: user.id })
+  // Fallback in case session cookie has the email instead of the ObjectId
+  let availableBalance = 0;
+  let totalEarnings = 0;
+  const { default: User } = await import('@/models/User');
+  const userDoc = await User.findOne({ 
+    $or: [
+      { _id: userId.length === 24 ? userId : null },
+      { email: userId }
+    ]
+  }).select('_id availableBalance totalEarnings').lean() as any;
+
+  if (userDoc) {
+    userId = userDoc._id.toString();
+    availableBalance = userDoc.availableBalance || 0;
+    totalEarnings = userDoc.totalEarnings || 0;
+  }
+
+  const rawCourses = await Course.find({ createdById: userId })
     .sort({ createdAt: -1 })
     .select('_id title status approvalStatus price studentsEnrolled rating totalRatings createdAt category level')
     .lean();
@@ -154,6 +174,12 @@ export default async function InstructorDashboardPage() {
           </div>
         </div>
       </div>
+
+      <InstructorPayout 
+        userId={userId} 
+        availableBalance={availableBalance} 
+        totalEarnings={totalEarnings} 
+      />
 
       {/* ── Alert Strips ── */}
       {(pending.length > 0 || rejected.length > 0) && (

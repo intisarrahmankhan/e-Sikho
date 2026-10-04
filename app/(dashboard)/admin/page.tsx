@@ -1,10 +1,13 @@
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Course from '@/models/Course';
 import InstructorRequest from '@/models/InstructorRequest';
+import PayoutRequest from '@/models/PayoutRequest';
+import PlatformCommission from '@/models/PlatformCommission';
 import PendingApprovals from '@/components/admin/PendingApprovals';
+import FinancialAnalytics from '@/components/admin/FinancialAnalytics';
 import PaginatedUsersList from '@/components/admin/PaginatedUsersList';
 import CourseApprovals from '@/components/admin/CourseApprovals';
 import InstructorRequests from '@/components/admin/InstructorRequests';
@@ -59,7 +62,23 @@ export default async function AdminDashboardPage() {
   const totalFaculty   = await User.countDocuments({ role: 'INSTRUCTOR', status: 'APPROVED' });
   const totalPending   = pendingUsers.length;
 
-  const totalAlerts = pendingUsers.length + pendingCourses.length + instructorRequests.length;
+  // Financial Analytics
+  const commissionAgg = await PlatformCommission.aggregate([
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: '$totalAmount' },
+        platformCommission: { $sum: '$commissionAmount' },
+        instructorEarnings: { $sum: '$instructorEarnings' },
+      }
+    }
+  ]);
+  const finStats = commissionAgg[0] || { totalRevenue: 0, platformCommission: 0, instructorEarnings: 0 };
+
+  const rawPayouts = await PayoutRequest.find().sort({ createdAt: -1 }).lean();
+  const payoutRequests = rawPayouts.map((r: any) => ({ ...r, id: r._id.toString(), userId: r.userId.toString() }));
+
+  const totalAlerts = pendingUsers.length + pendingCourses.length + instructorRequests.length + payoutRequests.filter((p: any) => p.status === 'REQUESTED').length;
 
   const metrics = [
     {
@@ -149,8 +168,33 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* ── Action Sections ── */}
       <div className="space-y-6">
+
+        {/* Financial Analytics & Payouts */}
+        <Card className="overflow-hidden border-gray-200/80 shadow-sm">
+          <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-emerald-50 to-teal-50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+              <BarChart3 className="h-4 w-4 text-emerald-700" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-gray-900">Financial Analytics & Payouts</h2>
+              <p className="text-xs text-gray-500">Platform revenue, commissions, and instructor payout ledger</p>
+            </div>
+            {payoutRequests.filter((p: any) => p.status === 'REQUESTED').length > 0 && (
+              <span className="rounded-full bg-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                {payoutRequests.filter((p: any) => p.status === 'REQUESTED').length} payout requests
+              </span>
+            )}
+          </div>
+          <CardContent className="p-6">
+            <FinancialAnalytics 
+              totalRevenue={finStats.totalRevenue}
+              platformCommission={finStats.platformCommission}
+              instructorEarnings={finStats.instructorEarnings}
+              payoutRequests={payoutRequests}
+            />
+          </CardContent>
+        </Card>
 
         {/* Pending User Registrations */}
         <Card className="overflow-hidden border-gray-200/80 shadow-sm">

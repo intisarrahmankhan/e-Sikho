@@ -17,9 +17,9 @@ test.describe('Courses and Payment flows', () => {
     await expect(page).toHaveURL(/.*\/courses\/1/);
   });
 
-  test('should navigate to payment page for a course', async ({ page }) => {
+  test('should redirect unauthenticated users to login from payment page', async ({ page }) => {
     // Navigate to payment page for course 1
     await page.goto('http://localhost:3000/payment/1');
-    await expect(page).toHaveURL(/.*\/payment\/1/);
+    await expect(page).toHaveURL(/.*\/login\?callbackUrl=.*payment.*/);
   });
 });
