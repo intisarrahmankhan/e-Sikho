@@ -7,6 +7,8 @@ import PlatformCommission from '@/models/PlatformCommission';
 import User from '@/models/User';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
+import AuditLog from '@/models/AuditLog';
+import { auth } from '@/auth';
 
 /**
  * Calculates platform commission and updates instructor balance.
@@ -21,12 +23,12 @@ export async function processEnrollmentCommission(
 
   // Use a mongoose session for transaction
   await dbConnect();
-  const session = await mongoose.startSession();
+  const dbSession = await mongoose.startSession();
   
   try {
-    session.startTransaction();
+    dbSession.startTransaction();
 
-    const course = await Course.findById(courseId).session(session);
+    const course = await Course.findById(courseId).session(dbSession);
     if (!course) throw new Error('Course not found');
 
     const commissionAmount = (price * PLATFORM_COMMISSION_PERCENTAGE) / 100;
@@ -45,7 +47,7 @@ export async function processEnrollmentCommission(
           instructorEarnings,
         },
       ],
-      { session }
+      { session: dbSession }
     );
 
     // Update the instructor's balance
@@ -58,18 +60,18 @@ export async function processEnrollmentCommission(
             totalEarnings: instructorEarnings,
           },
         },
-        { session }
+        { session: dbSession }
       );
     }
 
-    await session.commitTransaction();
+    await dbSession.commitTransaction();
     return { success: true };
   } catch (error) {
-    await session.abortTransaction();
+    await dbSession.abortTransaction();
     console.error('Error processing commission:', error);
     return { success: false, error: 'Transaction failed' };
   } finally {
-    session.endSession();
+    dbSession.endSession();
   }
 }
 
@@ -83,12 +85,12 @@ export async function requestPayout(
   mfsNumber: string
 ) {
   await dbConnect();
-  const session = await mongoose.startSession();
+  const dbSession = await mongoose.startSession();
 
   try {
-    session.startTransaction();
+    dbSession.startTransaction();
 
-    const user = await User.findById(userId).session(session);
+    const user = await User.findById(userId).session(dbSession);
     if (!user) throw new Error('User not found');
     if (user.availableBalance < amount) {
       throw new Error('Insufficient balance');
@@ -96,7 +98,7 @@ export async function requestPayout(
 
     // Deduct from available balance immediately to prevent double spending
     user.availableBalance -= amount;
-    await user.save({ session });
+    await user.save({ session: dbSession });
 
     // Create payout request
     const request = await PayoutRequest.create(
@@ -109,16 +111,16 @@ export async function requestPayout(
           status: 'REQUESTED' as const,
         },
       ],
-      { session }
+      { session: dbSession }
     );
 
-    await session.commitTransaction();
+    await dbSession.commitTransaction();
     return { success: true, payoutRequest: request[0] };
   } catch (error) {
-    await session.abortTransaction();
+    await dbSession.abortTransaction();
     return { success: false, error: error instanceof Error ? error.message : 'Payout request failed' };
   } finally {
-    session.endSession();
+    dbSession.endSession();
   }
 }
 
@@ -131,13 +133,21 @@ export async function updatePayoutStatus(
   transactionId?: string,
   rejectionReason?: string
 ) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const role = (session?.user as any)?.role;
+
+  if (!userId || role !== 'SUPERADMIN') {
+    return { success: false, error: 'Unauthorized. Only Superadmins can update payout status.' };
+  }
+
   await dbConnect();
-  const session = await mongoose.startSession();
+  const dbSession = await mongoose.startSession();
 
   try {
-    session.startTransaction();
+    dbSession.startTransaction();
 
-    const payout = await PayoutRequest.findById(requestId).session(session);
+    const payout = await PayoutRequest.findById(requestId).session(dbSession);
     if (!payout) throw new Error('Payout request not found');
     
     // Prevent invalid state transitions
@@ -152,7 +162,7 @@ export async function updatePayoutStatus(
         {
           $inc: { availableBalance: payout.amount },
         },
-        { session }
+        { session: dbSession }
       );
       payout.rejectionReason = rejectionReason;
     }
@@ -169,14 +179,33 @@ export async function updatePayoutStatus(
     }
 
     payout.status = status;
-    await payout.save({ session });
+    await payout.save({ session: dbSession });
 
-    await session.commitTransaction();
+    await AuditLog.create(
+      [
+        {
+          action: 'UPDATE_PAYOUT_STATUS',
+          category: 'FINANCIAL',
+          actorId: userId,
+          targetId: payout.userId,
+          details: {
+            requestId,
+            status,
+            transactionId,
+            rejectionReason,
+            amount: payout.amount,
+          },
+        },
+      ],
+      { session: dbSession }
+    );
+
+    await dbSession.commitTransaction();
     return { success: true };
   } catch (error) {
-    await session.abortTransaction();
+    await dbSession.abortTransaction();
     return { success: false, error: error instanceof Error ? error.message : 'Update failed' };
   } finally {
-    session.endSession();
+    dbSession.endSession();
   }
 }

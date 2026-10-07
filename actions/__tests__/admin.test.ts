@@ -14,6 +14,16 @@ vi.mock('@/lib/mongoose', () => ({
   default: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/auth', () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: 'admin-id', role: 'SUPERADMIN' } })
+}));
+
+vi.mock('@/models/AuditLog', () => ({
+  default: {
+    create: vi.fn().mockResolvedValue(undefined),
+  }
+}));
+
 // Mock Next.js cache
 const mockRevalidatePath = vi.fn();
 vi.mock('next/cache', () => ({

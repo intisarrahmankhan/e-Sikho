@@ -140,12 +140,20 @@ export default async function AdminDashboardPage() {
               Platform overview · Moderate users, courses, and instructor promotions from one place.
             </p>
           </div>
-          {totalAlerts > 0 && (
-            <div className="flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-500/30 px-4 py-3 text-sm font-semibold text-amber-300">
-              <Bell className="h-5 w-5 shrink-0" />
-              <span>{totalAlerts} item{totalAlerts !== 1 ? 's' : ''} need your attention</span>
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-3">
+            {user?.role === 'SUPERADMIN' && (
+              <a href="/admin/audit" className="flex items-center gap-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/30 transition-colors">
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                <span>Audit Trail</span>
+              </a>
+            )}
+            {totalAlerts > 0 && (
+              <div className="flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-500/30 px-4 py-2 text-sm font-semibold text-amber-300">
+                <Bell className="h-4 w-4 shrink-0" />
+                <span>{totalAlerts} item{totalAlerts !== 1 ? 's' : ''} pending</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

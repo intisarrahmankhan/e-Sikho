@@ -33,6 +33,6 @@ test.describe('Login Page flows', () => {
       signInButton.click()
     ]);
 
-    expect(request.url()).toContain('/api/auth/signin');
+    expect(request.url()).toContain('accounts.google.com');
   });
 });

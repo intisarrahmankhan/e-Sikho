@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * POST /api/payment/cancel
@@ -12,6 +13,11 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || req.ip || 'unknown-ip';
+    if (!checkRateLimit(ip, 10, 60000)) { // 10 requests per minute per IP
+      return NextResponse.json({ message: 'Too many requests.' }, { status: 429 });
+    }
+
     // Parse body — courseId may be present to log which course was abandoned
     const body     = await req.json().catch(() => ({}));
     const courseId = (body as { courseId?: string }).courseId ?? 'unknown';
