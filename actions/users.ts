@@ -2,6 +2,7 @@
 
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
+import { auth } from '@/auth';
 
 export async function getPaginatedUsers({
   page = 1,
@@ -12,6 +13,12 @@ export async function getPaginatedUsers({
   limit?: number;
   searchEmail?: string;
 }) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    throw new Error('Unauthorized. Admin access required.');
+  }
+
   await dbConnect();
   const skip = (page - 1) * limit;
   

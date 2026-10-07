@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 import dbConnect from '@/lib/mongoose';
 import Enrollment from '@/models/Enrollment';
@@ -8,6 +9,11 @@ import { processEnrollmentCommission } from '@/actions/financial';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || req.ip || 'unknown-ip';
+    if (!checkRateLimit(ip, 5, 60000)) { // 5 requests per minute per IP
+      return NextResponse.json({ message: 'Too many requests. Try again later.' }, { status: 429 });
+    }
+
     const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(

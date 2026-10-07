@@ -6,6 +6,10 @@ vi.mock('@/lib/mongoose', () => ({
   default: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/auth', () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: 'admin-id', role: 'SUPERADMIN' } })
+}));
+
 const { mockFind, mockCountDocuments } = vi.hoisted(() => ({
   mockFind: vi.fn(),
   mockCountDocuments: vi.fn(),
