@@ -47,7 +47,16 @@ export default function CourseForm({ onSuccess }: CourseFormProps) {
   }
 
   return (
-    <form ref={formRef} action={submit} encType="multipart/form-data" className="space-y-6">
+    <form
+      ref={formRef}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        submit(formData);
+      }}
+      encType="multipart/form-data"
+      className="space-y-6"
+    >
       <FieldSet className="grid gap-5 sm:grid-cols-2">
         <Field className="sm:col-span-2">
           <FieldLabel htmlFor="title">Course Title *</FieldLabel>

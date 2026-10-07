@@ -1,12 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LoginPage from '@/app/login/page';
-import { signIn } from 'next-auth/react';
+import { loginWithGoogle } from '@/actions/auth';
 import { useSearchParams } from 'next/navigation';
 
-// Mock next-auth and next/navigation
-vi.mock('next-auth/react', () => ({
-  signIn: vi.fn(),
+// Mock server actions and next/navigation
+vi.mock('@/actions/auth', () => ({
+  loginWithGoogle: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -29,7 +29,7 @@ describe('LoginPage', () => {
     expect(screen.getByText('Google দিয়ে সাইন ইন করুন')).toBeTruthy();
   });
 
-  it('calls signIn with correct provider when clicked', () => {
+  it('calls loginWithGoogle with correct provider when clicked', () => {
     (useSearchParams as any).mockReturnValue({
       get: vi.fn().mockReturnValue(null),
     });
@@ -39,10 +39,10 @@ describe('LoginPage', () => {
     const signInButton = screen.getByRole('button', { name: /Google দিয়ে সাইন ইন করুন/i });
     fireEvent.click(signInButton);
 
-    expect(signIn).toHaveBeenCalledWith('google', { callbackUrl: '/student' });
+    expect(loginWithGoogle).toHaveBeenCalledWith('/student');
   });
 
-  it('passes the callbackUrl to signIn if provided', () => {
+  it('passes the callbackUrl to loginWithGoogle if provided', () => {
     (useSearchParams as any).mockReturnValue({
       get: vi.fn().mockReturnValue('/payment/123'),
     });
@@ -55,6 +55,6 @@ describe('LoginPage', () => {
     const signInButton = screen.getByRole('button', { name: /Google দিয়ে সাইন ইন করুন/i });
     fireEvent.click(signInButton);
 
-    expect(signIn).toHaveBeenCalledWith('google', { callbackUrl: '/payment/123' });
+    expect(loginWithGoogle).toHaveBeenCalledWith('/payment/123');
   });
 });

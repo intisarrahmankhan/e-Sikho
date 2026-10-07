@@ -46,9 +46,10 @@ function LoginForm() {
         </div>
 
         {/* Google Button */}
-        <form action={handleGoogleSignIn}>
+        <div className="w-full">
           <button
-            type="submit"
+            onClick={handleGoogleSignIn}
+            type="button"
             className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white border-2 border-slate-200 hover:border-primary-300 hover:bg-primary-50 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md group font-semibold text-slate-700"
           >
             {/* Google SVG icon */}
@@ -72,7 +73,7 @@ function LoginForm() {
             </svg>
             <span className="group-hover:text-primary-700 transition-colors">Google দিয়ে সাইন ইন করুন</span>
           </button>
-        </form>
+        </div>
 
         {/* Info */}
         <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">
