@@ -5,8 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { BookOpen, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { loginWithGoogle } from '@/actions/auth';
-
+import { loginWithGoogle, loginAsDeveloper } from '@/actions/auth';
 function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/student';
@@ -73,6 +72,27 @@ function LoginForm() {
             </svg>
             <span className="group-hover:text-primary-700 transition-colors">Google দিয়ে সাইন ইন করুন</span>
           </button>
+        </div>
+
+        {/* Developer Auto Login (Since Google OAuth keys are missing) */}
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          <p className="text-xs text-center text-slate-400 mb-3 font-medium">Developer Auto-Login</p>
+          <form className="grid grid-cols-2 gap-2">
+            <button
+              formAction={loginAsDeveloper.bind(null, 'INSTRUCTOR', '/instructor')}
+              type="submit"
+              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl transition-colors"
+            >
+              Test as Instructor
+            </button>
+            <button
+              formAction={loginAsDeveloper.bind(null, 'STUDENT', '/student')}
+              type="submit"
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl transition-colors"
+            >
+              Test as Student
+            </button>
+          </form>
         </div>
 
         {/* Info */}
