@@ -101,7 +101,7 @@ export async function createCourse(formData: FormData) {
       prerequisites: JSON.stringify([]),
     });
 
-    const module = await Module.create({
+    const courseModule = await Module.create({
       title: String(formData.get('moduleTitle') || 'Course content'),
       duration: '1 hour',
       order: 0,

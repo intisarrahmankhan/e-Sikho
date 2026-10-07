@@ -297,7 +297,7 @@ export default function HomePage() {
                   <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className="text-sm text-gray-600 leading-relaxed flex-1">"{t.content}"</p>
+              <p className="text-sm text-gray-600 leading-relaxed flex-1">&quot;{t.content}&quot;</p>
               <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
