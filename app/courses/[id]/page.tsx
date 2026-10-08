@@ -19,6 +19,7 @@ import {
   Sparkles,
   Loader2,
   CreditCard,
+  HelpCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -358,6 +359,10 @@ export default function CourseDetailsPage() {
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-primary-600" />
                     <span>আজীবন (Lifetime) অ্যাক্সেস</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <HelpCircle className="h-4 w-4 text-primary-600" />
+                    <span>LaTeX সূত্রসহ কুইজ ও অনলাইন মূল্যায়ন</span>
                   </div>
                 </div>
               </div>

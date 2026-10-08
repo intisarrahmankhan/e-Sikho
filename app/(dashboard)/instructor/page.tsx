@@ -177,10 +177,16 @@ export default async function InstructorDashboardPage() {
               <PlusCircle className="h-4 w-4" /> Create Course
             </Link>
             <Link
-              href="/courses"
+              href="/exams/create"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-500/60 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500/90 transition shadow-sm"
+            >
+              <PlusCircle className="h-4 w-4" /> Create Exam
+            </Link>
+            <Link
+              href="/exams"
               className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition"
             >
-              <Eye className="h-4 w-4" /> Browse Catalog
+              <Eye className="h-4 w-4" /> View Exams
             </Link>
           </div>
         </div>
