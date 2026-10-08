@@ -5,11 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import { BookOpen, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { loginWithGoogle } from '@/actions/auth';
+import { loginWithGoogle, loginWithCredentials } from '@/actions/auth';
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/student';
+  const errorParam = searchParams.get('error');
 
   const handleGoogleSignIn = async () => {
     await loginWithGoogle(callbackUrl);
@@ -42,6 +43,53 @@ function LoginForm() {
         <div className="flex items-center gap-4 mb-8">
           <div className="flex-1 h-px bg-slate-100" />
           <span className="text-xs text-slate-400 font-medium">সাইন ইন করুন</span>
+          <div className="flex-1 h-px bg-slate-100" />
+        </div>
+
+        {errorParam && (
+          <div className="mb-6 p-4 text-sm text-red-800 bg-red-50 border border-red-200 rounded-xl">
+            Invalid credentials. Please try again.
+          </div>
+        )}
+
+        {/* Demo Accounts List */}
+        <div className="mb-6 p-4 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl">
+          <p className="font-semibold mb-2">Demo Accounts:</p>
+          <ul className="space-y-1">
+            <li>Student: test@example.com / password123</li>
+            <li>Instructor: instructor@eshikho.com / instructor123456</li>
+            <li>Admin: admin@eshikho.com / admin123456</li>
+          </ul>
+        </div>
+
+        {/* Credentials Form (For Testing) */}
+        <form action={(formData) => loginWithCredentials(formData, callbackUrl)} className="w-full mb-4 flex flex-col gap-3">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email (e.g. test@example.com)"
+            required
+            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password (e.g. password123)"
+            required
+            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <button
+            type="submit"
+            className="w-full py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-sm"
+          >
+            Sign in with Email
+          </button>
+        </form>
+
+        {/* Divider */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex-1 h-px bg-slate-100" />
+          <span className="text-xs text-slate-400 font-medium">অথবা</span>
           <div className="flex-1 h-px bg-slate-100" />
         </div>
 

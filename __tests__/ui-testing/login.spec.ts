@@ -22,7 +22,7 @@ test.describe('Login Page flows', () => {
     await expect(page.locator('text=কোর্সটি কিনতে আগে লগইন করুন')).toBeVisible();
   });
 
-  test('should redirect to google oauth when clicking sign in', async ({ page }) => {
+  test('should redirect to google oauth when clicking sign in with Google', async ({ page }) => {
     await page.goto('/login');
 
     const signInButton = page.locator('button', { hasText: /Google দিয়ে সাইন ইন করুন/i });
@@ -34,5 +34,16 @@ test.describe('Login Page flows', () => {
     ]);
 
     expect(request.url()).toContain('accounts.google.com');
+  });
+
+  test('should login with dummy credentials and redirect to student dashboard', async ({ page }) => {
+    await page.goto('/login');
+    
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'password123');
+    await page.click('button:has-text("Sign in with Email")');
+
+    await page.waitForURL('**/student**');
+    await expect(page.url()).toContain('/student');
   });
 });
