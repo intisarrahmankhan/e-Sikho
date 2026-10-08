@@ -61,6 +61,17 @@ export default async function StudentDashboardPage() {
   const enrollments: any[] = enrollmentsList || [];
   const instructorRequest: any = req || null;
 
+  const { default: Exam } = await import('@/models/Exam');
+  const publishedExams = (await Exam.find({ status: 'PUBLISHED' }).limit(3).lean()) as any[];
+  const upcomingExams = publishedExams.length > 0
+    ? publishedExams.map((ex, i) => ({
+        id: ex._id.toString(),
+        title: ex.title,
+        date: new Date(Date.now() + (i + 3) * 86400000).toISOString(),
+        daysLeft: (i + 1) * 3,
+      }))
+    : MOCK_EXAMS;
+
   const enrolledCourses = enrollments.map(e => ({
     id: e.course._id ? e.course._id.toString() : e.course.id,
     title: e.course.title,
@@ -232,7 +243,7 @@ export default async function StudentDashboardPage() {
 
         {/* Right: Widgets */}
         <div className="space-y-5">
-          <UpcomingExamsWidget exams={MOCK_EXAMS} />
+          <UpcomingExamsWidget exams={upcomingExams} />
           <LeaderboardSnippet topStudents={MOCK_LEADERBOARD} />
         </div>
       </div>

@@ -83,6 +83,17 @@ export function Navbar() {
           <span>সকল কোর্স</span>
         </Link>
 
+        <Link
+          href="/exams"
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname.startsWith('/exams')
+              ? 'bg-primary-50 text-primary-700'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+        >
+          <Target className="h-4 w-4" />
+          <span>পরীক্ষা ও কুইজ</span>
+        </Link>
+
         {status === 'authenticated' && session?.user ? (
           <>
             <Link
