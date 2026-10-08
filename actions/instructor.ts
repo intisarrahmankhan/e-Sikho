@@ -114,7 +114,7 @@ export async function createCourse(formData: FormData) {
       duration: String(formData.get('lessonDuration') || '30 minutes'),
       isFree: true,
       order: 0,
-      moduleId: module._id,
+      moduleId: courseModule._id,
       videoUrl: lessonVideoUrl,
     });
 
