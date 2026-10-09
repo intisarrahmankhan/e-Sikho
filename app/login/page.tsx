@@ -28,7 +28,6 @@ import {
   signUpWithPhoneOtp,
   loginWithPhone,
   loginWithPhoneOtp,
-  loginWithCredentials,
 } from '@/actions/auth';
 import { requestSignupOtp, verifyPasswordAndSendLoginOtp } from '@/actions/otp';
 import { useLanguage } from '@/context/LanguageContext';
@@ -765,44 +764,6 @@ function LoginForm() {
         {/* ─────────── LOGIN FLOW (PASSWORD -> OTP VERIFICATION) ─────────── */}
         {activeTab === 'login' && (
           <>
-            {/* Quick Demo Pre-fill */}
-            <div className="mb-4 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl">
-              <p className="text-[11px] font-semibold text-slate-500 mb-2">
-                {language === 'en' ? 'Quick Demo Login:' : 'ডেমো অ্যাকাউন্ট দ্রুত প্রবেশ:'}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhone('test@example.com');
-                    setPassword('password123');
-                  }}
-                  className="px-2.5 py-1 text-[11px] bg-white border border-slate-200 hover:border-primary-400 hover:text-primary-600 rounded-lg text-slate-700 font-medium transition shadow-xs"
-                >
-                  🎓 Student
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhone('instructor@eshikho.com');
-                    setPassword('instructor123456');
-                  }}
-                  className="px-2.5 py-1 text-[11px] bg-white border border-slate-200 hover:border-primary-400 hover:text-primary-600 rounded-lg text-slate-700 font-medium transition shadow-xs"
-                >
-                  💼 Instructor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhone('admin@eshikho.com');
-                    setPassword('admin123456');
-                  }}
-                  className="px-2.5 py-1 text-[11px] bg-white border border-slate-200 hover:border-primary-400 hover:text-primary-600 rounded-lg text-slate-700 font-medium transition shadow-xs"
-                >
-                  🛡️ Admin
-                </button>
-              </div>
-            </div>
 
             {loginStep === 'credentials' ? (
               /* Step 1: Phone/Email & Password */
@@ -970,47 +931,6 @@ function LoginForm() {
           </>
         )}
 
-        {/* Email / Testing Sign-in (For E2E tests & direct email credentials) */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-          <details className="group [&_summary::-webkit-details-marker]:hidden" open>
-            <summary className="flex items-center justify-between cursor-pointer text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
-              <span className="flex items-center gap-1.5">
-                <KeyRound className="h-3.5 w-3.5 text-primary-500" />
-                {t('auth.emailOrDemoLogin', 'ইমেইল বা টেস্ট একাউন্ট দিয়ে লগইন')}
-              </span>
-              <span className="text-[10px] text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full font-normal">Demo / Testing</span>
-            </summary>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const fd = new FormData(e.currentTarget);
-                await loginWithCredentials(fd, callbackUrl);
-              }}
-              className="mt-3 flex flex-col gap-2.5"
-            >
-              <input
-                type="email"
-                name="email"
-                placeholder="test@example.com"
-                required
-                className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-slate-800"
-              />
-              <input
-                type="password"
-                name="password"
-                placeholder="password123"
-                required
-                className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-slate-800"
-              />
-              <button
-                type="submit"
-                className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-colors font-medium text-xs shadow-sm"
-              >
-                Sign in with Email
-              </button>
-            </form>
-          </details>
-        </div>
 
         {/* Info & Terms */}
         <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">

@@ -177,9 +177,9 @@ export function StudentDashboardClient({
             </div>
           </div>
         </div>
-        <Link href="/courses">
+        <Link href="/student/goals">
           <Button size="sm" className="bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shrink-0">
-            {language === 'en' ? 'Continue Learning →' : 'পড়া চালিয়ে যান →'}
+            {language === 'en' ? 'View Daily Routine →' : 'দৈনিক রুটিন দেখুন →'}
           </Button>
         </Link>
       </div>

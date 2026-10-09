@@ -53,7 +53,8 @@ export default function PaymentPage() {
   const router = useRouter();
   const courseId = params?.courseId as string;
 
-  const course = COURSES_DATA.find(c => c.id === courseId);
+  const [course, setCourse] = useState<any>(() => COURSES_DATA.find((c) => c.id === courseId) ?? null);
+  const [loading, setLoading] = useState(!course);
 
   const [tab, setTab] = useState<Tab>('card');
   const [status, setStatus] = useState<PaymentStatus>('idle');
@@ -74,6 +75,25 @@ export default function PaymentPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [countdown, setCountdown] = useState(5);
 
+  useEffect(() => {
+    if (course) return;
+    let isMounted = true;
+    fetch(`/api/courses/${courseId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data && !data.error) setCourse(data);
+      })
+      .catch((err) => console.error('Failed to load course for payment:', err))
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [course, courseId]);
+
   // Auto-redirect after success/fail/pending
   useEffect(() => {
     if (status !== 'success' && status !== 'failed' && status !== 'pending') return;
@@ -84,6 +104,14 @@ export default function PaymentPage() {
     const t = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(t);
   }, [status, countdown, router, courseId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
 
   if (!course) {
     return (
@@ -404,7 +432,7 @@ export default function PaymentPage() {
                 ) : (
                   <>
                     <Lock className="h-4 w-4" />
-                    <span>৳{course.price.toLocaleString('bn-BD')} পেমেন্ট করুন</span>
+                    <span>৳{(Number(course.price) || 0).toLocaleString('bn-BD')} পেমেন্ট করুন</span>
                     <ChevronRight className="h-4 w-4" />
                   </>
                 )}
@@ -439,40 +467,40 @@ export default function PaymentPage() {
             </div>
             <div className="p-5 space-y-4">
               <img
-                src={course.thumbnailUrl}
+                src={course.thumbnailUrl || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80'}
                 alt={course.title}
                 className="w-full rounded-xl object-cover aspect-video"
               />
               <div>
                 <p className="font-bold text-slate-900 text-sm leading-snug">{course.title}</p>
-                <p className="text-xs text-slate-500 mt-1">{course.tagline}</p>
+                <p className="text-xs text-slate-500 mt-1">{course.tagline || ''}</p>
               </div>
 
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-amber-600">{course.rating}</span>
-                <span>({course.totalRatings} রিভিউ)</span>
+                <span className="font-semibold text-amber-600">{course.rating || 5.0}</span>
+                <span>({course.totalRatings || 0} রিভিউ)</span>
               </div>
 
               <div className="space-y-2 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{course.duration}</div>
-                <div className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />{course.totalLessons} টি লেসন</div>
+                <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{course.duration || '১০ ঘণ্টা'}</div>
+                <div className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />{course.totalLessons || 0} টি লেসন</div>
               </div>
 
               <div className="border-t border-slate-100 pt-4 space-y-1.5 text-sm">
                 <div className="flex justify-between text-slate-600">
                   <span>কোর্স মূল্য</span>
-                  <span>৳{course.originalPrice.toLocaleString('bn-BD')}</span>
+                  <span>৳{(Number(course.originalPrice) || Number(course.price) || 0).toLocaleString('bn-BD')}</span>
                 </div>
-                {course.originalPrice > course.price && (
+                {(Number(course.originalPrice) || 0) > (Number(course.price) || 0) && (
                   <div className="flex justify-between text-emerald-600 font-medium">
                     <span>ডিসকাউন্ট</span>
-                    <span>-৳{(course.originalPrice - course.price).toLocaleString('bn-BD')}</span>
+                    <span>-৳{((Number(course.originalPrice) || 0) - (Number(course.price) || 0)).toLocaleString('bn-BD')}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-extrabold text-slate-900 text-base border-t border-slate-200 pt-2 mt-2">
                   <span>মোট পরিমাণ</span>
-                  <span>৳{course.price.toLocaleString('bn-BD')}</span>
+                  <span>৳{(Number(course.price) || 0).toLocaleString('bn-BD')}</span>
                 </div>
               </div>
             </div>

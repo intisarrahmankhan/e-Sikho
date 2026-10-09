@@ -60,12 +60,35 @@ export default async function StudentDashboardPage() {
 
   const { getCourseById } = await import('@/lib/courses-data');
   const CourseModel = (await import('@/models/Course')).default;
+  const CourseRoutine = (await import('@/models/CourseRoutine')).default;
 
   const enrolledCourses = (
     await Promise.all(
       enrollments.map(async (e) => {
         const courseIdStr = String(e.courseId);
         const staticCourse = getCourseById(courseIdStr);
+
+        let userRoutine: any = null;
+        try {
+          userRoutine = await CourseRoutine.findOne({ userId, courseId: courseIdStr }).lean();
+        } catch {}
+
+        let targetCompletionDate = new Date(new Date().setMonth(new Date().getMonth() + 2)).toISOString().split('T')[0];
+        let paceMode: string | undefined = undefined;
+        let progressPercentage = 35;
+
+        if (userRoutine) {
+          if (userRoutine.targetCompletionDate) {
+            targetCompletionDate = new Date(userRoutine.targetCompletionDate).toISOString().split('T')[0];
+          }
+          paceMode = userRoutine.paceMode;
+          const totalItems = userRoutine.items?.length || 1;
+          const completedItems = userRoutine.items?.filter((i: any) => i.completed)?.length || 0;
+          if (totalItems > 0 && completedItems > 0) {
+            progressPercentage = Math.round((completedItems / totalItems) * 100);
+          }
+        }
+
         if (staticCourse) {
           return {
             id: staticCourse.id,
@@ -73,8 +96,9 @@ export default async function StudentDashboardPage() {
             titleEn: staticCourse.titleEn || '',
             thumbnailUrl: staticCourse.thumbnailUrl,
             thumbnailUrlEn: staticCourse.thumbnailUrlEn || '',
-            progressPercentage: 35,
-            targetCompletionDate: new Date(new Date().setMonth(new Date().getMonth() + 2)).toISOString().split('T')[0],
+            progressPercentage,
+            targetCompletionDate,
+            paceMode,
           };
         }
 
@@ -87,8 +111,9 @@ export default async function StudentDashboardPage() {
               titleEn: dbCourse.titleEn || '',
               thumbnailUrl: dbCourse.thumbnailUrl || '/images/default-course.jpg',
               thumbnailUrlEn: dbCourse.thumbnailUrlEn || '',
-              progressPercentage: 35,
-              targetCompletionDate: new Date(new Date().setMonth(new Date().getMonth() + 2)).toISOString().split('T')[0],
+              progressPercentage,
+              targetCompletionDate,
+              paceMode,
             };
           }
         } catch {
