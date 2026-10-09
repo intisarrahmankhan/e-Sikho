@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getPaginatedUsers } from '../users';
+import { getPaginatedUsers } from '@/actions/users';
 
 // Mock the Mongoose User model and dbConnect
 vi.mock('@/lib/mongoose', () => ({

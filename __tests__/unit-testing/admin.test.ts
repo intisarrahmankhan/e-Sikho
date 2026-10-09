@@ -7,7 +7,7 @@ import {
   toggleUserSuspend,
   reviewInstructorRequest,
   reviewCourse,
-} from '../admin';
+} from '@/actions/admin';
 
 // Mock the Mongoose connection
 vi.mock('@/lib/mongoose', () => ({

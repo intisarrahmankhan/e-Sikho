@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { LatexRenderer, LatexFormulaToolbar } from '../components/exam/LatexRenderer';
+import { LatexRenderer, LatexFormulaToolbar } from '@/components/exam/LatexRenderer';
 
 describe('LatexRenderer component', () => {
   it('renders plain Bengali text properly', () => {
