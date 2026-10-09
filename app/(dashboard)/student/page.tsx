@@ -3,21 +3,16 @@ import { auth } from '@/auth';
 import dbConnect from "@/lib/mongoose";
 import Enrollment from "@/models/Enrollment";
 import InstructorRequest from "@/models/InstructorRequest";
+import User from "@/models/User";
+import Exam from "@/models/Exam";
+import ExamSubmission from "@/models/ExamSubmission";
+import CourseRoutine from "@/models/CourseRoutine";
+import CourseModel from "@/models/Course";
+import { getCourseById } from "@/lib/courses-data";
 import { redirect } from "next/navigation";
 import { StudentDashboardClient } from "@/components/dashboard/StudentDashboardClient";
 
-const MOCK_EXAMS = [
-  { id: "e1", title: "সিস্টেম ডিজাইন মিডটার্ম পরীক্ষা", date: "2024-10-15", daysLeft: 7 },
-  { id: "e2", title: "রিয়েক্ট পারফরম্যান্স কুইজ", date: "2024-10-25", daysLeft: 17 }
-];
-
-const MOCK_LEADERBOARD = [
-  { id: "s1", name: "তানজিম আহমেদ", elo: 1620 },
-  { id: "s2", name: "নুসরাত জাহান", elo: 1585 },
-  { id: "s3", name: "রাকিবুল হাসান", elo: 1540 },
-  { id: "s4", name: "You", elo: 1450 },
-  { id: "s5", name: "সাদিয়া আফরিন", elo: 1425 },
-];
+export const dynamic = 'force-dynamic';
 
 export default async function StudentDashboardPage() {
   const session = await auth();
@@ -28,39 +23,83 @@ export default async function StudentDashboardPage() {
 
   await dbConnect();
 
-  // Fallback in case session cookie has the email instead of the ObjectId
+  // Resolve user document for accurate stats, elo, and streak
+  let userDoc: any = null;
   if (typeof userId === 'string' && userId.includes('@')) {
-    const { default: User } = await import('@/models/User');
-    const userDoc = await User.findOne({ email: userId }).select('_id').lean() as any;
+    userDoc = await User.findOne({ email: userId }).select('_id name elo streak').lean();
     if (userDoc) {
       userId = userDoc._id.toString();
     }
+  } else {
+    userDoc = await User.findById(userId).select('_id name elo streak').lean();
   }
 
-  await dbConnect();
+  const elo = userDoc?.elo || 1200;
+  const streak = userDoc?.streak || 1;
+  const name = userDoc?.name || session.user.name || 'শিক্ষার্থী';
+
+  // 1. Live Enrollments
   const enrollmentsList = await Enrollment.find({
     userId,
     paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
   }).lean();
-
-  const req = await InstructorRequest.findOne({ userId }).lean();
   const enrollments: any[] = enrollmentsList || [];
-  const instructorRequest: any = req || null;
 
-  const { default: Exam } = await import('@/models/Exam');
-  const publishedExams = (await Exam.find({ status: 'PUBLISHED' }).limit(3).lean()) as any[];
-  const upcomingExams = publishedExams.length > 0
-    ? publishedExams.map((ex, i) => ({
-        id: ex._id.toString(),
-        title: ex.title,
-        date: new Date(Date.now() + (i + 3) * 86400000).toISOString(),
-        daysLeft: (i + 1) * 3,
-      }))
-    : MOCK_EXAMS;
+  // 2. Instructor request status
+  const instructorRequest = await InstructorRequest.findOne({ userId }).lean();
 
-  const { getCourseById } = await import('@/lib/courses-data');
-  const CourseModel = (await import('@/models/Course')).default;
-  const CourseRoutine = (await import('@/models/CourseRoutine')).default;
+  // 3. Real Quiz Submissions & Certificate Stats
+  const completedQuizzesCount = await ExamSubmission.countDocuments({ studentId: userId });
+  const earnedCertificatesCount = await ExamSubmission.countDocuments({
+    studentId: userId,
+    passed: true,
+  });
+
+  // 4. Live Upcoming Exams
+  const publishedExams = (await Exam.find({ status: 'PUBLISHED' })
+    .sort({ createdAt: -1 })
+    .limit(4)
+    .lean()) as any[];
+
+  const upcomingExams = publishedExams.map((ex, i) => {
+    const daysFromNow = (i + 1) * 3;
+    const examDate = new Date(Date.now() + daysFromNow * 86400000);
+    return {
+      id: ex._id.toString(),
+      title: ex.title,
+      date: examDate.toISOString(),
+      daysLeft: daysFromNow,
+    };
+  });
+
+  // 5. Live Top Students Leaderboard from MongoDB
+  const topUsers = await User.find({ role: 'STUDENT', status: 'APPROVED' })
+    .sort({ elo: -1 })
+    .limit(5)
+    .select('_id name elo')
+    .lean();
+
+  const topStudents = topUsers.map((u: any) => {
+    const isCurrentUser = u._id.toString() === userId.toString();
+    return {
+      id: u._id.toString(),
+      name: isCurrentUser ? 'You' : u.name,
+      elo: u.elo || 1200,
+    };
+  });
+
+  // If current student is not in top 5, include their rank preview
+  if (!topStudents.some((s) => s.id === userId.toString())) {
+    topStudents[topStudents.length - 1] = {
+      id: userId.toString(),
+      name: 'You',
+      elo,
+    };
+  }
+
+  // 6. Enrolled courses & routine calculation
+  let totalRoutineLectures = 0;
+  let totalCompletedLectures = 0;
 
   const enrolledCourses = (
     await Promise.all(
@@ -73,17 +112,26 @@ export default async function StudentDashboardPage() {
           userRoutine = await CourseRoutine.findOne({ userId, courseId: courseIdStr }).lean();
         } catch {}
 
-        let targetCompletionDate = new Date(new Date().setMonth(new Date().getMonth() + 2)).toISOString().split('T')[0];
+        let targetCompletionDate = new Date(new Date().setMonth(new Date().getMonth() + 2))
+          .toISOString()
+          .split('T')[0];
         let paceMode: string | undefined = undefined;
-        let progressPercentage = 35;
+        let progressPercentage = 25;
 
         if (userRoutine) {
           if (userRoutine.targetCompletionDate) {
-            targetCompletionDate = new Date(userRoutine.targetCompletionDate).toISOString().split('T')[0];
+            targetCompletionDate = new Date(userRoutine.targetCompletionDate)
+              .toISOString()
+              .split('T')[0];
           }
           paceMode = userRoutine.paceMode;
-          const totalItems = userRoutine.items?.length || 1;
-          const completedItems = userRoutine.items?.filter((i: any) => i.completed)?.length || 0;
+          const items = userRoutine.items || [];
+          const totalItems = items.length || 1;
+          const completedItems = items.filter((i: any) => i.completed).length;
+
+          totalRoutineLectures += items.filter((i: any) => i.itemType === 'LECTURE').length;
+          totalCompletedLectures += items.filter((i: any) => i.itemType === 'LECTURE' && i.completed).length;
+
           if (totalItems > 0 && completedItems > 0) {
             progressPercentage = Math.round((completedItems / totalItems) * 100);
           }
@@ -116,27 +164,31 @@ export default async function StudentDashboardPage() {
               paceMode,
             };
           }
-        } catch {
-          // If not a valid ObjectId or not found
-        }
+        } catch {}
         return null;
       })
     )
   ).filter(Boolean);
 
-  const elo = 1450;
-  const streak = 12;
-  const name = session.user.name || 'শিক্ষার্থী';
+  const ongoingLessonsCount = Math.max(
+    0,
+    totalRoutineLectures > 0
+      ? totalRoutineLectures - totalCompletedLectures
+      : enrolledCourses.length * 6
+  );
 
   return (
     <StudentDashboardClient
       userName={name}
       enrolledCourses={enrolledCourses}
       upcomingExams={upcomingExams}
-      topStudents={MOCK_LEADERBOARD}
+      topStudents={topStudents}
       instructorRequest={instructorRequest}
       elo={elo}
       streak={streak}
+      ongoingLessonsCount={ongoingLessonsCount}
+      completedQuizzesCount={completedQuizzesCount}
+      earnedCertificatesCount={earnedCertificatesCount}
     />
   );
 }

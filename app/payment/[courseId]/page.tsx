@@ -16,6 +16,7 @@ import {
   Star,
   Clock,
   BookOpen,
+  Sparkles,
 } from 'lucide-react';
 import { COURSES_DATA } from '@/lib/courses-data';
 
@@ -297,6 +298,57 @@ export default function PaymentPage() {
             </div>
 
             <div className="p-6 space-y-5">
+              {/* Sandbox Quick-Fill Helper */}
+              <div className="p-3 bg-emerald-50/80 border border-emerald-200/80 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> স্যান্ডবক্স টেস্ট ফিল (Sandbox Quick Fill)
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-2 py-0.5 rounded-full">Test Mode</span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab('card');
+                      setCardNumber('4111 1111 1111 1111');
+                      setCardName('TANVIR AHMED');
+                      setCardExpiry('12/26');
+                      setCardCvv('123');
+                      setErrors({});
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg border border-emerald-200 shadow-xs transition"
+                  >
+                    ✓ কার্ড সফল (Card Success)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab('mobile');
+                      setMobileNumber('01700000001');
+                      setMobilePin('1234');
+                      setErrors({});
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg border border-emerald-200 shadow-xs transition"
+                  >
+                    ✓ বিকাশ সফল (bKash Success)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab('card');
+                      setCardNumber('4000 0000 0000 0002');
+                      setCardName('TEST USER');
+                      setCardExpiry('12/25');
+                      setCardCvv('000');
+                      setErrors({});
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-700 font-medium rounded-lg border border-rose-200 shadow-xs transition"
+                  >
+                    ✗ ব্যর্থ পরীক্ষা (Test Fail)
+                  </button>
+                </div>
+              </div>
 
               {/* CARD TAB */}
               {tab === 'card' && (

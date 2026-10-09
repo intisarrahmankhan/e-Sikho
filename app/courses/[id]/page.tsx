@@ -20,13 +20,17 @@ import {
   Loader2,
   CreditCard,
   HelpCircle,
+  MessageSquare,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Course, getCourseById } from "@/lib/courses-data";
 import { useLanguage } from "@/context/LanguageContext";
 import { CourseRoutineBanner } from "@/components/courses/CourseRoutineBanner";
+import DiscussionBoard from "@/components/courses/DiscussionBoard";
+import NotesAndResources from "@/components/courses/NotesAndResources";
 
 function parseArrayField(val: unknown): string[] {
   if (Array.isArray(val)) return val.map(String).filter(Boolean);
@@ -47,6 +51,21 @@ export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params?.id as string;
   const { language } = useLanguage();
+  const { data: session } = useSession();
+
+  // Track tab state: syllabus, qa, notes, instructor
+  const [courseTab, setCourseTab] = useState<'syllabus' | 'qa' | 'notes' | 'instructor'>('syllabus');
+  const [activeLessonId, setActiveLessonId] = useState<string>('');
+  const [activeModuleId, setActiveModuleId] = useState<string>('');
+
+  const getEmbedUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.includes('watch?v=')) {
+      const vid = url.split('watch?v=')[1]?.split('&')[0];
+      return `https://www.youtube.com/embed/${vid}`;
+    }
+    return url;
+  };
 
   // Track button loading state while navigating to the payment gateway
   const [enrolling, setEnrolling] = useState(false);
@@ -220,7 +239,17 @@ export default function CourseDetailsPage() {
           {/* Video Preview / Hero Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-md aspect-video bg-slate-900 border border-slate-200 group">
             {course.previewVideoUrl ? (
-              <video src={course.previewVideoUrl} controls className="w-full h-full object-cover" />
+              course.previewVideoUrl.includes('youtube.com') || course.previewVideoUrl.includes('youtu.be') ? (
+                <iframe
+                  src={getEmbedUrl(course.previewVideoUrl)}
+                  title={displayTitle}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <video src={course.previewVideoUrl} controls className="w-full h-full object-cover" />
+              )
             ) : (
               <>
                 <img
@@ -280,7 +309,47 @@ export default function CourseDetailsPage() {
             </div>
           )}
 
+          {/* Interactive Learning Experience Tabs */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <button
+              onClick={() => setCourseTab('syllabus')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                courseTab === 'syllabus'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              <span>{language === 'en' ? 'Curriculum & Lessons' : 'কারিকুলাম ও সিলেবাস'}</span>
+            </button>
+
+            <button
+              onClick={() => setCourseTab('qa')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                courseTab === 'qa'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{language === 'en' ? 'Lecture Q&A / Community' : 'লেকচার প্রশ্নোত্তর ও ফোরাম'}</span>
+            </button>
+
+            <button
+              onClick={() => setCourseTab('notes')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                courseTab === 'notes'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>{language === 'en' ? 'Study Notes & Resources' : 'স্টাডি নোটস ও রিসোর্স'}</span>
+            </button>
+          </div>
+
           {/* Curriculum / Syllabus */}
+          {courseTab === 'syllabus' && (
           <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -358,6 +427,27 @@ export default function CourseDetailsPage() {
               </div>
             )}
           </div>
+          )}
+
+          {/* TAB CONTENT: Lecture Discussion & Q&A */}
+          {courseTab === 'qa' && (
+            <div className="space-y-4">
+              <DiscussionBoard
+                lessonId={activeLessonId || (modules[0]?.lessons?.[0]?.id || (modules[0]?.lessons?.[0] as any)?._id || 'general-course-qa')}
+                currentUserId={(session?.user as any)?.id || 'guest-learner'}
+              />
+            </div>
+          )}
+
+          {/* TAB CONTENT: Community Study Notes & Resources */}
+          {courseTab === 'notes' && (
+            <div className="space-y-4">
+              <NotesAndResources
+                moduleId={activeModuleId || (modules[0]?.id || (modules[0] as any)?._id || 'general-course-module')}
+                currentUserId={(session?.user as any)?.id || 'guest-learner'}
+              />
+            </div>
+          )}
 
           {/* Prerequisites */}
           {prerequisites.length > 0 && (
@@ -530,7 +620,17 @@ export default function CourseDetailsPage() {
             </div>
             <div className="aspect-video bg-black flex items-center justify-center">
               {activeVideo.videoUrl ? (
-                <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+                activeVideo.videoUrl.includes('youtube.com') || activeVideo.videoUrl.includes('youtu.be') ? (
+                  <iframe
+                    src={getEmbedUrl(activeVideo.videoUrl)}
+                    title={activeVideo.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                ) : (
+                  <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+                )
               ) : (
                 <p className="text-sm text-slate-400">
                   {language === 'en' ? 'No video URL available for this lesson.' : 'এই লেসনের কোনো ভিডিও ইউআরএল পাওয়া যায়নি।'}

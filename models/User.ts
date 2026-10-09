@@ -12,6 +12,12 @@ export interface IUser extends Document {
   updatedAt: Date;
   availableBalance: number;
   totalEarnings: number;
+  headline?: string;
+  bio?: string;
+  targetTrack?: string;
+  weeklyGoalHours?: number;
+  elo?: number;
+  streak?: number;
 }
 
 const userSchema = new Schema<IUser>(
@@ -33,6 +39,12 @@ const userSchema = new Schema<IUser>(
     },
     availableBalance: { type: Number, default: 0 },
     totalEarnings: { type: Number, default: 0 },
+    headline: { type: String, default: 'Aspiring Developer' },
+    bio: { type: String, default: '' },
+    targetTrack: { type: String, default: 'Fullstack Web Development' },
+    weeklyGoalHours: { type: Number, default: 10 },
+    elo: { type: Number, default: 1200 },
+    streak: { type: Number, default: 1 },
   },
   {
     timestamps: true,

@@ -32,6 +32,9 @@ interface StudentDashboardClientProps {
   instructorRequest: any;
   elo: number;
   streak: number;
+  ongoingLessonsCount?: number;
+  completedQuizzesCount?: number;
+  earnedCertificatesCount?: number;
 }
 
 export function StudentDashboardClient({
@@ -42,6 +45,9 @@ export function StudentDashboardClient({
   instructorRequest,
   elo,
   streak,
+  ongoingLessonsCount = 0,
+  completedQuizzesCount = 0,
+  earnedCertificatesCount = 0,
 }: StudentDashboardClientProps) {
   const { language } = useLanguage();
 
@@ -59,7 +65,7 @@ export function StudentDashboardClient({
     },
     {
       label: language === 'en' ? 'Ongoing Lessons' : 'চলমান লেসন',
-      value: hasEnrollments ? (language === 'en' ? '8' : '৮') : (language === 'en' ? '0' : '০'),
+      value: ongoingLessonsCount,
       icon: Play,
       bg: 'bg-violet-50',
       iconColor: 'text-violet-600',
@@ -67,7 +73,7 @@ export function StudentDashboardClient({
     },
     {
       label: language === 'en' ? 'Completed Quizzes' : 'সম্পন্ন কুইজ',
-      value: language === 'en' ? '12' : '১২',
+      value: completedQuizzesCount,
       icon: CheckCircle2,
       bg: 'bg-emerald-50',
       iconColor: 'text-emerald-600',
@@ -75,7 +81,7 @@ export function StudentDashboardClient({
     },
     {
       label: language === 'en' ? 'Earned Certificates' : 'অর্জিত সার্টিফিকেট',
-      value: language === 'en' ? '1' : '১',
+      value: earnedCertificatesCount,
       icon: Award,
       bg: 'bg-amber-50',
       iconColor: 'text-amber-600',

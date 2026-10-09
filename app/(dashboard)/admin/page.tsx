@@ -27,6 +27,9 @@ export default async function AdminDashboardPage() {
   if (!session) redirect('/login');
 
   const user = session.user as { name?: string; email?: string; role?: string };
+  if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+    redirect('/student');
+  }
 
   await dbConnect();
 
