@@ -11,6 +11,7 @@ import CourseModel from "@/models/Course";
 import { getCourseById } from "@/lib/courses-data";
 import { redirect } from "next/navigation";
 import { StudentDashboardClient } from "@/components/dashboard/StudentDashboardClient";
+import { getHomepageContestsAction } from "@/actions/contest";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,18 +26,28 @@ export default async function StudentDashboardPage() {
 
   // Resolve user document for accurate stats, elo, and streak
   let userDoc: any = null;
+  const userSelect = '_id name elo competitiveElo problemsSolved completedCoursesCount streak academicBackground eloHistory';
   if (typeof userId === 'string' && userId.includes('@')) {
-    userDoc = await User.findOne({ email: userId }).select('_id name elo streak').lean();
+    userDoc = await User.findOne({ email: userId }).select(userSelect).lean();
     if (userDoc) {
       userId = userDoc._id.toString();
     }
   } else {
-    userDoc = await User.findById(userId).select('_id name elo streak').lean();
+    userDoc = await User.findById(userId).select(userSelect).lean();
   }
 
   const elo = userDoc?.elo || 1200;
+  const competitiveElo = userDoc?.competitiveElo || 1200;
+  const problemsSolved = userDoc?.problemsSolved || 0;
+  const completedCoursesCount = userDoc?.completedCoursesCount || 0;
+  const academicBackground = userDoc?.academicBackground || 'Computer Science & Engineering (CSE)';
+  const eloHistory = (userDoc?.eloHistory || []).slice(-5).reverse();
   const streak = userDoc?.streak || 1;
   const name = userDoc?.name || session.user.name || 'শিক্ষার্থী';
+
+  // Load contests prioritized for student background
+  const contestsRes = await getHomepageContestsAction(academicBackground);
+  const prioritizedContests = contestsRes.contests || [];
 
   // 1. Live Enrollments
   const enrollmentsList = await Enrollment.find({
@@ -185,6 +196,12 @@ export default async function StudentDashboardPage() {
       topStudents={topStudents}
       instructorRequest={instructorRequest}
       elo={elo}
+      competitiveElo={competitiveElo}
+      problemsSolved={problemsSolved}
+      completedCoursesCount={completedCoursesCount}
+      academicBackground={academicBackground}
+      eloHistory={eloHistory}
+      prioritizedContests={prioritizedContests}
       streak={streak}
       ongoingLessonsCount={ongoingLessonsCount}
       completedQuizzesCount={completedQuizzesCount}

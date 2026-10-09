@@ -66,8 +66,12 @@ export async function getStudentProfileAction() {
         headline: user.headline || 'Aspiring Developer',
         bio: user.bio || '',
         targetTrack: user.targetTrack || 'Fullstack Web Development',
+        academicBackground: user.academicBackground || 'Computer Science & Engineering (CSE)',
         weeklyGoalHours: user.weeklyGoalHours || 10,
         elo: user.elo || 1200,
+        competitiveElo: user.competitiveElo || 1200,
+        problemsSolved: user.problemsSolved || 0,
+        completedCoursesCount: user.completedCoursesCount || 0,
         streak: user.streak || 1,
         image: user.image || '',
         role: user.role,
@@ -89,6 +93,7 @@ export async function updateStudentProfileAction(data: {
   headline?: string;
   bio?: string;
   targetTrack?: string;
+  academicBackground?: string;
   weeklyGoalHours?: number;
 }) {
   try {
@@ -112,6 +117,7 @@ export async function updateStudentProfileAction(data: {
       headline: data.headline?.trim() || '',
       bio: data.bio?.trim() || '',
       targetTrack: data.targetTrack || 'Fullstack Web Development',
+      academicBackground: data.academicBackground || 'Computer Science & Engineering (CSE)',
       weeklyGoalHours: Number(data.weeklyGoalHours) || 10,
     };
 
@@ -125,6 +131,7 @@ export async function updateStudentProfileAction(data: {
 
     await User.findOneAndUpdate(query, { $set: updateFields });
 
+    revalidatePath('/');
     revalidatePath('/student');
     revalidatePath('/student/settings');
     return { success: true };

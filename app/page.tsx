@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { COURSES_DATA } from '@/lib/courses-data';
 import { useLanguage } from '@/context/LanguageContext';
+import { HomeContestsSection } from '@/components/home/HomeContestsSection';
 
 export default function HomePage() {
   const { t, language } = useLanguage();
@@ -271,6 +272,9 @@ export default function HomePage() {
           </div>
         ))}
       </section>
+
+      {/* ── Problem Solving Contests & Dynamic Elo Arena ── */}
+      <HomeContestsSection />
 
       {/* ── Categories ── */}
       <section className="space-y-5">

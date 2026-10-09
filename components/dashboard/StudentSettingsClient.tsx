@@ -39,8 +39,12 @@ interface StudentProfile {
   headline?: string;
   bio?: string;
   targetTrack?: string;
+  academicBackground?: string;
   weeklyGoalHours?: number;
   elo?: number;
+  competitiveElo?: number;
+  problemsSolved?: number;
+  completedCoursesCount?: number;
   streak?: number;
   image?: string;
   role?: string;
@@ -63,6 +67,9 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
   const [phone, setPhone] = useState(initialProfile.phone || '');
   const [headline, setHeadline] = useState(initialProfile.headline || 'Aspiring Fullstack Developer');
   const [bio, setBio] = useState(initialProfile.bio || '');
+  const [academicBackground, setAcademicBackground] = useState(
+    initialProfile.academicBackground || 'Computer Science & Engineering (CSE)'
+  );
 
   // Learning Goal States
   const [targetTrack, setTargetTrack] = useState(initialProfile.targetTrack || 'Fullstack Web Development');
@@ -95,6 +102,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
         headline,
         bio,
         targetTrack,
+        academicBackground,
         weeklyGoalHours,
       });
 
@@ -304,6 +312,36 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       className="w-full text-xs pl-9 rounded-xl border border-slate-200 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
                     />
                   </div>
+                </div>
+
+                {/* Academic Background / Major for Contest & Notification Prioritization */}
+                <div className="space-y-1.5 p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                      <span>{language === 'en' ? 'Academic Background & Study Field' : 'একাডেমিক ব্যাকগ্রাউন্ড ও পড়াশোনার বিভাগ'}</span>
+                    </label>
+                    <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                      {language === 'en' ? 'Drives Contest Priority' : 'কনটেস্ট অগ্রাধিকার নির্ধারণ করে'}
+                    </span>
+                  </div>
+                  <select
+                    value={academicBackground}
+                    onChange={(e) => setAcademicBackground(e.target.value)}
+                    className="w-full text-xs rounded-xl border border-indigo-200 bg-white px-3.5 py-2.5 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 cursor-pointer"
+                  >
+                    <option value="Computer Science & Engineering (CSE)">Computer Science & Engineering (CSE / CS)</option>
+                    <option value="Software Engineering (SWE)">Software Engineering (SWE / IT)</option>
+                    <option value="Electrical & Electronic Engineering (EEE)">Electrical & Electronic Engineering (EEE)</option>
+                    <option value="Data Science & Applied AI">Data Science & Applied AI</option>
+                    <option value="Business Administration (BBA)">Business Administration (BBA / Finance / Accounting)</option>
+                    <option value="General / Other Disciplines">General / Other Non-CS Disciplines</option>
+                  </select>
+                  <p className="text-[11px] text-indigo-700/80 leading-relaxed mt-1">
+                    {language === 'en'
+                      ? 'The platform uses this to prioritize algorithmic & domain contests on your homepage and send top-priority notification alerts for your track.'
+                      : 'এই তথ্যের ওপর ভিত্তি করে প্ল্যাটফর্ম আপনার হোমপেজে প্রাসঙ্গিক কনটেস্টকে শীর্ষে রাখবে এবং আপনার ব্যাকগ্রাউন্ডের জন্য হাই-প্রায়োরিটি নোটিফিকেশন পাঠাবে।'}
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
