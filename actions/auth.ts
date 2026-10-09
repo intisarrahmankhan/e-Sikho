@@ -1,6 +1,8 @@
 'use server';
 
 import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
+import { redirect } from 'next/navigation';
 
 export async function loginWithGoogle(callbackUrl: string) {
   await signIn('google', { redirectTo: callbackUrl });
@@ -65,6 +67,12 @@ export async function loginWithCredentials(
   } catch (error: any) {
     if (error?.message === 'NEXT_REDIRECT' || error?.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
+    }
+    if (error instanceof AuthError) {
+      if (error.type === 'CredentialsSignin') {
+        redirect('/login?error=CredentialsSignin&callbackUrl=' + encodeURIComponent(target || '/student'));
+      }
+      redirect('/login?error=Default&callbackUrl=' + encodeURIComponent(target || '/student'));
     }
     throw error;
   }

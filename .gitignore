@@ -18,6 +18,8 @@
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+/playwright-proof/
+/test-proof/
 # next.js
 /.next/
 /out/

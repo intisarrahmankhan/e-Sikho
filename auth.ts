@@ -255,25 +255,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return true;
         },
         async signIn({ user, account }: any) {
-            if (account?.provider === 'google' && user.email) {
-                await dbConnect();
-                const existingUser = await User.findOne({ email: user.email });
-                if (existingUser && (existingUser.status === 'BLOCKED' || existingUser.status === 'SUSPENDED')) {
-                    return false; // Deny Google sign-in for blocked user
+            if (user?.email) {
+                try {
+                    await dbConnect();
+                    const existingUser = await User.findOne({ email: user.email });
+                    if (existingUser && (existingUser.status === 'BLOCKED' || existingUser.status === 'SUSPENDED')) {
+                        return false; // Deny sign-in for blocked user
+                    }
+                    if (account?.provider === 'google') {
+                        await User.findOneAndUpdate(
+                            { email: user.email },
+                            {
+                                $set: {
+                                    image: user.image ?? '',
+                                    role: (user as any).role ?? 'STUDENT',
+                                    status: (user as any).status ?? 'APPROVED',
+                                },
+                                $setOnInsert: {
+                                    name: user.name ?? 'User',
+                                    email: user.email,
+                                },
+                            },
+                            { upsert: true, new: true, setDefaultsOnInsert: true }
+                        );
+                    }
+                } catch (err) {
+                    console.error('Error in signIn callback:', err);
                 }
-                await User.findOneAndUpdate(
-                    { email: user.email },
-                    {
-                        $set: { image: user.image ?? '' },
-                        $setOnInsert: {
-                            name: user.name ?? 'User',
-                            email: user.email,
-                            role: 'STUDENT',
-                            status: 'APPROVED',
-                        },
-                    },
-                    { upsert: true, new: true, setDefaultsOnInsert: true }
-                );
             }
             return true;
         },
@@ -283,17 +291,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.role = (user as any).role || token.role;
                 token.status = (user as any).status || token.status;
                 token.phone = (user as any).phone || token.phone;
+                if ((user as any).name) token.name = (user as any).name;
             }
             if (token.email) {
-                await dbConnect();
-                const dbUser = await User.findOne({ email: token.email }).select('_id role status name image phone').lean() as any;
-                if (dbUser) {
-                    token.id = dbUser._id.toString();
-                    token.role = dbUser.role || 'STUDENT';
-                    token.status = dbUser.status || 'APPROVED';
-                    token.name = dbUser.name || token.name;
-                    token.image = dbUser.image || token.image;
-                    token.phone = dbUser.phone || token.phone;
+                try {
+                    await dbConnect();
+                    const dbUser = await User.findOne({ email: token.email }).select('_id role status name image phone').lean() as any;
+                    if (dbUser) {
+                        token.id = dbUser._id.toString();
+                        token.role = dbUser.role || token.role || 'STUDENT';
+                        token.status = dbUser.status || token.status || 'APPROVED';
+                        token.name = dbUser.name || token.name;
+                        token.image = dbUser.image || token.image;
+                        token.phone = dbUser.phone || token.phone;
+                    }
+                } catch (e) {
+                    console.error('Error in jwt callback:', e);
                 }
             }
             return token;
@@ -304,6 +317,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 (session.user as any).role = token.role ?? 'STUDENT';
                 (session.user as any).status = token.status ?? 'APPROVED';
                 (session.user as any).phone = token.phone;
+                if (token.name) session.user.name = token.name;
             }
             return session;
         },

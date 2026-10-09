@@ -5,7 +5,6 @@ import Credentials from 'next-auth/providers/credentials';
 export const authConfig = {
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'e-sikho-auth-super-secret-key-cse314-2026',
   providers: [
-    // Google is listed here so the middleware can read it without importing DB code
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID || 'dummy-google-client-id',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy-google-client-secret',
@@ -61,4 +60,3 @@ export const authConfig = {
     },
   },
 } satisfies NextAuthConfig;
-

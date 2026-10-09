@@ -93,6 +93,12 @@ function LoginForm() {
             ? 'Your account has been blocked or suspended by an administrator. Please contact support.'
             : 'আপনার অ্যাকাউন্টটি অ্যাডমিন কর্তৃক ব্লক বা স্থগিত করা হয়েছে। অনুগ্রহ করে সাপোর্টে যোগাযোগ করুন।'
         );
+      } else if (oauthError === 'CredentialsSignin') {
+        setError(
+          language === 'en'
+            ? 'Invalid credentials. Please try again.'
+            : 'ভুল ইমেইল বা পাসওয়ার্ড। অনুগ্রহ করে সঠিক তথ্য দিন।'
+        );
       } else {
         setError(
           language === 'en'
