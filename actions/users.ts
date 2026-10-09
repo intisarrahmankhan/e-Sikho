@@ -31,7 +31,7 @@ export async function getPaginatedUsers({
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select('_id name email role status createdAt')
+      .select('_id name email phone role status createdAt')
       .lean(),
     User.countDocuments(query),
   ]);
@@ -40,6 +40,7 @@ export async function getPaginatedUsers({
     id: (u as any)._id.toString(),
     name: u.name,
     email: u.email,
+    phone: (u as any).phone || '',
     role: u.role,
     status: u.status,
     createdAt: u.createdAt,

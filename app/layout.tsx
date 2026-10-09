@@ -3,10 +3,11 @@ import 'katex/dist/katex.min.css';
 import type { Metadata } from 'next';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthProvider } from '@/components/providers/AuthProvider';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 export const metadata: Metadata = {
   title: 'e-Shikho — Online Learning Platform',
-  description: 'Learn modern programming, web development, and tech skills in Bangla',
+  description: 'Learn modern programming, web development, and tech skills in Bangla & English',
 };
 
 export default function RootLayout({
@@ -15,11 +16,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="bn" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

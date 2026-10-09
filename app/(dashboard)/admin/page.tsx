@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Course from '@/models/Course';
+import Instructor from '@/models/Instructor';
 import InstructorRequest from '@/models/InstructorRequest';
 import PayoutRequest from '@/models/PayoutRequest';
 import PlatformCommission from '@/models/PlatformCommission';
@@ -12,6 +13,7 @@ import PaginatedUsersList from '@/components/admin/PaginatedUsersList';
 import CourseApprovals from '@/components/admin/CourseApprovals';
 import InstructorRequests from '@/components/admin/InstructorRequests';
 import CourseReviews from '@/components/admin/CourseReviews';
+import CourseManagement from '@/components/admin/CourseManagement';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
   Users, BookOpen, GraduationCap, Clock, ShieldCheck,
@@ -288,6 +290,25 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Platform Course Management (All Courses) */}
+        <Card className="overflow-hidden border-gray-200/80 shadow-sm">
+          <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-violet-50 to-purple-50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100">
+              <BookOpen className="h-4 w-4 text-violet-700" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-gray-900">Platform Course Management</h2>
+              <p className="text-xs text-gray-500">Create, edit, remove, and manage all platform courses</p>
+            </div>
+            <span className="rounded-full bg-violet-200 px-2.5 py-1 text-xs font-bold text-violet-800">
+              {totalCourses} course{totalCourses !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <CardContent className="p-6">
+            <CourseManagement isSuperadmin={user?.role === 'SUPERADMIN'} />
+          </CardContent>
+        </Card>
+
         {/* User Management */}
         <Card className="overflow-hidden border-gray-200/80 shadow-sm">
           <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-4 bg-gradient-to-r from-slate-50 to-gray-50">
@@ -300,7 +321,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
           <CardContent className="p-6">
-            <PaginatedUsersList />
+            <PaginatedUsersList isSuperadmin={user?.role === 'SUPERADMIN'} />
           </CardContent>
         </Card>
 

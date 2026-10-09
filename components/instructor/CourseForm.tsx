@@ -59,26 +59,48 @@ export default function CourseForm({ onSuccess }: CourseFormProps) {
     >
       <FieldSet className="grid gap-5 sm:grid-cols-2">
         <Field className="sm:col-span-2">
-          <FieldLabel htmlFor="title">Course Title *</FieldLabel>
-          <input id="title" name="title" required placeholder="e.g. Complete React Course" className={controlClassName} />
+          <FieldLabel htmlFor="title">Course Title (Primary / Bangla) *</FieldLabel>
+          <input id="title" name="title" required placeholder="যেমন: ফুলস্ট্যাক রিঅ্যাক্ট ও নেক্সট জেএস" className={controlClassName} />
         </Field>
 
         <Field className="sm:col-span-2">
-          <FieldLabel htmlFor="tagline">Short Tagline</FieldLabel>
-          <input id="tagline" name="tagline" placeholder="One-line course description" className={controlClassName} />
-          <FieldDescription>Give learners a concise reason to choose this course.</FieldDescription>
+          <FieldLabel htmlFor="titleEn">Course Title in English (Optional)</FieldLabel>
+          <input id="titleEn" name="titleEn" placeholder="e.g. Complete React & Next.js Bootcamp" className={controlClassName} />
+          <FieldDescription>If provided, will show when users toggle language to English.</FieldDescription>
         </Field>
 
         <Field className="sm:col-span-2">
-          <FieldLabel htmlFor="description">Description *</FieldLabel>
+          <FieldLabel htmlFor="tagline">Short Tagline (Bangla)</FieldLabel>
+          <input id="tagline" name="tagline" placeholder="এক লাইনে কোর্সের পরিচিতি" className={controlClassName} />
+        </Field>
+
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="taglineEn">Short Tagline in English (Optional)</FieldLabel>
+          <input id="taglineEn" name="taglineEn" placeholder="One-line course description in English" className={controlClassName} />
+        </Field>
+
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="description">Description (Bangla / Primary) *</FieldLabel>
           <textarea
             id="description"
             name="description"
             required
             rows={4}
-            placeholder="Detailed course description..."
+            placeholder="কোর্সের বিস্তারিত বিবরণ..."
             className={textareaClassName}
           />
+        </Field>
+
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="descriptionEn">Description in English (Optional)</FieldLabel>
+          <textarea
+            id="descriptionEn"
+            name="descriptionEn"
+            rows={4}
+            placeholder="Detailed course description in English..."
+            className={textareaClassName}
+          />
+          <FieldDescription>If provided, will show when users toggle to English.</FieldDescription>
         </Field>
 
         <Field>
@@ -106,8 +128,8 @@ export default function CourseForm({ onSuccess }: CourseFormProps) {
           <FieldDescription>Set the price in Bangladeshi taka.</FieldDescription>
         </Field>
 
-        <Field className="sm:col-span-2">
-          <FieldLabel htmlFor="thumbnail">Course Thumbnail</FieldLabel>
+        <Field>
+          <FieldLabel htmlFor="thumbnail">Course Thumbnail (Primary / Bangla)</FieldLabel>
           <input
             id="thumbnail"
             name="thumbnail"
@@ -115,7 +137,19 @@ export default function CourseForm({ onSuccess }: CourseFormProps) {
             accept="image/*"
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700"
           />
-          <FieldDescription>Use a clear 16:9 image to represent your course.</FieldDescription>
+          <FieldDescription>Displayed in Bangla view (16:9 aspect ratio).</FieldDescription>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="thumbnailEn">English Thumbnail (Optional)</FieldLabel>
+          <input
+            id="thumbnailEn"
+            name="thumbnailEn"
+            type="file"
+            accept="image/*"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700"
+          />
+          <FieldDescription>Shown when user toggles to English view.</FieldDescription>
         </Field>
 
         <FieldSet className="sm:col-span-2 space-y-4 border-t border-slate-100 pt-5">

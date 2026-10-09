@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Clock, BookOpen, ArrowRight } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface ExamCardProps {
   id: string;
@@ -30,6 +31,8 @@ export function ExamCard({
   passMarks,
   questionCount,
 }: ExamCardProps) {
+  const { language } = useLanguage();
+
   return (
     <Card className="border border-slate-200/90 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between overflow-hidden group">
       <div>
@@ -42,7 +45,7 @@ export function ExamCard({
           </Badge>
           <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span>{duration} মিনিট</span>
+            <span>{language === 'en' ? `${duration} mins` : `${duration} মিনিট`}</span>
           </div>
         </div>
 
@@ -59,20 +62,28 @@ export function ExamCard({
           )}
 
           <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-            {description || 'এই পরীক্ষায় অংশগ্রহণ করে আপনার মেধা যাচাই করুন।'}
+            {description || (language === 'en' ? 'Take this exam to test and validate your knowledge.' : 'এই পরীক্ষায় অংশগ্রহণ করে আপনার মেধা যাচাই করুন।')}
           </p>
 
           <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center">
             <div className="bg-slate-50 rounded-xl p-2 border border-slate-100">
-              <span className="text-[10px] text-slate-400 block font-medium">মোট প্রশ্ন</span>
-              <span className="text-sm font-bold text-slate-800">{questionCount} টি</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {language === 'en' ? 'Questions' : 'মোট প্রশ্ন'}
+              </span>
+              <span className="text-sm font-bold text-slate-800">
+                {language === 'en' ? questionCount : `${questionCount} টি`}
+              </span>
             </div>
             <div className="bg-slate-50 rounded-xl p-2 border border-slate-100">
-              <span className="text-[10px] text-slate-400 block font-medium">পূর্ণমান</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {language === 'en' ? 'Total Marks' : 'পূর্ণমান'}
+              </span>
               <span className="text-sm font-bold text-slate-800">{totalMarks}</span>
             </div>
             <div className="bg-slate-50 rounded-xl p-2 border border-slate-100">
-              <span className="text-[10px] text-slate-400 block font-medium">পাস মার্ক</span>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {language === 'en' ? 'Pass Marks' : 'পাস মার্ক'}
+              </span>
               <span className="text-sm font-bold text-emerald-600">{passMarks}</span>
             </div>
           </div>
@@ -82,7 +93,7 @@ export function ExamCard({
       <CardFooter className="p-5 pt-0">
         <Link href={`/exams/${id}`} className="w-full">
           <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs py-2.5 rounded-xl gap-2 shadow-sm transition">
-            <span>পরীক্ষা শুরু করুন</span>
+            <span>{language === 'en' ? 'Start Exam' : 'পরীক্ষা শুরু করুন'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </Link>

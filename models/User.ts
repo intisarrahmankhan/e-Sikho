@@ -3,9 +3,11 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 export interface IUser extends Document {
   name: string;
   email: string;
+  phone?: string;
+  password?: string;
   image?: string;
   role: 'STUDENT' | 'INSTRUCTOR' | 'MODERATOR' | 'ADMIN' | 'SUPERADMIN';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'BLOCKED';
   createdAt: Date;
   updatedAt: Date;
   availableBalance: number;
@@ -16,6 +18,8 @@ const userSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
+    phone: { type: String, sparse: true, index: true },
+    password: { type: String },
     image: { type: String },
     role: {
       type: String,
@@ -24,7 +28,7 @@ const userSchema = new Schema<IUser>(
     },
     status: {
       type: String,
-      enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'BLOCKED'],
       default: 'PENDING',
     },
     availableBalance: { type: Number, default: 0 },

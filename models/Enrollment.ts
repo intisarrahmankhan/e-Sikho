@@ -11,15 +11,24 @@ export interface IEnrollment extends Document {
 const enrollmentSchema = new Schema<IEnrollment>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+    courseId: { type: Schema.Types.Mixed, ref: 'Course', required: true },
     paymentStatus: { type: String, default: 'pending' },
     transactionId: { type: String },
     enrolledAt: { type: Date, default: Date.now },
   },
   {
     timestamps: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+enrollmentSchema.virtual('course', {
+  ref: 'Course',
+  localField: 'courseId',
+  foreignField: '_id',
+  justOne: true,
+});
 
 enrollmentSchema.index({ userId: 1, courseId: 1 }, { unique: true });
 

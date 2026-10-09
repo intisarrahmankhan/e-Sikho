@@ -40,8 +40,11 @@ export default async function CoursesPage() {
       return {
         id: course._id.toString(),
         title: course.title,
+        titleEn: course.titleEn,
         tagline: course.tagline,
+        taglineEn: course.taglineEn,
         description: course.description,
+        descriptionEn: course.descriptionEn,
         category: (['web-dev', 'data-science', 'app-dev', 'programming', 'system-design'].includes(course.category)
           ? course.category : 'programming') as CourseType['category'],
         categoryBangla: course.categoryBangla,
@@ -54,6 +57,7 @@ export default async function CoursesPage() {
         price: course.price,
         originalPrice: course.originalPrice,
         thumbnailUrl: course.thumbnailUrl,
+        thumbnailUrlEn: course.thumbnailUrlEn,
         instructor: course.instructor ? {
           id: course.instructor._id.toString(),
           name: course.instructor.name,

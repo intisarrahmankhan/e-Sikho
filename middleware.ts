@@ -22,6 +22,13 @@ export default auth((req) => {
     return null;
   };
 
+  const userStatus = (req.auth?.user as any)?.status;
+  if (isLoggedIn && (userStatus === 'BLOCKED' || userStatus === 'SUSPENDED')) {
+    if (!isAuthPage) {
+      return NextResponse.redirect(new URL('/login?error=AccountBlocked', req.url));
+    }
+  }
+
   // If user is logged in and visits auth page (/login), redirect to callbackUrl or their dashboard
   if (isAuthPage) {
     if (isLoggedIn) {

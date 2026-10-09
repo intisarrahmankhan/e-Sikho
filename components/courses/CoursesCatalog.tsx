@@ -18,10 +18,12 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
+import { useLanguage } from "@/context/LanguageContext";
 
 type SortOption = "popular" | "newest" | "price-low" | "price-high" | "rating";
 
 export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?: Course[] }) {
+  const { t, language } = useLanguage();
   const searchParams = useSearchParams();
 
   const initialCategory = searchParams.get("category") || "all";
@@ -33,31 +35,45 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
   const [sortBy, setSortBy] = useState<SortOption>("popular");
 
   const categories = [
-    { id: "all", label: "সকল কোর্স", icon: Layers },
-    { id: "web-dev", label: "ওয়েব ডেভেলপমেন্ট", icon: Code2 },
-    { id: "data-science", label: "ডাটা সায়েন্স ও এআই", icon: BrainCircuit },
-    { id: "programming", label: "প্রোগ্রামিং ও ডিএসএ", icon: Laptop },
-    { id: "system-design", label: "সিস্টেম ডিজাইন", icon: Layers },
-    { id: "app-dev", label: "অ্যাপ ডেভেলপমেন্ট", icon: Sparkles },
+    { id: "all", label: t("courses.allCourses", "সকল কোর্স"), icon: Layers },
+    { id: "web-dev", label: t("courses.webDev", "ওয়েব ডেভেলপমেন্ট"), icon: Code2 },
+    { id: "data-science", label: t("courses.dataScience", "ডাটা সায়েন্স ও এআই"), icon: BrainCircuit },
+    { id: "programming", label: t("courses.programming", "প্রোগ্রামিং ও ডিএসএ"), icon: Laptop },
+    { id: "system-design", label: t("courses.systemDesign", "সিস্টেম ডিজাইন"), icon: Layers },
+    { id: "app-dev", label: t("courses.appDev", "অ্যাপ ডেভেলপমেন্ট"), icon: Sparkles },
   ];
 
   const levels = [
-    { id: "all", label: "সকল লেভেল" },
-    { id: "বিগিনার", label: "বিগিনার" },
-    { id: "ইন্টারমিডিয়েট", label: "ইন্টারমিডিয়েট" },
-    { id: "অ্যাডভান্সড", label: "অ্যাডভান্সড" },
+    { id: "all", label: t("courses.allLevels", "সকল লেভেল") },
+    { id: "বিগিনার", label: t("courses.beginner", "বিগিনার") },
+    { id: "ইন্টারমিডিয়েট", label: t("courses.intermediate", "ইন্টারমিডিয়েট") },
+    { id: "অ্যাডভান্সড", label: t("courses.advanced", "অ্যাডভান্সড") },
   ];
 
   const filteredCourses = useMemo(() => {
-    let result = [...COURSES_DATA, ...additionalCourses].filter((course) => {
+    // Deduplicate courses by id/title, prioritizing dynamic DB courses
+    const courseMap = new Map<string, Course>();
+    for (const course of COURSES_DATA) {
+      courseMap.set(course.id, course);
+      courseMap.set(course.title, course);
+    }
+    for (const course of additionalCourses) {
+      courseMap.set(course.id, course);
+      courseMap.set(course.title, course);
+    }
+    const combinedCourses = Array.from(new Set(courseMap.values()));
+
+    let result = combinedCourses.filter((course) => {
       const matchesCategory = selectedCategory === "all" || course.category === selectedCategory;
       const matchesLevel = selectedLevel === "all" || course.level === selectedLevel;
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         course.title.toLowerCase().includes(q) ||
+        (course.titleEn && course.titleEn.toLowerCase().includes(q)) ||
         course.tagline.toLowerCase().includes(q) ||
-        course.instructor.name.toLowerCase().includes(q) ||
-        course.categoryBangla.toLowerCase().includes(q);
+        (course.taglineEn && course.taglineEn.toLowerCase().includes(q)) ||
+        (course.instructor?.name && course.instructor.name.toLowerCase().includes(q)) ||
+        (course.categoryBangla && course.categoryBangla.toLowerCase().includes(q));
       return matchesCategory && matchesLevel && matchesSearch;
     });
 
@@ -85,10 +101,17 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
 
       {/* ── Page Header ── */}
       <div className="pt-6 pb-2 border-b border-gray-200">
-        <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-1">এক্সপ্লোর করুন</p>
-        <h1 className="text-3xl font-bold text-gray-900">কোর্স ক্যাটালগ</h1>
+        <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-1">
+          {t("courses.explore", "এক্সপ্লোর করুন")}
+        </p>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {t("courses.catalogTitle", "কোর্স ক্যাটালগ")}
+        </h1>
         <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-          প্রফেশনাল সফটওয়্যার ক্যারিয়ারের জন্য তৈরি আমাদের হ্যান্ডস-অন কোর্সগুলো ব্রাউজ করুন এবং আপনার উপযুক্ত কোর্সটি বেছে নিন।
+          {t(
+            "courses.catalogSubtitle",
+            "প্রফেশনাল সফটওয়্যার ক্যারিয়ারের জন্য তৈরি আমাদের হ্যান্ডস-অন কোর্সগুলো ব্রাউজ করুন এবং আপনার উপযুক্ত কোর্সটি বেছে নিন।"
+          )}
         </p>
       </div>
 
@@ -99,7 +122,7 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="কোর্সের নাম, টপিক বা ইন্সট্রাক্টর সার্চ করুন..."
+          placeholder={t("courses.searchPlaceholder", "কোর্সের নাম, টপিক বা ইন্সট্রাক্টর সার্চ করুন...")}
           className="w-full px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent"
         />
         {searchQuery && (
@@ -111,7 +134,7 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
           </button>
         )}
         <button className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold px-4 py-2.5 shrink-0">
-          খুঁজুন
+          {language === "en" ? "Search" : "খুঁজুন"}
         </button>
       </div>
 
@@ -139,7 +162,9 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
       {/* ── Filter & Sort Bar ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-card">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">লেভেল:</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            {language === "en" ? "Level:" : "লেভেল:"}
+          </span>
           <div className="flex items-center gap-1.5 flex-wrap">
             {levels.map((lvl) => (
               <button
@@ -158,21 +183,23 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
         </div>
 
         <div className="flex items-center gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
-          <span className="text-xs text-gray-500 font-medium">সর্ট করুন:</span>
+          <span className="text-xs text-gray-500 font-medium">
+            {language === "en" ? "Sort By:" : "সর্ট করুন:"}
+          </span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="text-xs font-semibold bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
-            <option value="popular">সর্বাধিক জনপ্রিয়</option>
-            <option value="rating">সেরা রেটিং</option>
-            <option value="price-low">কম মূল্য থেকে বেশি</option>
-            <option value="price-high">বেশি মূল্য থেকে কম</option>
+            <option value="popular">{t("courses.sortPopular", "সর্বাধিক জনপ্রিয়")}</option>
+            <option value="rating">{t("courses.sortRating", "সেরা রেটিং")}</option>
+            <option value="price-low">{t("courses.sortPriceLow", "কম মূল্য থেকে বেশি")}</option>
+            <option value="price-high">{t("courses.sortPriceHigh", "বেশি মূল্য থেকে কম")}</option>
           </select>
 
           {hasActiveFilters && (
             <button onClick={resetFilters} className="text-xs text-red-500 hover:text-red-600 font-medium underline">
-              ফিল্টার মুছুন
+              {t("courses.resetFilters", "ফিল্টার মুছুন")}
             </button>
           )}
         </div>
@@ -180,7 +207,11 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
 
       {/* ── Results Count ── */}
       <p className="text-xs text-gray-500 px-1">
-        মোট <strong className="text-gray-900 font-bold">{filteredCourses.length}</strong> টি কোর্স পাওয়া গেছে
+        {language === "en" ? (
+          <>Total <strong className="text-gray-900 font-bold">{filteredCourses.length}</strong> courses found</>
+        ) : (
+          <>মোট <strong className="text-gray-900 font-bold">{filteredCourses.length}</strong> টি কোর্স পাওয়া গেছে</>
+        )}
       </p>
 
       {/* ── Courses Grid ── */}
@@ -189,18 +220,30 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
           <div className="h-12 w-12 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
             <Search className="h-5 w-5" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900">কোনো কোর্স পাওয়া যায়নি</h3>
+          <h3 className="text-base font-semibold text-gray-900">
+            {t("courses.noCourses", "কোনো কোর্স পাওয়া যায়নি")}
+          </h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto">
-            আপনার অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো কোর্স পাওয়া যায়নি।
+            {t("courses.tryDifferentFilter", "আপনার অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো কোর্স পাওয়া যায়নি।")}
           </p>
           <Button onClick={resetFilters} variant="outline" size="sm" className="border-gray-300 text-gray-700">
-            সকল কোর্স দেখুন
+            {t("courses.allCourses", "সকল কোর্স দেখুন")}
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => {
             const discount = Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100);
+            const displayTitle = (language === 'en' && course.titleEn) ? course.titleEn : course.title;
+            const displayTagline = (language === 'en' && course.taglineEn) ? course.taglineEn : course.tagline;
+            const displayThumbnail = (language === 'en' && course.thumbnailUrlEn) ? course.thumbnailUrlEn : course.thumbnailUrl;
+            const displayLevel = language === 'en'
+              ? (course.level === 'বিগিনার' ? 'Beginner' : course.level === 'ইন্টারমিডিয়েট' ? 'Intermediate' : 'Advanced')
+              : course.level;
+            const displayCategory = language === 'en'
+              ? (course.category === 'web-dev' ? 'Web Development' : course.category === 'data-science' ? 'Data Science' : course.category === 'programming' ? 'Programming' : course.category === 'system-design' ? 'System Design' : course.category === 'app-dev' ? 'App Development' : course.categoryBangla)
+              : course.categoryBangla;
+
             return (
               <Card
                 key={course.id}
@@ -209,13 +252,13 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
                 {/* Thumbnail */}
                 <div className="relative h-48 w-full overflow-hidden bg-gray-100">
                   <img
-                    src={course.thumbnailUrl}
-                    alt={course.title}
+                    src={displayThumbnail}
+                    alt={displayTitle}
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-3 left-3">
                     <span className="text-xs font-semibold bg-primary-600 text-white px-2.5 py-1 rounded-md">
-                      {course.categoryBangla}
+                      {displayCategory}
                     </span>
                   </div>
                   <div className="absolute top-3 right-3">
@@ -225,7 +268,7 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
                   </div>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                     <span className="text-xs bg-gray-900/70 text-white px-2.5 py-1 rounded-md font-medium">
-                      {course.level}
+                      {displayLevel}
                     </span>
                     <span className="flex items-center gap-1 text-xs bg-gray-900/70 text-white px-2.5 py-1 rounded-md">
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
@@ -238,9 +281,9 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
                 <CardContent className="p-5 flex-1 flex flex-col gap-4">
                   <div>
                     <h3 className="font-semibold text-gray-900 text-base leading-snug line-clamp-2 group-hover:text-primary-600 transition">
-                      {course.title}
+                      {displayTitle}
                     </h3>
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">{course.tagline}</p>
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">{displayTagline}</p>
                   </div>
 
                   {/* Instructor */}
@@ -261,7 +304,10 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{course.duration}</span>
                       <span className="text-gray-300">·</span>
-                      <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{course.totalLessons} লেসন</span>
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        {course.totalLessons} {t("courses.lessons", "লেসন")}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -271,7 +317,7 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
                       </div>
                       <Link href={`/courses/${course.id}`}>
                         <Button size="sm" className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs px-4 py-2 rounded-lg">
-                          বিস্তারিত দেখুন
+                          {language === "en" ? "View Details" : "বিস্তারিত দেখুন"}
                         </Button>
                       </Link>
                     </div>
@@ -285,3 +331,5 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
     </div>
   );
 }
+
+export default CoursesCatalog;

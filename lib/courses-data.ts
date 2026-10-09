@@ -16,8 +16,11 @@ export interface Module {
 export interface Course {
   id: string;
   title: string;
+  titleEn?: string;
   tagline: string;
+  taglineEn?: string;
   description: string;
+  descriptionEn?: string;
   category: 'web-dev' | 'data-science' | 'app-dev' | 'programming' | 'system-design';
   categoryBangla: string;
   level: 'বিগিনার' | 'ইন্টারমিডিয়েট' | 'অ্যাডভান্সড';
@@ -29,6 +32,7 @@ export interface Course {
   price: number;
   originalPrice: number;
   thumbnailUrl: string;
+  thumbnailUrlEn?: string;
   previewVideoUrl?: string;
   instructor: {
     name: string;
@@ -45,7 +49,9 @@ export const COURSES_DATA: Course[] = [
   {
     id: "fullstack-nextjs",
     title: "ফুলস্ট্যাক ওয়েব ডেভেলপমেন্ট (Next.js, React & Node.js)",
+    titleEn: "Fullstack Web Development (Next.js, React & Node.js)",
     tagline: "জিরো থেকে প্রো লেভেলের আধুনিক ওয়েব অ্যাপ্লিকেশন তৈরি করুন",
+    taglineEn: "Build modern, production-ready web applications from zero to pro",
     description: "এই কোর্সে আপনি আধুনিক ওয়েব টেকনোলজি যেমন Next.js 14, React, TypeScript, Tailwind CSS, Node.js, Prisma এবং PostgreSQL ব্যবহার করে রিয়েল-ওয়ার্ল্ড ফুলস্ট্যাক প্রজেক্ট তৈরি করতে শিখবেন। প্রজেক্ট ভিত্তিক শিক্ষার মাধ্যমে আপনি চাকরির জন্য প্রস্তুত পোর্টফোলিও তৈরি করতে পারবেন।",
     category: "web-dev",
     categoryBangla: "ওয়েব ডেভেলপমেন্ট",
@@ -58,6 +64,7 @@ export const COURSES_DATA: Course[] = [
     price: 4500,
     originalPrice: 8000,
     thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop",
+    thumbnailUrlEn: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop",
     instructor: {
       name: "তানভীর আহমেদ",
       role: "সিনিয়র ফুলস্ট্যাক ইঞ্জিনিয়ার",
@@ -113,7 +120,9 @@ export const COURSES_DATA: Course[] = [
   {
     id: "python-machine-learning",
     title: "পাইথন দিয়ে মেশিন লার্নিং ও এআই (AI & ML)",
+    titleEn: "Machine Learning & AI with Python",
     tagline: "ডাটা অ্যানালাইসিস থেকে প্রেডিক্টিভ এআই মডেল তৈরি শিখুন",
+    taglineEn: "From exploratory data analysis to predictive AI models",
     description: "মেশিন লার্নিং এবং কৃত্রিম বুদ্ধিমত্তার জগতে প্রবেশের জন্য একটি পূর্ণাঙ্গ কোর্স। ডেটা প্রসেসিং, সুপারভাইজড ও আনসুপারভাইজড লার্নিং, ডিপ লার্নিং এবং প্র্যাকটিকাল এআই মডেল বিল্ডিং শিখুন হাতে-কলমে।",
     category: "data-science",
     categoryBangla: "ডাটা সায়েন্স ও এআই",
@@ -126,6 +135,7 @@ export const COURSES_DATA: Course[] = [
     price: 5000,
     originalPrice: 9000,
     thumbnailUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop",
+    thumbnailUrlEn: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?q=80&w=800&auto=format&fit=crop",
     instructor: {
       name: "ড. সাজিদ হাসান",
       role: "লিড ডাটা সায়েন্টিস্ট",
@@ -167,7 +177,9 @@ export const COURSES_DATA: Course[] = [
   {
     id: "dsa-in-bangla",
     title: "ডাটা স্ট্রাকচার ও অ্যালগরিদম (DSA Mastery)",
+    titleEn: "Data Structures & Algorithms Mastery",
     tagline: "কোডিং ইন্টারভিউ ও সফটওয়্যার ইঞ্জিনিয়ারিংয়ের মূল ভিত্তি",
+    taglineEn: "The foundation of software engineering and coding interviews",
     description: "গুগল, মেটাসহ শীর্ষস্থানীয় টেক কোম্পানিতে সফটওয়্যার ইঞ্জিনিয়ার হিসেবে কোডিং ইন্টারভিউ ক্র্যাক করার জন্য ডেটা স্ট্রাকচার ও অ্যালগরিদমের সম্পূর্ণ বাংলায় বাস্তবমুখী মাস্টারক্লাস।",
     category: "programming",
     categoryBangla: "প্রোগ্রামিং ফান্ডামেন্টালস",
@@ -180,6 +192,7 @@ export const COURSES_DATA: Course[] = [
     price: 3500,
     originalPrice: 6500,
     thumbnailUrl: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=800&auto=format&fit=crop",
+    thumbnailUrlEn: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=800&auto=format&fit=crop",
     instructor: {
       name: "নাজমুল আরেফিন",
       role: "কম্পিটিটিভ প্রোগ্রামার ও এক্স-FAANG ইঞ্জিনিয়ার",
@@ -219,7 +232,9 @@ export const COURSES_DATA: Course[] = [
   {
     id: "system-design-architecture",
     title: "সিস্টেম ডিজাইন ও সফটওয়্যার আর্কিটেকচার",
+    titleEn: "System Design & Software Architecture",
     tagline: "মিলিয়ন ব্যবহারকারীর উপযোগী হাই-স্কেল সিস্টেম তৈরি",
+    taglineEn: "Design high-scale distributed systems for millions of users",
     description: "লার্জ স্কেল ডিস্ট্রিবিউটেড সিস্টেম তৈরি, মাইক্রোসার্ভিস আর্কিটেকচার, লোড ব্যালেন্সিং, ক্যাশিং, ডাটাবেস শার্ডিং এবং হাই-অ্যাভেইলেবিলিটি ডিজাইন শিখুন।",
     category: "system-design",
     categoryBangla: "সিস্টেম ডিজাইন",
@@ -231,7 +246,8 @@ export const COURSES_DATA: Course[] = [
     totalLessons: 45,
     price: 6000,
     originalPrice: 10000,
-    thumbnailUrl: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop",
+    thumbnailUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop",
+    thumbnailUrlEn: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop",
     instructor: {
       name: "ইফতেখারুল আলম",
       role: "প্রিন্সিপাল আর্কিটেক্ট",
@@ -263,7 +279,9 @@ export const COURSES_DATA: Course[] = [
   {
     id: "flutter-mobile-app",
     title: "ফ্লাটার দিয়ে ক্রস-প্ল্যাটফর্ম মোবাইল অ্যাপ ডেভেলপমেন্ট",
+    titleEn: "Cross-Platform Mobile App Development with Flutter",
     tagline: "এক কোডেই Android এবং iOS অ্যাপ তৈরি করুন",
+    taglineEn: "Build iOS and Android apps with a single codebase",
     description: "Dart প্রোগ্রামিং ভাষা এবং Flutter ফ্রেমওয়ার্ক ব্যবহার করে প্রফেশনাল, সুন্দর ও ফ্লুইড পারফরম্যান্সের মোবাইল অ্যাপস ডেভেলপমেন্ট শিখুন একদম শুরু থেকে।",
     category: "app-dev",
     categoryBangla: "অ্যাপ ডেভেলপমেন্ট",
@@ -276,6 +294,7 @@ export const COURSES_DATA: Course[] = [
     price: 4000,
     originalPrice: 7500,
     thumbnailUrl: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=800&auto=format&fit=crop",
+    thumbnailUrlEn: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=800&auto=format&fit=crop",
     instructor: {
       name: "ফারহানা ইয়াসমিন",
       role: "সিনিয়র মোবাইল অ্যাপ ডেভেলপার",

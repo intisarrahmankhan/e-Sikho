@@ -3,12 +3,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, LogOut, LogIn, BookOpen, LayoutDashboard, Home, Target } from 'lucide-react';
+import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { Input } from '@/components/ui/Input';
+import { useLanguage } from '@/context/LanguageContext';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
 
 export function Navbar() {
   const { data: session, status } = useSession();
+  const { t } = useLanguage();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
@@ -53,7 +56,7 @@ export function Navbar() {
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="কোর্স সার্চ করুন..."
+            placeholder={t('nav.searchPlaceholder')}
             className="pl-9 h-9 bg-gray-50 border-gray-200 text-xs rounded-lg focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-primary-600"
           />
         </form>
@@ -61,50 +64,62 @@ export function Navbar() {
 
       {/* Right Actions */}
       <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* Navigation links */}
         <Link
           href="/"
-          className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname === '/'
+          className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+            pathname === '/'
               ? 'bg-primary-50 text-primary-700'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
+          }`}
         >
           <Home className="h-4 w-4" />
-          <span>হোম</span>
+          <span>{t('nav.home')}</span>
         </Link>
 
         <Link
           href="/courses"
-          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname.startsWith('/courses')
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+            pathname.startsWith('/courses')
               ? 'bg-primary-50 text-primary-700'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
+          }`}
         >
           <BookOpen className="h-4 w-4" />
-          <span>সকল কোর্স</span>
+          <span>{t('nav.courses')}</span>
         </Link>
 
         <Link
           href="/exams"
-          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname.startsWith('/exams')
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+            pathname.startsWith('/exams')
               ? 'bg-primary-50 text-primary-700'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
+          }`}
         >
           <Target className="h-4 w-4" />
-          <span>পরীক্ষা ও কুইজ</span>
+          <span>{t('nav.exams')}</span>
         </Link>
+
+        {/* Global EN / BN Language Switcher */}
+        <div className="ml-1">
+          <LanguageToggle />
+        </div>
 
         {status === 'authenticated' && session?.user ? (
           <>
             <Link
               href={userDashboardUrl}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${pathname.startsWith('/student') || pathname.startsWith('/instructor') || pathname.startsWith('/admin')
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                pathname.startsWith('/student') ||
+                pathname.startsWith('/instructor') ||
+                pathname.startsWith('/admin')
                   ? 'bg-primary-50 text-primary-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+              }`}
             >
               <LayoutDashboard className="h-4 w-4" />
-              <span>ড্যাশবোর্ড</span>
+              <span>{t('nav.dashboard')}</span>
             </Link>
 
             <div className="flex items-center gap-2 border-l border-gray-200 pl-3 ml-1">
@@ -128,23 +143,33 @@ export function Navbar() {
                 className="ml-1 flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg border border-gray-200 hover:border-red-200 disabled:opacity-50 transition"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{isLoggingOut ? 'লগআউট...' : 'লগআউট'}</span>
+                <span className="hidden sm:inline">
+                  {isLoggingOut ? t('nav.loggingOut') : t('nav.logout')}
+                </span>
               </button>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-2 border-l border-gray-200 pl-3 ml-1">
             <Link
-              href="/login"
+              href="/login?tab=login"
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-200 transition"
             >
               <LogIn className="h-4 w-4" />
-              <span>লগইন</span>
+              <span>{t('nav.login')}</span>
             </Link>
-
+            <Link
+              href="/login?tab=signup"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>{t('nav.signup')}</span>
+            </Link>
           </div>
         )}
       </div>
     </header>
   );
 }
+
+export default Navbar;

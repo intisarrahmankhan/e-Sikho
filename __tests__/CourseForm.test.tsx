@@ -15,8 +15,9 @@ describe('CourseForm', () => {
 
   it('renders the form correctly', () => {
     render(<CourseForm />);
-    expect(screen.getByText('Course Title *')).toBeTruthy();
-    expect(screen.getByText('Description *')).toBeTruthy();
+    expect(screen.getByText('Course Title (Primary / Bangla) *')).toBeTruthy();
+    expect(screen.getByText('Description (Bangla / Primary) *')).toBeTruthy();
+    expect(screen.getByText('Course Title in English (Optional)')).toBeTruthy();
     expect(screen.getByText('Price (BDT) - 0 for free')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Submit Course for Review/i })).toBeTruthy();
   });
