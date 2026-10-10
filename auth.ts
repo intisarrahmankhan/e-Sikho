@@ -97,19 +97,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             phone: cleanPhone,
                             email,
                             password: hashedPassword,
-                            role: requestedRole === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'STUDENT',
+                            role: 'STUDENT',
                             status: 'APPROVED',
                             image: '',
                         });
 
                         if (requestedRole === 'INSTRUCTOR') {
-                            const existingInstructor = await Instructor.findOne({ name: newUser.name });
-                            if (!existingInstructor) {
-                                await Instructor.create({
-                                    name: newUser.name,
-                                    role: 'Instructor',
-                                    avatar: '',
-                                    bio: 'e-Shikho অনুমোদিত ইন্সট্রাক্টর',
+                            const InstructorRequest = (await import('@/models/InstructorRequest')).default;
+                            const existingReq = await InstructorRequest.findOne({ userId: newUser._id });
+                            if (!existingReq) {
+                                await InstructorRequest.create({
+                                    userId: newUser._id,
+                                    reason: 'Requested instructor access during phone signup',
+                                    status: 'PENDING',
                                 });
                             }
                         }
@@ -209,24 +209,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     user = await User.create({
                         name,
                         email,
-                        role: requestedRole === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'STUDENT',
+                        role: 'STUDENT',
                         status: 'APPROVED',
                         image: '',
                     });
-                } else if (requestedRole === 'INSTRUCTOR' && user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
-                    user.role = 'INSTRUCTOR';
-                    user.status = 'APPROVED';
-                    await user.save();
-                }
-
-                if (user.role === 'INSTRUCTOR') {
-                    const existingInstructor = await Instructor.findOne({ name: user.name });
-                    if (!existingInstructor) {
-                        await Instructor.create({
-                            name: user.name,
-                            role: 'Instructor',
-                            avatar: user.image || '',
-                            bio: 'e-Shikho অনুমোদিত ইন্সট্রাক্টর',
+                } 
+                
+                if (requestedRole === 'INSTRUCTOR' && user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+                    const InstructorRequest = (await import('@/models/InstructorRequest')).default;
+                    const existingReq = await InstructorRequest.findOne({ userId: user._id });
+                    if (!existingReq) {
+                        await InstructorRequest.create({
+                            userId: user._id,
+                            reason: 'Requested instructor access during email login',
+                            status: 'PENDING',
                         });
                     }
                 }

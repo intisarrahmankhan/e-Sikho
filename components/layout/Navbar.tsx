@@ -139,7 +139,7 @@ export function Navbar() {
             </Link>
 
             <div className="flex items-center gap-2 border-l border-gray-200 pl-3 ml-1">
-              <div className="flex items-center gap-2">
+              <Link href={`${userDashboardUrl}/settings`} className="flex items-center gap-2 hover:bg-gray-50 rounded-lg p-1 transition cursor-pointer">
                 <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold text-xs shrink-0">
                   {session.user.name ? session.user.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
                 </div>
@@ -151,7 +151,7 @@ export function Navbar() {
                     <span className="text-[10px] text-gray-500 capitalize">{role.toLowerCase()}</span>
                   )}
                 </div>
-              </div>
+              </Link>
 
               <button
                 onClick={handleLogout}
