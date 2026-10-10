@@ -30,6 +30,7 @@ export interface ICourse extends Document {
   instructorId: mongoose.Types.ObjectId | string;
   learningOutcomes: string;
   prerequisites: string;
+  hasCertificate: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +69,7 @@ const courseSchema = new Schema<ICourse>(
     instructorId: { type: Schema.Types.ObjectId, ref: 'Instructor', required: true },
     learningOutcomes: { type: String, required: true },
     prerequisites: { type: String, required: true },
+    hasCertificate: { type: Boolean, default: false },
   },
   {
     timestamps: true,

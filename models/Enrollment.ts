@@ -5,6 +5,8 @@ export interface IEnrollment extends Document {
   courseId: mongoose.Types.ObjectId | string;
   paymentStatus: string;
   transactionId?: string;
+  amountPaid: number;
+  couponApplied?: mongoose.Types.ObjectId | string | null;
   enrolledAt: Date;
 }
 
@@ -14,6 +16,8 @@ const enrollmentSchema = new Schema<IEnrollment>(
     courseId: { type: Schema.Types.Mixed, ref: 'Course', required: true },
     paymentStatus: { type: String, default: 'pending' },
     transactionId: { type: String },
+    amountPaid: { type: Number, required: true, default: 0 },
+    couponApplied: { type: Schema.Types.ObjectId, ref: 'Coupon', default: null },
     enrolledAt: { type: Date, default: Date.now },
   },
   {
