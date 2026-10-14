@@ -1,6 +1,7 @@
 'use client';
 
 import React from "react";
+import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { useLanguage } from "@/context/LanguageContext";
@@ -66,6 +67,15 @@ export function LeaderboardSnippet({ topStudents }: { topStudents: StudentScore[
             </div>
           );
         })}
+
+        <div className="pt-2 border-t border-slate-100">
+          <Link
+            href="/leaderboard"
+            className="w-full py-2 px-3 text-center block text-xs font-bold text-primary-600 hover:text-primary-700 bg-primary-50/60 hover:bg-primary-50 rounded-xl transition"
+          >
+            {language === 'en' ? 'View Full Leaderboard & Percentiles →' : 'সম্পূর্ণ লিডারবোর্ড ও পার্সেন্টাইল দেখুন →'}
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

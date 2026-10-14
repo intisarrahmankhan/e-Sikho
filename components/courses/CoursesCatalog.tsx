@@ -19,10 +19,28 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
 import { useLanguage } from "@/context/LanguageContext";
+import { PersonalizedRecommendations } from "@/components/dashboard/PersonalizedRecommendations";
+import { RecommendedCourseItem } from "@/actions/recommendations";
 
 type SortOption = "popular" | "newest" | "price-low" | "price-high" | "rating";
 
-export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?: Course[] }) {
+interface CoursesCatalogProps {
+  additionalCourses?: Course[];
+  recommendations?: RecommendedCourseItem[];
+  studentProfile?: {
+    targetTrack: string;
+    elo: number;
+    interests: string[];
+    skills: string[];
+    academicBackground?: string;
+  };
+}
+
+export function CoursesCatalog({
+  additionalCourses = [],
+  recommendations = [],
+  studentProfile,
+}: CoursesCatalogProps) {
   const { t, language } = useLanguage();
   const searchParams = useSearchParams();
 
@@ -114,6 +132,14 @@ export function CoursesCatalog({ additionalCourses = [] }: { additionalCourses?:
           )}
         </p>
       </div>
+
+      {/* ── Personalized Recommendations Highlight ── */}
+      {recommendations && recommendations.length > 0 && (
+        <PersonalizedRecommendations
+          recommendations={recommendations}
+          studentProfile={studentProfile}
+        />
+      )}
 
       {/* ── Search Bar ── */}
       <div className="relative flex items-center bg-white border border-gray-200 rounded-xl shadow-card overflow-hidden max-w-2xl">

@@ -17,6 +17,8 @@ export interface IUser extends Document {
   targetTrack?: string;
   academicBackground?: string;
   weeklyGoalHours?: number;
+  interests?: string[];
+  skills?: string[];
   elo?: number;
   competitiveElo?: number;
   problemsSolved?: number;
@@ -57,6 +59,8 @@ const userSchema = new Schema<IUser>(
     targetTrack: { type: String, default: 'Fullstack Web Development' },
     academicBackground: { type: String, default: 'Computer Science & Engineering (CSE)' },
     weeklyGoalHours: { type: Number, default: 10 },
+    interests: { type: [String], default: [] },
+    skills: { type: [String], default: [] },
     elo: { type: Number, default: 1200 },
     competitiveElo: { type: Number, default: 1200 },
     problemsSolved: { type: Number, default: 0 },

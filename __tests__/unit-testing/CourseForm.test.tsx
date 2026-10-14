@@ -8,6 +8,12 @@ vi.mock('@/actions/instructor', () => ({
   createCourse: vi.fn(),
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
+
 describe('CourseForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();

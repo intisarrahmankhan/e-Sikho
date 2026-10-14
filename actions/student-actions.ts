@@ -68,6 +68,8 @@ export async function getStudentProfileAction() {
         targetTrack: user.targetTrack || 'Fullstack Web Development',
         academicBackground: user.academicBackground || 'Computer Science & Engineering (CSE)',
         weeklyGoalHours: user.weeklyGoalHours || 10,
+        interests: Array.isArray(user.interests) ? user.interests : [],
+        skills: Array.isArray(user.skills) ? user.skills : [],
         elo: user.elo || 1200,
         competitiveElo: user.competitiveElo || 1200,
         problemsSolved: user.problemsSolved || 0,
@@ -85,7 +87,7 @@ export async function getStudentProfileAction() {
 }
 
 /**
- * Updates student general profile and learning goals
+ * Updates student general profile, learning goals, interests & skills
  */
 export async function updateStudentProfileAction(data: {
   name: string;
@@ -95,6 +97,8 @@ export async function updateStudentProfileAction(data: {
   targetTrack?: string;
   academicBackground?: string;
   weeklyGoalHours?: number;
+  interests?: string[];
+  skills?: string[];
 }) {
   try {
     const session = await auth();
@@ -120,6 +124,13 @@ export async function updateStudentProfileAction(data: {
       academicBackground: data.academicBackground || 'Computer Science & Engineering (CSE)',
       weeklyGoalHours: Number(data.weeklyGoalHours) || 10,
     };
+
+    if (Array.isArray(data.interests)) {
+      updateFields.interests = data.interests.map((s) => String(s).trim()).filter(Boolean);
+    }
+    if (Array.isArray(data.skills)) {
+      updateFields.skills = data.skills.map((s) => String(s).trim()).filter(Boolean);
+    }
 
     if (data.phone) {
       const cleanPhone = normalizePhone(data.phone);

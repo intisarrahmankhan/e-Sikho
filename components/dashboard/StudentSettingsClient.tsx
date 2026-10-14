@@ -41,6 +41,8 @@ interface StudentProfile {
   targetTrack?: string;
   academicBackground?: string;
   weeklyGoalHours?: number;
+  interests?: string[];
+  skills?: string[];
   elo?: number;
   competitiveElo?: number;
   problemsSolved?: number;
@@ -71,9 +73,13 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
     initialProfile.academicBackground || 'Computer Science & Engineering (CSE)'
   );
 
-  // Learning Goal States
+  // Learning Goal States & Personalized Profile
   const [targetTrack, setTargetTrack] = useState(initialProfile.targetTrack || 'Fullstack Web Development');
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(initialProfile.weeklyGoalHours || 10);
+  const [interests, setInterests] = useState<string[]>(initialProfile.interests || ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms']);
+  const [skills, setSkills] = useState<string[]>(initialProfile.skills || ['JavaScript', 'React', 'TypeScript']);
+  const [customInterest, setCustomInterest] = useState('');
+  const [customSkill, setCustomSkill] = useState('');
 
   // Password States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -104,6 +110,8 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
         targetTrack,
         academicBackground,
         weeklyGoalHours,
+        interests,
+        skills,
       });
 
       if (res.error) {
@@ -445,6 +453,191 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                     <span>৪ ঘণ্টা (Casual)</span>
                     <span>১৫ ঘণ্টা (Standard)</span>
                     <span>৩৫ ঘণ্টা (Intensive Bootcamp)</span>
+                  </div>
+                </div>
+
+                {/* ── Student Interests ── */}
+                <div className="space-y-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-amber-500" />
+                        <span>{language === 'en' ? 'Your Interests & Passion Areas' : 'আপনার আগ্রহ ও পছন্দের ক্ষেত্রসমূহ'}</span>
+                      </label>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {language === 'en'
+                          ? 'Select topics you want to explore. Powers personalized course recommendations.'
+                          : 'যেসব বিষয়ে আপনার আগ্রহ রয়েছে তা সিলেক্ট করুন। এটি আপনার জন্য কোর্স রেকমেন্ডেশনে ব্যবহৃত হবে।'}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] font-bold text-amber-700 bg-amber-50 border-amber-200">
+                      {interests.length} {language === 'en' ? 'Selected' : 'সিলেক্টেড'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {[
+                      'Web Development',
+                      'Machine Learning & AI',
+                      'Data Science',
+                      'Data Structures & Algorithms',
+                      'Competitive Programming',
+                      'System Design & Cloud',
+                      'Cyber Security',
+                      'Mobile App Development',
+                      'DevOps & Docker',
+                    ].map((item) => {
+                      const isSelected = interests.includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setInterests(interests.filter((i) => i !== item));
+                            } else {
+                              setInterests([...interests, item]);
+                            }
+                          }}
+                          className={`text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border ${
+                            isSelected
+                              ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                          }`}
+                        >
+                          <span>{item}</span>
+                          {isSelected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add custom interest */}
+                  <div className="flex items-center gap-2 pt-1 max-w-sm">
+                    <input
+                      type="text"
+                      placeholder={language === 'en' ? 'Add custom interest (e.g. Blockchain)...' : 'অন্য কোনো আগ্রহ লিখুন...'}
+                      value={customInterest}
+                      onChange={(e) => setCustomInterest(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customInterest.trim()) {
+                          e.preventDefault();
+                          if (!interests.includes(customInterest.trim())) {
+                            setInterests([...interests, customInterest.trim()]);
+                          }
+                          setCustomInterest('');
+                        }
+                      }}
+                      className="text-xs rounded-xl border border-slate-200 px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (customInterest.trim() && !interests.includes(customInterest.trim())) {
+                          setInterests([...interests, customInterest.trim()]);
+                          setCustomInterest('');
+                        }
+                      }}
+                      className="text-xs font-bold rounded-xl px-3 py-1.5"
+                    >
+                      + {language === 'en' ? 'Add' : 'যুক্ত করুন'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* ── Student Skills & Technologies ── */}
+                <div className="space-y-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Layers className="h-4 w-4 text-indigo-600" />
+                        <span>{language === 'en' ? 'Current Skills & Known Technologies' : 'আপনার বর্তমান স্কিল ও প্রযুক্তি'}</span>
+                      </label>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {language === 'en'
+                          ? 'Select tools you are familiar with to unlock advanced course calibrations.'
+                          : 'যেসব প্রযুক্তি আপনি জানেন তা সিলেক্ট করুন, যাতে আপনার লেভেল অনুযায়ী সঠিক কোর্স রেকমেন্ড করা যায়।'}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border-indigo-200">
+                      {skills.length} {language === 'en' ? 'Selected' : 'সিলেক্টেড'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {[
+                      'JavaScript',
+                      'TypeScript',
+                      'React',
+                      'Next.js',
+                      'Node.js',
+                      'Python',
+                      'C/C++',
+                      'SQL / PostgreSQL',
+                      'MongoDB',
+                      'Docker',
+                      'Git & GitHub',
+                      'Tailwind CSS',
+                    ].map((item) => {
+                      const isSelected = skills.includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSkills(skills.filter((s) => s !== item));
+                            } else {
+                              setSkills([...skills, item]);
+                            }
+                          }}
+                          className={`text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                          }`}
+                        >
+                          <span>{item}</span>
+                          {isSelected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add custom skill */}
+                  <div className="flex items-center gap-2 pt-1 max-w-sm">
+                    <input
+                      type="text"
+                      placeholder={language === 'en' ? 'Add custom skill (e.g. GraphQL)...' : 'অন্য কোনো স্কিল লিখুন...'}
+                      value={customSkill}
+                      onChange={(e) => setCustomSkill(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && customSkill.trim()) {
+                          e.preventDefault();
+                          if (!skills.includes(customSkill.trim())) {
+                            setSkills([...skills, customSkill.trim()]);
+                          }
+                          setCustomSkill('');
+                        }
+                      }}
+                      className="text-xs rounded-xl border border-slate-200 px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (customSkill.trim() && !skills.includes(customSkill.trim())) {
+                          setSkills([...skills, customSkill.trim()]);
+                          setCustomSkill('');
+                        }
+                      }}
+                      className="text-xs font-bold rounded-xl px-3 py-1.5"
+                    >
+                      + {language === 'en' ? 'Add' : 'যুক্ত করুন'}
+                    </Button>
                   </div>
                 </div>
 

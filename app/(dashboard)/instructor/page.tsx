@@ -471,7 +471,8 @@ export default async function InstructorDashboardPage() {
                   <th className="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">Drop-off</th>
                   <th className="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">Rating</th>
                   <th className="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">Revenue</th>
-                  <th className="pb-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
+                  <th className="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
+                  <th className="pb-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -506,11 +507,31 @@ export default async function InstructorDashboardPage() {
                         <span className="text-sm font-bold text-violet-700">৳{((course.price ?? 0) * (course.studentsEnrolled ?? 0)).toLocaleString()}</span>
                       )}
                     </td>
-                    <td className="py-3.5 text-right">
+                    <td className="py-3.5 text-center">
                       <Badge variant="outline" className={`gap-1.5 text-[10px] font-semibold ${statusBadgeClass(course.status)}`}>
                         {statusIcon(course.status)}
                         {statusLabel(course.status)}
                       </Badge>
+                    </td>
+                    <td className="py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          href={`/instructor/courses/${course.id}/lectures`}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition"
+                          title="কারিকুলাম ও লেকচার সাজান"
+                        >
+                          <Layers className="h-3.5 w-3.5" />
+                          <span>কারিকুলাম</span>
+                        </Link>
+                        <Link
+                          href={`/courses/${course.id}`}
+                          target="_blank"
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition"
+                          title="কোর্স প্রিভিউ দেখুন"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

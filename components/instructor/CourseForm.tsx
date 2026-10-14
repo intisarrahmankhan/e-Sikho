@@ -1,8 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createCourse } from '@/actions/instructor';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, ArrowRight, Layers, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   Field,
@@ -25,9 +27,16 @@ const textareaClassName =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
 
 export default function CourseForm({ onSuccess }: CourseFormProps) {
+  let router: any = null;
+  try {
+    router = useRouter();
+  } catch {
+    router = null;
+  }
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);
+  const [createdCourseId, setCreatedCourseId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function submit(formData: FormData) {
@@ -37,13 +46,20 @@ export default function CourseForm({ onSuccess }: CourseFormProps) {
     if (result.error) {
       setIsError(true);
       setMessage(result.error);
+      setPending(false);
     } else {
       setIsError(false);
-      setMessage('Course submitted for admin review!');
+      const newId = result.courseId;
+      setCreatedCourseId(newId || null);
+      setMessage('Course created successfully! Redirecting to curriculum builder...');
       formRef.current?.reset();
       onSuccess?.();
+      if (newId && router) {
+        setTimeout(() => {
+          router?.push?.(`/instructor/courses/${newId}/lectures`);
+        }, 800);
+      }
     }
-    setPending(false);
   }
 
   return (
@@ -195,7 +211,24 @@ export default function CourseForm({ onSuccess }: CourseFormProps) {
         isError ? (
           <FieldError className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">{message}</FieldError>
         ) : (
-          <FieldDescription className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">{message}</FieldDescription>
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-800 text-sm font-semibold">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <span>{message}</span>
+            </div>
+            {createdCourseId && (
+              <div className="pt-1">
+                <Link
+                  href={`/instructor/courses/${createdCourseId}/lectures`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+                >
+                  <Layers className="h-4 w-4" />
+                  <span>এখনই কারিকুলাম ও লেকচার সাজান (Curriculum Builder)</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
+          </div>
         )
       )}
     </form>

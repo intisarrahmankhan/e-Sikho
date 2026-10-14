@@ -9,6 +9,12 @@ export interface ILesson extends Document {
   moduleId: mongoose.Types.ObjectId | string;
   videoUrl?: string;
   videoKey?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+  quizId?: mongoose.Types.ObjectId | string;
+  type?: 'VIDEO' | 'PDF' | 'QUIZ';
+  bunnyVideoId?: string;
+  bunnyLibraryId?: string;
 }
 
 const lessonSchema = new Schema<ILesson>(
@@ -21,6 +27,12 @@ const lessonSchema = new Schema<ILesson>(
     moduleId: { type: Schema.Types.ObjectId, ref: 'Module', required: true },
     videoUrl: { type: String, default: '' },
     videoKey: { type: String, default: '' },
+    pdfUrl: { type: String, default: '' },
+    pdfName: { type: String, default: '' },
+    quizId: { type: Schema.Types.ObjectId, ref: 'Exam' },
+    type: { type: String, enum: ['VIDEO', 'PDF', 'QUIZ'], default: 'VIDEO' },
+    bunnyVideoId: { type: String, default: '' },
+    bunnyLibraryId: { type: String, default: '' },
   },
   {
     timestamps: false,

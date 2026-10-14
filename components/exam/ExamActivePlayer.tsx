@@ -5,6 +5,7 @@ import { LatexRenderer } from './LatexRenderer';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Input } from '@/components/ui/Input';
 import {
   Clock,
   ChevronLeft,
@@ -14,14 +15,35 @@ import {
   Send,
   Loader2,
   BookOpen,
+  Code2,
+  Play,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Terminal,
+  Type,
+  ToggleLeft,
+  CheckSquare,
 } from 'lucide-react';
+import { runSampleCodeAction } from '@/actions/exam';
+import { ExamQuestionType } from '@/models/Exam';
 
 export interface ExamQuestionView {
   id: string;
   index: number;
+  type?: ExamQuestionType;
   question: string;
-  options: string[];
+  options?: string[];
   marks: number;
+  codeTemplate?: string;
+  codeLanguage?: string;
+  testCases?: { input: string; expectedOutput: string; isHidden?: boolean }[];
+}
+
+export interface StudentAnswerItem {
+  selectedOption?: number;
+  textAnswer?: string;
+  codeAnswer?: string;
 }
 
 export interface ExamActivePlayerProps {
@@ -31,8 +53,10 @@ export interface ExamActivePlayerProps {
   durationMinutes: number;
   totalMarks: number;
   questions: ExamQuestionView[];
-  onSubmit: (answers: Record<number, number>, timeTakenSeconds: number) => Promise<void>;
+  onSubmit: (answers: Record<number, any>, timeTakenSeconds: number) => Promise<void>;
   isSubmitting: boolean;
+  hasNegativeMarking?: boolean;
+  negativeMarkingValue?: number;
 }
 
 export function ExamActivePlayer({
@@ -44,12 +68,18 @@ export function ExamActivePlayer({
   questions,
   onSubmit,
   isSubmitting,
+  hasNegativeMarking,
+  negativeMarkingValue,
 }: ExamActivePlayerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<number, StudentAnswerItem>>({});
   const [markedForReview, setMarkedForReview] = useState<Record<number, boolean>>({});
   const [secondsLeft, setSecondsLeft] = useState(durationMinutes * 60);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+
+  // Coding execution test states
+  const [testingCode, setTestingCode] = useState(false);
+  const [codeTestResults, setCodeTestResults] = useState<any | null>(null);
 
   const initialSeconds = durationMinutes * 60;
   const answersRef = useRef(answers);
@@ -59,6 +89,26 @@ export function ExamActivePlayer({
   onSubmitRef.current = onSubmit;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize starter code in answers if not present
+  useEffect(() => {
+    questions.forEach((q, idx) => {
+      if (q.type === 'CODE' && q.codeTemplate) {
+        setAnswers((prev) => {
+          if (!prev[idx]?.codeAnswer) {
+            return {
+              ...prev,
+              [idx]: {
+                ...prev[idx],
+                codeAnswer: q.codeTemplate,
+              },
+            };
+          }
+          return prev;
+        });
+      }
+    });
+  }, [questions]);
 
   // Timer effect
   useEffect(() => {
@@ -78,12 +128,8 @@ export function ExamActivePlayer({
     };
   }, [initialSeconds]);
 
-  const handleManualSubmit = () => {
-    const timeTaken = initialSeconds - secondsLeft;
-    onSubmit(answers, timeTaken);
-  };
-
-  const currentQuestion = questions[currentIndex];
+  const currentQuestion = questions[currentIndex] || questions[0];
+  const qType = currentQuestion?.type || 'MCQ';
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -97,16 +143,40 @@ export function ExamActivePlayer({
   const handleSelectOption = (optionIndex: number) => {
     setAnswers((prev) => ({
       ...prev,
-      [currentIndex]: optionIndex,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        selectedOption: optionIndex,
+      },
     }));
   };
 
-  const handleClearOption = () => {
+  const handleTextAnswerChange = (val: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        textAnswer: val,
+      },
+    }));
+  };
+
+  const handleCodeAnswerChange = (val: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        codeAnswer: val,
+      },
+    }));
+  };
+
+  const handleClearAnswer = () => {
     setAnswers((prev) => {
       const copy = { ...prev };
       delete copy[currentIndex];
       return copy;
     });
+    setCodeTestResults(null);
   };
 
   const handleToggleReview = () => {
@@ -116,7 +186,54 @@ export function ExamActivePlayer({
     }));
   };
 
-  const answeredCount = Object.keys(answers).length;
+  const handleRunSampleCode = async () => {
+    const code = answers[currentIndex]?.codeAnswer || currentQuestion.codeTemplate || '';
+    const sampleCases = (currentQuestion.testCases || []).filter((tc) => !tc.isHidden);
+
+    if (sampleCases.length === 0) {
+      alert('যাচাই করার মতো কোনো পাবলিক টেস্ট-কেস নেই।');
+      return;
+    }
+
+    setTestingCode(true);
+    setCodeTestResults(null);
+
+    try {
+      const res = await runSampleCodeAction({
+        code,
+        testCases: sampleCases,
+        language: currentQuestion.codeLanguage || 'javascript',
+      });
+
+      if (res.success && res.outcome) {
+        setCodeTestResults(res.outcome);
+      } else {
+        alert(res.error || 'কোড রান করতে ত্রুটি হয়েছে।');
+      }
+    } catch (err: any) {
+      alert(err.message || 'কোড টেস্ট করতে সমস্যা হয়েছে।');
+    } finally {
+      setTestingCode(false);
+    }
+  };
+
+  // Check whether a question is answered
+  const isQuestionAnswered = (idx: number) => {
+    const ans = answers[idx];
+    if (!ans) return false;
+    const q = questions[idx];
+    const type = q?.type || 'MCQ';
+
+    if (type === 'SHORT_ANSWER') {
+      return !!ans.textAnswer?.trim();
+    }
+    if (type === 'CODE') {
+      return !!ans.codeAnswer?.trim();
+    }
+    return ans.selectedOption !== undefined && ans.selectedOption >= 0;
+  };
+
+  const answeredCount = questions.filter((_, idx) => isQuestionAnswered(idx)).length;
   const unansweredCount = questions.length - answeredCount;
   const reviewCount = Object.values(markedForReview).filter(Boolean).length;
 
@@ -125,7 +242,15 @@ export function ExamActivePlayer({
       {/* Top Floating Control Bar */}
       <div className="sticky top-20 z-20 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-bold text-slate-900 truncate max-w-md">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 truncate max-w-md">{title}</h2>
+            {hasNegativeMarking && (
+              <Badge className="bg-rose-100 text-rose-800 border-rose-300 font-bold text-[11px] flex items-center gap-1 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
+                <span>নেগেটিভ মার্কিং: -{negativeMarkingValue || 0.25} (এড়িয়ে গেলে ০)</span>
+              </Badge>
+            )}
+          </div>
           {courseTitle && (
             <p className="text-xs text-primary-600 font-medium flex items-center gap-1">
               <BookOpen className="w-3.5 h-3.5" />
@@ -179,6 +304,34 @@ export function ExamActivePlayer({
                 <Badge className="bg-primary-600 text-white text-xs font-bold px-2.5 py-0.5">
                   প্রশ্ন {currentIndex + 1} / {questions.length}
                 </Badge>
+
+                <Badge
+                  variant="outline"
+                  className={`text-[11px] font-semibold flex items-center gap-1 ${
+                    qType === 'CODE'
+                      ? 'border-indigo-300 text-indigo-700 bg-indigo-50'
+                      : qType === 'SHORT_ANSWER'
+                      ? 'border-amber-300 text-amber-700 bg-amber-50'
+                      : qType === 'TRUE_FALSE'
+                      ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
+                      : 'border-slate-300 text-slate-700 bg-white'
+                  }`}
+                >
+                  {qType === 'CODE' && <Code2 className="w-3 h-3" />}
+                  {qType === 'SHORT_ANSWER' && <Type className="w-3 h-3" />}
+                  {qType === 'TRUE_FALSE' && <ToggleLeft className="w-3 h-3" />}
+                  {qType === 'MCQ' && <CheckSquare className="w-3 h-3" />}
+                  <span>
+                    {qType === 'CODE'
+                      ? 'কোডিং সমস্যা'
+                      : qType === 'SHORT_ANSWER'
+                      ? 'সংক্ষিপ্ত উত্তর'
+                      : qType === 'TRUE_FALSE'
+                      ? 'সত্য/মিথ্যা'
+                      : 'বহুনির্বাচনী (MCQ)'}
+                  </span>
+                </Badge>
+
                 <span className="text-xs text-slate-500 font-medium">
                   মান: {currentQuestion.marks} নম্বর
                 </span>
@@ -208,52 +361,251 @@ export function ExamActivePlayer({
                 <LatexRenderer content={currentQuestion.question} />
               </div>
 
-              {/* Options with LaTeX Rendering */}
-              <div className="space-y-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                  সঠিক উত্তরটি নির্বাচন করুন:
-                </span>
+              {/* FORMAT 1: MCQ Options */}
+              {qType === 'MCQ' && (
+                <div className="space-y-3">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    সঠিক উত্তরটি নির্বাচন করুন:
+                  </span>
 
-                <div className="space-y-2.5">
-                  {currentQuestion.options.map((option, optIdx) => {
-                    const isSelected = answers[currentIndex] === optIdx;
-                    const optionLetter = String.fromCharCode(65 + optIdx); // A, B, C, D
+                  <div className="space-y-2.5">
+                    {(currentQuestion.options || []).map((option, optIdx) => {
+                      const isSelected = answers[currentIndex]?.selectedOption === optIdx;
+                      const optionLetter = String.fromCharCode(65 + optIdx); // A, B, C, D
 
-                    return (
-                      <div
-                        key={optIdx}
-                        onClick={() => handleSelectOption(optIdx)}
-                        className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${
-                          isSelected
-                            ? 'bg-primary-50/80 border-primary-500 text-primary-950 ring-1 ring-primary-500/50 shadow-xs'
-                            : 'bg-white border-slate-200/90 hover:bg-slate-50/80 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
+                      return (
                         <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition ${
+                          key={optIdx}
+                          onClick={() => handleSelectOption(optIdx)}
+                          className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${
                             isSelected
-                              ? 'bg-primary-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
+                              ? 'bg-primary-50/80 border-primary-500 text-primary-950 ring-1 ring-primary-500/50 shadow-xs'
+                              : 'bg-white border-slate-200/90 hover:bg-slate-50/80 text-slate-700 hover:border-slate-300'
                           }`}
                         >
-                          {optionLetter}
+                          <div
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition ${
+                              isSelected
+                                ? 'bg-primary-600 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}
+                          >
+                            {optionLetter}
+                          </div>
+
+                          <div className="text-sm sm:text-base flex-1 pt-0.5 leading-snug">
+                            <LatexRenderer content={option} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* FORMAT 2: TRUE_FALSE */}
+              {qType === 'TRUE_FALSE' && (
+                <div className="space-y-3">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    বিবৃতিটি সত্য নাকি মিথ্যা নির্বাচন করুন:
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectOption(0)}
+                      className={`p-5 rounded-2xl border text-left transition flex items-center gap-4 ${
+                        answers[currentIndex]?.selectedOption === 0
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/30 shadow-sm'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'
+                      }`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                          answers[currentIndex]?.selectedOption === 0
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-sm block">সত্য (True)</span>
+                        <span className="text-xs text-slate-500">বিবৃতিটি সঠিক</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectOption(1)}
+                      className={`p-5 rounded-2xl border text-left transition flex items-center gap-4 ${
+                        answers[currentIndex]?.selectedOption === 1
+                          ? 'bg-rose-50 border-rose-500 text-rose-950 ring-2 ring-rose-500/30 shadow-sm'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-800'
+                      }`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                          answers[currentIndex]?.selectedOption === 1
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-rose-100 text-rose-700'
+                        }`}
+                      >
+                        <XCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-sm block">মিথ্যা (False)</span>
+                        <span className="text-xs text-slate-500">বিবৃতিটি ভুল</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* FORMAT 3: SHORT_ANSWER */}
+              {qType === 'SHORT_ANSWER' && (
+                <div className="space-y-3 bg-amber-50/30 p-5 rounded-2xl border border-amber-200/80">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+                    <Type className="w-4 h-4 text-amber-600" />
+                    <span>আপনার সংক্ষিপ্ত উত্তরটি লিখুন:</span>
+                  </label>
+                  <Input
+                    value={answers[currentIndex]?.textAnswer || ''}
+                    onChange={(e) => handleTextAnswerChange(e.target.value)}
+                    placeholder="যেমন: Queue অথবা O(n log n)..."
+                    className="rounded-xl border-amber-300 bg-white text-sm p-3 focus:ring-amber-500"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    উত্তর জমা দেওয়ার পর স্বয়ংক্রিয়ভাবে কেস-ইনসেনসিটিভ নিয়মে যাচাই ও গ্রেডিং করা হবে।
+                  </p>
+                </div>
+              )}
+
+              {/* FORMAT 4: CODE EVALUATION */}
+              {qType === 'CODE' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Terminal className="w-4 h-4 text-indigo-600" />
+                      <span>জাভাস্ক্রিপ্ট কোড এডিটর (JavaScript Solution):</span>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleRunSampleCode}
+                      disabled={testingCode}
+                      className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-xs disabled:opacity-50"
+                    >
+                      {testingCode ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>যাচাই হচ্ছে...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                          <span>কোড যাচাই করুন (Run Sample Tests)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-md">
+                    <div className="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                        <span className="text-xs font-mono text-slate-400 ml-2">solution.js</span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-mono">JS VM Sandbox</span>
+                    </div>
+
+                    <textarea
+                      value={answers[currentIndex]?.codeAnswer ?? currentQuestion.codeTemplate ?? ''}
+                      onChange={(e) => handleCodeAnswerChange(e.target.value)}
+                      rows={10}
+                      className="w-full bg-slate-950 text-emerald-400 font-mono text-xs sm:text-sm p-4 outline-none resize-y leading-relaxed"
+                      placeholder="function solve(input) { ... }"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  {/* Public Sample Test Cases & Test Results */}
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+                    <span className="text-xs font-bold text-slate-700 block">
+                      পাবলিক টেস্ট কেস নমুনা (Sample Test Cases):
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                      {(currentQuestion.testCases || [])
+                        .filter((tc) => !tc.isHidden)
+                        .map((tc, tcIdx) => (
+                          <div key={tcIdx} className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1">
+                            <div>
+                              <span className="text-slate-400 font-semibold">Input: </span>
+                              <span className="text-slate-800">{tc.input}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 font-semibold">Expected: </span>
+                              <span className="text-emerald-700 font-bold">{tc.expectedOutput}</span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Live Test Run Feedback */}
+                    {codeTestResults && (
+                      <div
+                        className={`p-3.5 rounded-xl border space-y-2 mt-2 ${
+                          codeTestResults.allPassed
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                            : 'bg-rose-50 border-rose-300 text-rose-950'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold text-xs">
+                          <span className="flex items-center gap-1.5">
+                            {codeTestResults.allPassed ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <XCircle className="w-4 h-4 text-rose-600" />
+                            )}
+                            {codeTestResults.allPassed
+                              ? `অভিনন্দন! সকল পাবলিক টেস্ট-কেস পাস করেছে (${codeTestResults.passedCount}/${codeTestResults.totalCount})`
+                              : `কিছু টেস্ট-কেসে ভুল হয়েছে (${codeTestResults.passedCount}/${codeTestResults.totalCount} পাস)`}
+                          </span>
                         </div>
 
-                        <div className="text-sm sm:text-base flex-1 pt-0.5 leading-snug">
-                          <LatexRenderer content={option} />
+                        <div className="space-y-1 text-[11px] font-mono">
+                          {codeTestResults.results.map((r: any, rIdx: number) => (
+                            <div
+                              key={rIdx}
+                              className={`p-2 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-1 ${
+                                r.passed ? 'bg-emerald-100/60 border-emerald-200' : 'bg-rose-100/60 border-rose-200'
+                              }`}
+                            >
+                              <div>
+                                <span>কেস #{rIdx + 1}: </span>
+                                <span>Input: {r.input} | Output: {r.actualOutput || 'Empty'}</span>
+                                {r.errorMessage && <p className="text-rose-700">{r.errorMessage}</p>}
+                              </div>
+                              <span className={`font-bold ${r.passed ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                {r.passed ? 'PASSED ✓' : 'FAILED ✗'}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Option Actions (Clear selection) */}
-              {answers[currentIndex] !== undefined && (
+              {isQuestionAnswered(currentIndex) && (
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={handleClearOption}
+                    onClick={handleClearAnswer}
                     className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 transition"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
@@ -268,7 +620,10 @@ export function ExamActivePlayer({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+                onClick={() => {
+                  setCurrentIndex((prev) => Math.max(0, prev - 1));
+                  setCodeTestResults(null);
+                }}
                 disabled={currentIndex === 0}
                 className="gap-1 border-slate-200 text-xs rounded-xl"
               >
@@ -283,7 +638,10 @@ export function ExamActivePlayer({
               {currentIndex < questions.length - 1 ? (
                 <Button
                   size="sm"
-                  onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
+                  onClick={() => {
+                    setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1));
+                    setCodeTestResults(null);
+                  }}
                   className="bg-primary-600 hover:bg-primary-700 text-white gap-1 text-xs rounded-xl"
                 >
                   <span>পরবর্তী</span>
@@ -314,7 +672,7 @@ export function ExamActivePlayer({
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
                 const isCurrent = currentIndex === idx;
-                const isAnswered = answers[idx] !== undefined;
+                const isAnswered = isQuestionAnswered(idx);
                 const isMarked = markedForReview[idx];
 
                 let bgClass = 'bg-slate-100 text-slate-600 border-slate-200';
@@ -330,7 +688,10 @@ export function ExamActivePlayer({
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setCurrentIndex(idx)}
+                    onClick={() => {
+                      setCurrentIndex(idx);
+                      setCodeTestResults(null);
+                    }}
                     className={`h-9 rounded-xl font-bold text-xs border transition flex items-center justify-center relative ${bgClass} ${
                       isCurrent ? 'ring-2 ring-primary-600 ring-offset-2' : ''
                     }`}
@@ -360,64 +721,70 @@ export function ExamActivePlayer({
         </div>
       </div>
 
-      {/* Confirmation Submit Modal */}
+      {/* Confirmation Modal before Submit */}
       {showSubmitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5 border border-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="space-y-1.5 text-center">
-              <div className="w-12 h-12 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center mx-auto mb-2">
-                <Send className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <Card className="max-w-md w-full border border-slate-200 rounded-3xl bg-white shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
+            <h3 className="text-base font-bold text-slate-900">
+              আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?
+            </h3>
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-600">
+                <span>মোট প্রশ্ন:</span>
+                <span className="font-bold text-slate-900">{questions.length} টি</span>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">পরীক্ষা জমা দিতে চান?</h3>
-              <p className="text-xs text-slate-500">
-                একবার জমা দিলে আর পরিবর্তন করা যাবে না। আপনার সামগ্রিক ফলাফল সাথে সাথে দেখা যাবে।
-              </p>
+              <div className="flex justify-between text-emerald-700">
+                <span>উত্তর দেওয়া হয়েছে:</span>
+                <span className="font-bold">{answeredCount} টি</span>
+              </div>
+              <div className="flex justify-between text-rose-700">
+                <span>উত্তর বাকি রয়েছে:</span>
+                <span className="font-bold">{unansweredCount} টি</span>
+              </div>
+              {reviewCount > 0 && (
+                <div className="flex justify-between text-amber-700">
+                  <span>রিভিউয়ের জন্য চিহ্নিত:</span>
+                  <span className="font-bold">{reviewCount} টি</span>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-              <div>
-                <span className="text-[10px] text-slate-400 font-medium block">মোট প্রশ্ন</span>
-                <span className="text-sm font-bold text-slate-800">{questions.length}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-emerald-600 font-medium block">উত্তর দেওয়া</span>
-                <span className="text-sm font-bold text-emerald-600">{answeredCount}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-rose-500 font-medium block">বাকি</span>
-                <span className="text-sm font-bold text-rose-600">{unansweredCount}</span>
-              </div>
-            </div>
+            <p className="text-xs text-slate-500">
+              জমা দেওয়ার পর আপনার উত্তরপত্র সার্ভার দ্বারা স্বয়ংক্রিয়ভাবে যাচাই (Auto-Grading) হবে এবং তাৎক্ষণিক ফলাফল দেখতে পাবেন।
+            </p>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => setShowSubmitModal(false)}
                 disabled={isSubmitting}
-                className="w-1/2 border-slate-200 rounded-xl text-xs py-2.5"
+                className="rounded-xl text-xs"
               >
-                ফিরে যান
+                পরীক্ষায় ফিরে যান
               </Button>
+
               <Button
-                onClick={handleManualSubmit}
+                size="sm"
+                onClick={() => {
+                  setShowSubmitModal(false);
+                  const timeTaken = initialSeconds - secondsLeft;
+                  onSubmit(answers, timeTaken);
+                }}
                 disabled={isSubmitting}
-                className="w-1/2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs py-2.5 gap-1.5 shadow-sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl px-5"
               >
                 {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>জমা হচ্ছে...</span>
-                  </>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <span>হ্যাঁ, জমা দিন</span>
                 )}
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
   );
 }
-
-export default ExamActivePlayer;

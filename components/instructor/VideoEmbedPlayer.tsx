@@ -36,6 +36,19 @@ export function parseVideoUrl(url: string) {
     };
   }
 
+  // Bunny.net Stream detection (iframe.mediadelivery.net or bunny:...)
+  if (trimmed.includes('mediadelivery.net') || trimmed.includes('video.bunnycdn.com') || trimmed.startsWith('bunny:')) {
+    let src = trimmed;
+    if (trimmed.startsWith('bunny:')) {
+      const parts = trimmed.split(':');
+      src = `https://iframe.mediadelivery.net/embed/${parts[1]}/${parts[2]}`;
+    }
+    return {
+      type: 'bunny',
+      src,
+    };
+  }
+
   // Direct video file or local upload (/uploads/..., https://...mp4, blob:...)
   return {
     type: 'html5',
@@ -54,12 +67,30 @@ export default function VideoEmbedPlayer({
       <div className={`aspect-video w-full rounded-xl bg-slate-900 flex flex-col items-center justify-center p-6 text-slate-400 border border-slate-800 ${className}`}>
         <AlertCircle className="h-8 w-8 text-slate-600 mb-2" />
         <p className="text-sm font-medium">কোনো ভিডিও ইউআরএল বা ফাইল পাওয়া যায়নি</p>
-        <p className="text-xs text-slate-500 mt-1">ইউটিউব লিংক, ভিমিও লিংক অথবা এমপি৪ ভিডিও যোগ করুন</p>
+        <p className="text-xs text-slate-500 mt-1">ইউটিউব লিংক, ভিমিও, বানি.নেট ডিআরএম অথবা এমপি৪ ভিডিও যোগ করুন</p>
       </div>
     );
   }
 
   const parsed = parseVideoUrl(url);
+
+  if (parsed.type === 'bunny') {
+    return (
+      <div
+        onContextMenu={(e) => e.preventDefault()}
+        className={`relative aspect-video w-full overflow-hidden rounded-xl bg-black border border-slate-800 shadow-inner select-none ${className}`}
+      >
+        <iframe
+          src={parsed.src}
+          title={title}
+          loading="lazy"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full border-0"
+        />
+      </div>
+    );
+  }
 
   if (parsed.type === 'youtube' || parsed.type === 'vimeo') {
     return (
@@ -76,10 +107,15 @@ export default function VideoEmbedPlayer({
   }
 
   return (
-    <div className={`relative aspect-video w-full overflow-hidden rounded-xl bg-black border border-slate-800 shadow-inner ${className}`}>
+    <div
+      onContextMenu={(e) => e.preventDefault()}
+      className={`relative aspect-video w-full overflow-hidden rounded-xl bg-black border border-slate-800 shadow-inner ${className}`}
+    >
       <video
         src={parsed.src}
         controls
+        controlsList="nodownload"
+        onContextMenu={(e) => e.preventDefault()}
         autoPlay={autoPlay}
         playsInline
         className="h-full w-full object-contain"
