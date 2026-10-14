@@ -266,7 +266,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="আপনার নাম"
+                      placeholder={language === 'en' ? 'Enter your full name' : 'আপনার নাম'}
                       className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
                     />
                   </div>
@@ -316,7 +316,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       type="text"
                       value={headline}
                       onChange={(e) => setHeadline(e.target.value)}
-                      placeholder="যেমন: Junior Web Developer | CS Undergrad"
+                      placeholder={language === 'en' ? 'e.g. Junior Web Developer | CS Undergrad' : 'যেমন: Junior Web Developer | CS Undergrad'}
                       className="w-full text-xs pl-9 rounded-xl border border-slate-200 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
                     />
                   </div>
@@ -423,7 +423,9 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                           <span>{t.label}</span>
                         </div>
                         {targetTrack === t.id && (
-                          <Badge className="bg-indigo-600 text-white text-[10px]">Active Track</Badge>
+                          <Badge className="bg-indigo-600 text-white text-[10px]">
+                            {language === 'en' ? 'Active Track' : 'সক্রিয় ট্র্যাক'}
+                          </Badge>
                         )}
                       </label>
                     ))}
@@ -450,9 +452,9 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                     className="w-full accent-indigo-600 cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                    <span>৪ ঘণ্টা (Casual)</span>
-                    <span>১৫ ঘণ্টা (Standard)</span>
-                    <span>৩৫ ঘণ্টা (Intensive Bootcamp)</span>
+                    <span>{language === 'en' ? '4 Hours (Casual)' : '৪ ঘণ্টা (Casual)'}</span>
+                    <span>{language === 'en' ? '15 Hours (Standard)' : '১৫ ঘণ্টা (Standard)'}</span>
+                    <span>{language === 'en' ? '35 Hours (Intensive Bootcamp)' : '৩৫ ঘণ্টা (Intensive Bootcamp)'}</span>
                   </div>
                 </div>
 
@@ -691,7 +693,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="বর্তমান পাসওয়ার্ড"
+                    placeholder={language === 'en' ? 'Current password' : 'বর্তমান পাসওয়ার্ড'}
                     className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                   />
                 </div>
@@ -705,7 +707,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="কমপক্ষে ৬টি অক্ষর"
+                      placeholder={language === 'en' ? 'At least 6 characters' : 'কমপক্ষে ৬টি অক্ষর'}
                       className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                     />
                   </div>
@@ -718,7 +720,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="পুনরায় টাইপ করুন"
+                      placeholder={language === 'en' ? 'Retype new password' : 'পুনরায় টাইপ করুন'}
                       className="w-full text-xs rounded-xl border border-slate-200 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                     />
                   </div>

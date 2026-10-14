@@ -100,6 +100,14 @@ export function PersonalizedRecommendations({
           const isTop = course.isTopPick;
           const displayTitle = language === 'en' && course.titleEn ? course.titleEn : course.title;
           const displayTagline = language === 'en' && course.taglineEn ? course.taglineEn : course.tagline;
+          const displayCategory = language === 'en'
+            ? (course.category === 'web-dev' ? 'Web Development'
+              : course.category === 'data-science' ? 'Data Science & AI'
+              : course.category === 'programming' ? 'Programming & DSA'
+              : course.category === 'system-design' ? 'System Design'
+              : course.category === 'app-dev' ? 'App Development'
+              : course.categoryBangla)
+            : course.categoryBangla;
 
           // Match pill color
           const matchColor =
@@ -150,7 +158,7 @@ export function PersonalizedRecommendations({
               <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="text-indigo-300 font-semibold">{course.categoryBangla}</span>
+                    <span className="text-indigo-300 font-semibold">{displayCategory}</span>
                     <span className="flex items-center gap-1 text-amber-400 font-bold">
                       <Star className="h-3 w-3 fill-current" />
                       <span>{course.rating}</span>

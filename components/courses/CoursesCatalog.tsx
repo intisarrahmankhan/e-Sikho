@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { COURSES_DATA, Course } from "@/lib/courses-data";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage, formatBilingualDuration } from "@/context/LanguageContext";
 import { PersonalizedRecommendations } from "@/components/dashboard/PersonalizedRecommendations";
 import { RecommendedCourseItem } from "@/actions/recommendations";
 
@@ -321,25 +321,34 @@ export function CoursesCatalog({
                     />
                     <div className="text-xs">
                       <p className="font-semibold text-gray-800 leading-tight">{course.instructor.name}</p>
-                      <p className="text-gray-400 text-[11px] truncate max-w-[180px]">{course.instructor.role}</p>
+                      <p className="text-gray-400 text-[11px] truncate max-w-[180px]">
+                        {(language === 'en' && course.instructor.roleEn) ? course.instructor.roleEn : course.instructor.role}
+                      </p>
                     </div>
                   </div>
 
                   {/* Meta & Price */}
                   <div className="pt-3 border-t border-gray-100 space-y-3 mt-auto">
                     <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{course.duration}</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {formatBilingualDuration(course.duration, course.durationEn, language)}
+                      </span>
                       <span className="text-gray-300">·</span>
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-3.5 w-3.5" />
-                        {course.totalLessons} {t("courses.lessons", "লেসন")}
+                        {language === 'en' ? `${course.totalLessons} lessons` : `${course.totalLessons} টি লেসন`}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xl font-bold text-primary-700">৳{course.price.toLocaleString()}</span>
-                        <span className="text-xs text-gray-400 line-through ml-2">৳{course.originalPrice.toLocaleString()}</span>
+                        <span className="text-xl font-bold text-primary-700">
+                          {language === 'en' ? `BDT ${course.price.toLocaleString()}` : `৳${course.price.toLocaleString('bn-BD')}`}
+                        </span>
+                        <span className="text-xs text-gray-400 line-through ml-2">
+                          {language === 'en' ? `BDT ${course.originalPrice.toLocaleString()}` : `৳${course.originalPrice.toLocaleString('bn-BD')}`}
+                        </span>
                       </div>
                       <Link href={`/courses/${course.id}`}>
                         <Button size="sm" className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs px-4 py-2 rounded-lg">

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { runSampleCodeAction } from '@/actions/exam';
 import { ExamQuestionType } from '@/models/Exam';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface ExamQuestionView {
   id: string;
@@ -71,6 +72,7 @@ export function ExamActivePlayer({
   hasNegativeMarking,
   negativeMarkingValue,
 }: ExamActivePlayerProps) {
+  const { language } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, StudentAnswerItem>>({});
   const [markedForReview, setMarkedForReview] = useState<Record<number, boolean>>({});
@@ -191,7 +193,7 @@ export function ExamActivePlayer({
     const sampleCases = (currentQuestion.testCases || []).filter((tc) => !tc.isHidden);
 
     if (sampleCases.length === 0) {
-      alert('যাচাই করার মতো কোনো পাবলিক টেস্ট-কেস নেই।');
+      alert(language === 'en' ? 'No public test cases available to test.' : 'যাচাই করার মতো কোনো পাবলিক টেস্ট-কেস নেই।');
       return;
     }
 
@@ -208,10 +210,10 @@ export function ExamActivePlayer({
       if (res.success && res.outcome) {
         setCodeTestResults(res.outcome);
       } else {
-        alert(res.error || 'কোড রান করতে ত্রুটি হয়েছে।');
+        alert(res.error || (language === 'en' ? 'Error executing code.' : 'কোড রান করতে ত্রুটি হয়েছে।'));
       }
     } catch (err: any) {
-      alert(err.message || 'কোড টেস্ট করতে সমস্যা হয়েছে।');
+      alert(err.message || (language === 'en' ? 'Problem testing code.' : 'কোড টেস্ট করতে সমস্যা হয়েছে।'));
     } finally {
       setTestingCode(false);
     }
@@ -247,7 +249,11 @@ export function ExamActivePlayer({
             {hasNegativeMarking && (
               <Badge className="bg-rose-100 text-rose-800 border-rose-300 font-bold text-[11px] flex items-center gap-1 shadow-2xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
-                <span>নেগেটিভ মার্কিং: -{negativeMarkingValue || 0.25} (এড়িয়ে গেলে ০)</span>
+                <span>
+                  {language === 'en'
+                    ? `Negative Marking: -${negativeMarkingValue || 0.25} (0 if skipped)`
+                    : `নেগেটিভ মার্কিং: -${negativeMarkingValue || 0.25} (এড়িয়ে গেলে ০)`}
+                </span>
               </Badge>
             )}
           </div>
@@ -271,7 +277,11 @@ export function ExamActivePlayer({
             }`}
           >
             <Clock className={`w-4 h-4 ${isTimeCritical ? 'text-rose-600' : 'text-primary-600'}`} />
-            <span>অবশিষ্ট সময়: {formatTime(secondsLeft)}</span>
+            <span>
+              {language === 'en'
+                ? `Time Remaining: ${formatTime(secondsLeft)}`
+                : `অবশিষ্ট সময়: ${formatTime(secondsLeft)}`}
+            </span>
           </div>
 
           <Button
@@ -282,12 +292,12 @@ export function ExamActivePlayer({
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>জমা দেওয়া হচ্ছে...</span>
+                <span>{language === 'en' ? 'Submitting...' : 'জমা দেওয়া হচ্ছে...'}</span>
               </>
             ) : (
               <>
                 <Send className="w-4 h-4" />
-                <span>পরীক্ষা জমা দিন</span>
+                <span>{language === 'en' ? 'Submit Exam' : 'পরীক্ষা জমা দিন'}</span>
               </>
             )}
           </Button>
@@ -302,7 +312,9 @@ export function ExamActivePlayer({
             <CardHeader className="p-5 pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
                 <Badge className="bg-primary-600 text-white text-xs font-bold px-2.5 py-0.5">
-                  প্রশ্ন {currentIndex + 1} / {questions.length}
+                  {language === 'en'
+                    ? `Question ${currentIndex + 1} / ${questions.length}`
+                    : `প্রশ্ন ${currentIndex + 1} / ${questions.length}`}
                 </Badge>
 
                 <Badge
@@ -323,17 +335,17 @@ export function ExamActivePlayer({
                   {qType === 'MCQ' && <CheckSquare className="w-3 h-3" />}
                   <span>
                     {qType === 'CODE'
-                      ? 'কোডিং সমস্যা'
+                      ? language === 'en' ? 'Coding Problem' : 'কোডিং সমস্যা'
                       : qType === 'SHORT_ANSWER'
-                      ? 'সংক্ষিপ্ত উত্তর'
+                      ? language === 'en' ? 'Short Answer' : 'সংক্ষিপ্ত উত্তর'
                       : qType === 'TRUE_FALSE'
-                      ? 'সত্য/মিথ্যা'
-                      : 'বহুনির্বাচনী (MCQ)'}
+                      ? language === 'en' ? 'True / False' : 'সত্য/মিথ্যা'
+                      : language === 'en' ? 'Multiple Choice (MCQ)' : 'বহুনির্বাচনী (MCQ)'}
                   </span>
                 </Badge>
 
                 <span className="text-xs text-slate-500 font-medium">
-                  মান: {currentQuestion.marks} নম্বর
+                  {language === 'en' ? `Marks: ${currentQuestion.marks}` : `মান: ${currentQuestion.marks} নম্বর`}
                 </span>
               </div>
 
@@ -349,7 +361,9 @@ export function ExamActivePlayer({
                 >
                   <Flag className="w-3.5 h-3.5" />
                   <span>
-                    {markedForReview[currentIndex] ? 'রিভিউতে চিহ্নিত' : 'রিভিউয়ের জন্য রাখুন'}
+                    {markedForReview[currentIndex]
+                      ? language === 'en' ? 'Marked for Review' : 'রিভিউতে চিহ্নিত'
+                      : language === 'en' ? 'Mark for Review' : 'রিভিউয়ের জন্য রাখুন'}
                   </span>
                 </button>
               </div>
@@ -365,7 +379,7 @@ export function ExamActivePlayer({
               {qType === 'MCQ' && (
                 <div className="space-y-3">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    সঠিক উত্তরটি নির্বাচন করুন:
+                    {language === 'en' ? 'Select the correct option:' : 'সঠিক উত্তরটি নির্বাচন করুন:'}
                   </span>
 
                   <div className="space-y-2.5">
@@ -407,7 +421,9 @@ export function ExamActivePlayer({
               {qType === 'TRUE_FALSE' && (
                 <div className="space-y-3">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    বিবৃতিটি সত্য নাকি মিথ্যা নির্বাচন করুন:
+                    {language === 'en'
+                      ? 'Select whether the statement is true or false:'
+                      : 'বিবৃতিটি সত্য নাকি মিথ্যা নির্বাচন করুন:'}
                   </span>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -430,8 +446,12 @@ export function ExamActivePlayer({
                         <CheckCircle2 className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="font-bold text-sm block">সত্য (True)</span>
-                        <span className="text-xs text-slate-500">বিবৃতিটি সঠিক</span>
+                        <span className="font-bold text-sm block">
+                          {language === 'en' ? 'True' : 'সত্য (True)'}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {language === 'en' ? 'Statement is correct' : 'বিবৃতিটি সঠিক'}
+                        </span>
                       </div>
                     </button>
 
@@ -454,8 +474,12 @@ export function ExamActivePlayer({
                         <XCircle className="w-5 h-5" />
                       </div>
                       <div>
-                        <span className="font-bold text-sm block">মিথ্যা (False)</span>
-                        <span className="text-xs text-slate-500">বিবৃতিটি ভুল</span>
+                        <span className="font-bold text-sm block">
+                          {language === 'en' ? 'False' : 'মিথ্যা (False)'}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {language === 'en' ? 'Statement is incorrect' : 'বিবৃতিটি ভুল'}
+                        </span>
                       </div>
                     </button>
                   </div>
@@ -467,16 +491,20 @@ export function ExamActivePlayer({
                 <div className="space-y-3 bg-amber-50/30 p-5 rounded-2xl border border-amber-200/80">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
                     <Type className="w-4 h-4 text-amber-600" />
-                    <span>আপনার সংক্ষিপ্ত উত্তরটি লিখুন:</span>
+                    <span>
+                      {language === 'en' ? 'Write your short answer:' : 'আপনার সংক্ষিপ্ত উত্তরটি লিখুন:'}
+                    </span>
                   </label>
                   <Input
                     value={answers[currentIndex]?.textAnswer || ''}
                     onChange={(e) => handleTextAnswerChange(e.target.value)}
-                    placeholder="যেমন: Queue অথবা O(n log n)..."
+                    placeholder={language === 'en' ? 'e.g.: Queue or O(n log n)...' : 'যেমন: Queue অথবা O(n log n)...'}
                     className="rounded-xl border-amber-300 bg-white text-sm p-3 focus:ring-amber-500"
                   />
                   <p className="text-[11px] text-slate-500">
-                    উত্তর জমা দেওয়ার পর স্বয়ংক্রিয়ভাবে কেস-ইনসেনসিটিভ নিয়মে যাচাই ও গ্রেডিং করা হবে।
+                    {language === 'en'
+                      ? 'Your answer will be automatically evaluated case-insensitively.'
+                      : 'উত্তর জমা দেওয়ার পর স্বয়ংক্রিয়ভাবে কেস-ইনসেনসিটিভ নিয়মে যাচাই ও গ্রেডিং করা হবে।'}
                   </p>
                 </div>
               )}
@@ -487,7 +515,11 @@ export function ExamActivePlayer({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
                       <Terminal className="w-4 h-4 text-indigo-600" />
-                      <span>জাভাস্ক্রিপ্ট কোড এডিটর (JavaScript Solution):</span>
+                      <span>
+                        {language === 'en'
+                          ? 'JavaScript Code Editor (Solution):'
+                          : 'জাভাস্ক্রিপ্ট কোড এডিটর (JavaScript Solution):'}
+                      </span>
                     </span>
 
                     <button
@@ -499,12 +531,16 @@ export function ExamActivePlayer({
                       {testingCode ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>যাচাই হচ্ছে...</span>
+                          <span>{language === 'en' ? 'Testing...' : 'যাচাই হচ্ছে...'}</span>
                         </>
                       ) : (
                         <>
                           <Play className="w-3.5 h-3.5 fill-white" />
-                          <span>কোড যাচাই করুন (Run Sample Tests)</span>
+                          <span>
+                            {language === 'en'
+                              ? 'Run Sample Tests'
+                              : 'কোড যাচাই করুন (Run Sample Tests)'}
+                          </span>
                         </>
                       )}
                     </button>
@@ -534,7 +570,9 @@ export function ExamActivePlayer({
                   {/* Public Sample Test Cases & Test Results */}
                   <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
                     <span className="text-xs font-bold text-slate-700 block">
-                      পাবলিক টেস্ট কেস নমুনা (Sample Test Cases):
+                      {language === 'en'
+                        ? 'Sample Test Cases:'
+                        : 'পাবলিক টেস্ট কেস নমুনা (Sample Test Cases):'}
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
                       {(currentQuestion.testCases || [])
@@ -570,7 +608,11 @@ export function ExamActivePlayer({
                               <XCircle className="w-4 h-4 text-rose-600" />
                             )}
                             {codeTestResults.allPassed
-                              ? `অভিনন্দন! সকল পাবলিক টেস্ট-কেস পাস করেছে (${codeTestResults.passedCount}/${codeTestResults.totalCount})`
+                              ? language === 'en'
+                                ? `Congratulations! All sample test cases passed (${codeTestResults.passedCount}/${codeTestResults.totalCount})`
+                                : `অভিনন্দন! সকল পাবলিক টেস্ট-কেস পাস করেছে (${codeTestResults.passedCount}/${codeTestResults.totalCount})`
+                              : language === 'en'
+                              ? `Some test cases failed (${codeTestResults.passedCount}/${codeTestResults.totalCount} passed)`
                               : `কিছু টেস্ট-কেসে ভুল হয়েছে (${codeTestResults.passedCount}/${codeTestResults.totalCount} পাস)`}
                           </span>
                         </div>
@@ -584,7 +626,7 @@ export function ExamActivePlayer({
                               }`}
                             >
                               <div>
-                                <span>কেস #{rIdx + 1}: </span>
+                                <span>{language === 'en' ? `Case #${rIdx + 1}: ` : `কেস #${rIdx + 1}: `}</span>
                                 <span>Input: {r.input} | Output: {r.actualOutput || 'Empty'}</span>
                                 {r.errorMessage && <p className="text-rose-700">{r.errorMessage}</p>}
                               </div>
@@ -609,7 +651,7 @@ export function ExamActivePlayer({
                     className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 transition"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>উত্তর মুছে ফেলুন</span>
+                    <span>{language === 'en' ? 'Clear Answer' : 'উত্তর মুছে ফেলুন'}</span>
                   </button>
                 </div>
               )}
@@ -628,11 +670,13 @@ export function ExamActivePlayer({
                 className="gap-1 border-slate-200 text-xs rounded-xl"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>পূর্ববর্তী</span>
+                <span>{language === 'en' ? 'Previous' : 'পূর্ববর্তী'}</span>
               </Button>
 
               <span className="text-xs font-semibold text-slate-500">
-                {currentIndex + 1} এর {questions.length}
+                {language === 'en'
+                  ? `${currentIndex + 1} of ${questions.length}`
+                  : `${currentIndex + 1} এর ${questions.length}`}
               </span>
 
               {currentIndex < questions.length - 1 ? (
@@ -644,7 +688,7 @@ export function ExamActivePlayer({
                   }}
                   className="bg-primary-600 hover:bg-primary-700 text-white gap-1 text-xs rounded-xl"
                 >
-                  <span>পরবর্তী</span>
+                  <span>{language === 'en' ? 'Next' : 'পরবর্তী'}</span>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
@@ -653,7 +697,7 @@ export function ExamActivePlayer({
                   onClick={() => setShowSubmitModal(true)}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-xs rounded-xl"
                 >
-                  <span>পর্যালোচনা ও জমা</span>
+                  <span>{language === 'en' ? 'Review & Submit' : 'পর্যালোচনা ও জমা'}</span>
                   <Send className="w-3.5 h-3.5" />
                 </Button>
               )}
@@ -665,7 +709,7 @@ export function ExamActivePlayer({
         <div className="space-y-4">
           <Card className="border border-slate-200 rounded-2xl bg-white shadow-sm p-5 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              প্রশ্নের তালিকা (Question Palette)
+              {language === 'en' ? 'Question Palette' : 'প্রশ্নের তালিকা (Question Palette)'}
             </h3>
 
             {/* Question numbers grid */}
@@ -706,15 +750,27 @@ export function ExamActivePlayer({
             <div className="pt-3 border-t border-slate-100 space-y-2 text-[11px] text-slate-600">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-md bg-emerald-600 shrink-0" />
-                <span>উত্তর দেওয়া হয়েছে ({answeredCount})</span>
+                <span>
+                  {language === 'en'
+                    ? `Answered (${answeredCount})`
+                    : `উত্তর দেওয়া হয়েছে (${answeredCount})`}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-md bg-amber-500 shrink-0" />
-                <span>রিভিউ সহ উত্তর ({reviewCount})</span>
+                <span>
+                  {language === 'en'
+                    ? `Marked for Review (${reviewCount})`
+                    : `রিভিউ সহ উত্তর (${reviewCount})`}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-md bg-slate-200 shrink-0" />
-                <span>উত্তর বাকি রয়েছে ({unansweredCount})</span>
+                <span>
+                  {language === 'en'
+                    ? `Unanswered (${unansweredCount})`
+                    : `উত্তর বাকি রয়েছে (${unansweredCount})`}
+                </span>
               </div>
             </div>
           </Card>
@@ -726,32 +782,44 @@ export function ExamActivePlayer({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <Card className="max-w-md w-full border border-slate-200 rounded-3xl bg-white shadow-xl p-6 space-y-5 animate-in fade-in zoom-in-95">
             <h3 className="text-base font-bold text-slate-900">
-              আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?
+              {language === 'en'
+                ? 'Are you sure you want to submit your exam?'
+                : 'আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?'}
             </h3>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>মোট প্রশ্ন:</span>
-                <span className="font-bold text-slate-900">{questions.length} টি</span>
+                <span>{language === 'en' ? 'Total Questions:' : 'মোট প্রশ্ন:'}</span>
+                <span className="font-bold text-slate-900">
+                  {language === 'en' ? `${questions.length}` : `${questions.length} টি`}
+                </span>
               </div>
               <div className="flex justify-between text-emerald-700">
-                <span>উত্তর দেওয়া হয়েছে:</span>
-                <span className="font-bold">{answeredCount} টি</span>
+                <span>{language === 'en' ? 'Answered:' : 'উত্তর দেওয়া হয়েছে:'}</span>
+                <span className="font-bold">
+                  {language === 'en' ? `${answeredCount}` : `${answeredCount} টি`}
+                </span>
               </div>
               <div className="flex justify-between text-rose-700">
-                <span>উত্তর বাকি রয়েছে:</span>
-                <span className="font-bold">{unansweredCount} টি</span>
+                <span>{language === 'en' ? 'Unanswered:' : 'উত্তর বাকি রয়েছে:'}</span>
+                <span className="font-bold">
+                  {language === 'en' ? `${unansweredCount}` : `${unansweredCount} টি`}
+                </span>
               </div>
               {reviewCount > 0 && (
                 <div className="flex justify-between text-amber-700">
-                  <span>রিভিউয়ের জন্য চিহ্নিত:</span>
-                  <span className="font-bold">{reviewCount} টি</span>
+                  <span>{language === 'en' ? 'Marked for Review:' : 'রিভিউয়ের জন্য চিহ্নিত:'}</span>
+                  <span className="font-bold">
+                    {language === 'en' ? `${reviewCount}` : `${reviewCount} টি`}
+                  </span>
                 </div>
               )}
             </div>
 
             <p className="text-xs text-slate-500">
-              জমা দেওয়ার পর আপনার উত্তরপত্র সার্ভার দ্বারা স্বয়ংক্রিয়ভাবে যাচাই (Auto-Grading) হবে এবং তাৎক্ষণিক ফলাফল দেখতে পাবেন।
+              {language === 'en'
+                ? 'Once submitted, your answers will be automatically graded and your result will be displayed instantly.'
+                : 'জমা দেওয়ার পর আপনার উত্তরপত্র সার্ভার দ্বারা স্বয়ংক্রিয়ভাবে যাচাই (Auto-Grading) হবে এবং তাৎক্ষণিক ফলাফল দেখতে পাবেন।'}
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -762,7 +830,7 @@ export function ExamActivePlayer({
                 disabled={isSubmitting}
                 className="rounded-xl text-xs"
               >
-                পরীক্ষায় ফিরে যান
+                {language === 'en' ? 'Back to Exam' : 'পরীক্ষায় ফিরে যান'}
               </Button>
 
               <Button
@@ -778,7 +846,7 @@ export function ExamActivePlayer({
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <span>হ্যাঁ, জমা দিন</span>
+                  <span>{language === 'en' ? 'Yes, Submit' : 'হ্যাঁ, জমা দিন'}</span>
                 )}
               </Button>
             </div>

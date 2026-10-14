@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateCourseRecommendationScore,
   StudentProfileForRecommendation,
-} from '@/actions/recommendations';
+} from '@/lib/recommendations-engine';
 
 describe('Personalized Course Recommendation Engine', () => {
   const sampleCourses = {

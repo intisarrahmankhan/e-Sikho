@@ -35,7 +35,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Course, getCourseById } from "@/lib/courses-data";
-import { useLanguage } from "@/context/LanguageContext";
+import { useLanguage, formatBilingualDuration, translateCategory, translateLevel } from "@/context/LanguageContext";
 import { CourseRoutineBanner } from "@/components/courses/CourseRoutineBanner";
 import DiscussionBoard from "@/components/courses/DiscussionBoard";
 import NotesAndResources from "@/components/courses/NotesAndResources";
@@ -199,20 +199,31 @@ export default function CourseDetailsPage() {
     notFound();
   }
 
-  const learningOutcomes = parseArrayField(course.learningOutcomes);
-  const prerequisites = parseArrayField(course.prerequisites);
+  const learningOutcomes = parseArrayField(
+    language === 'en' && course.learningOutcomesEn && course.learningOutcomesEn.length > 0
+      ? course.learningOutcomesEn
+      : course.learningOutcomes
+  );
+  const prerequisites = parseArrayField(
+    language === 'en' && course.prerequisitesEn && course.prerequisitesEn.length > 0
+      ? course.prerequisitesEn
+      : course.prerequisites
+  );
   const modules = Array.isArray(course.modules) ? course.modules : [];
   const instructor = {
     name: course.instructor?.name || 'e-Shikho Faculty',
-    role: course.instructor?.role || 'ইন্সট্রাক্টর',
+    role: (language === 'en' && course.instructor?.roleEn)
+      ? course.instructor.roleEn
+      : (course.instructor?.role || (language === 'en' ? 'Instructor' : 'ইন্সট্রাক্টর')),
     avatar:
       course.instructor?.avatar ||
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-    bio:
-      course.instructor?.bio ||
-      (language === 'en'
-        ? 'Experienced course instructor and industry mentor.'
-        : 'অভিজ্ঞ কোর্স ইন্সট্রাক্টর ও ইন্ডাস্ট্রি মেন্টর।'),
+    bio: (language === 'en' && course.instructor?.bioEn)
+      ? course.instructor.bioEn
+      : (course.instructor?.bio ||
+        (language === 'en'
+          ? 'Experienced course instructor and industry mentor.'
+          : 'অভিজ্ঞ কোর্স ইন্সট্রাক্টর ও ইন্ডাস্ট্রি মেন্টর।')),
   };
 
   const originalPrice = Number(course.originalPrice) || Number(course.price) || 0;
@@ -344,10 +355,14 @@ export default function CourseDetailsPage() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="bg-primary-600 text-white font-medium text-xs px-3 py-1">
-                {course.categoryBangla}
+                {language === 'en'
+                  ? (course.categoryEn || translateCategory(course.category || course.categoryBangla, 'en'))
+                  : (course.categoryBangla || course.category)}
               </Badge>
               <Badge variant="outline" className="text-slate-700 bg-white border-slate-200">
-                {language === 'en' ? `Level: ${course.level}` : `লেভেল: ${course.level}`}
+                {language === 'en'
+                  ? `Level: ${course.levelEn || translateLevel(course.level, 'en')}`
+                  : `লেভেল: ${course.level}`}
               </Badge>
               {canAccessAll && (
                 <Badge className="bg-emerald-600 text-white font-semibold text-xs px-3 py-1 flex items-center gap-1">
@@ -384,7 +399,7 @@ export default function CourseDetailsPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-slate-400" />
-                <span>{course.duration || (language === 'en' ? '10 hours' : '১০ ঘণ্টা')}</span>
+                <span>{formatBilingualDuration(course.duration, course.durationEn, language)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-slate-400" />
@@ -589,10 +604,10 @@ export default function CourseDetailsPage() {
                     <div key={module.id || (module as any)._id || mIdx} className="border border-slate-200 rounded-xl overflow-hidden">
                       <div className="bg-slate-50 px-5 py-3.5 flex items-center justify-between border-b border-slate-200">
                         <span className="font-semibold text-slate-900 text-sm md:text-base">
-                          {module.title}
+                          {language === 'en' && module.titleEn ? module.titleEn : module.title}
                         </span>
                         <span className="text-xs text-slate-500 font-medium">
-                          {module.duration}
+                          {formatBilingualDuration(module.duration, module.durationEn, language)}
                         </span>
                       </div>
                       <div className="divide-y divide-slate-100 bg-white">
@@ -602,6 +617,7 @@ export default function CourseDetailsPage() {
                           const isUnlocked = lesson.isFree || canAccessAll;
                           const isQuiz = (lesson as any).type === 'QUIZ' || !!(lesson as any).quizId;
                           const isPdf = (lesson as any).type === 'PDF' || (!!(lesson as any).pdfUrl && !lesson.videoUrl);
+                          const lessonDisplayTitle = language === 'en' && lesson.titleEn ? lesson.titleEn : lesson.title;
 
                           return (
                             <div
@@ -609,7 +625,7 @@ export default function CourseDetailsPage() {
                               onClick={() =>
                                 handlePlayLesson({
                                   id: lessonKey,
-                                  title: lesson.title,
+                                  title: lessonDisplayTitle,
                                   videoUrl: lesson.videoUrl,
                                   isFree: lesson.isFree,
                                   type: (lesson as any).type,
@@ -636,7 +652,7 @@ export default function CourseDetailsPage() {
                                   <Lock className="h-4 w-4 text-slate-400 shrink-0" />
                                 )}
                                 <span className={isUnlocked ? (isCompleted ? "font-medium text-slate-700 line-through decoration-slate-400" : "font-medium text-slate-900 truncate") : "text-slate-600 truncate"}>
-                                  {lesson.title}
+                                  {lessonDisplayTitle}
                                 </span>
                               </div>
 
@@ -679,7 +695,9 @@ export default function CourseDetailsPage() {
                                   </button>
                                 )}
 
-                                <span className="text-slate-400 text-xs hidden sm:inline">{lesson.duration}</span>
+                                <span className="text-slate-400 text-xs hidden sm:inline">
+                                  {formatBilingualDuration(lesson.duration, lesson.durationEn, language)}
+                                </span>
                               </div>
                             </div>
                           );
@@ -1128,7 +1146,7 @@ export default function CourseDetailsPage() {
                       <Clock className="h-4 w-4 text-primary-600" />
                       <span>
                         {language === 'en'
-                          ? `${course.duration || '10+ hours'} on-demand video`
+                          ? `${formatBilingualDuration(course.duration, course.durationEn, 'en')} on-demand video`
                           : `${course.duration || '১০ ঘণ্টা'} অন-ডিমান্ড রেকর্ডেড ভিডিও`}
                       </span>
                     </div>
