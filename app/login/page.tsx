@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   BookOpen,
@@ -136,7 +136,7 @@ function LoginForm() {
   // ──────────────────────────────────────────────
   // SIGN UP: Step 1 (Send OTP)
   // ──────────────────────────────────────────────
-  const handleSendSignupOtp = async (e?: React.FormEvent) => {
+  const handleSendSignupOtp = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -175,7 +175,7 @@ function LoginForm() {
   };
 
   // SIGN UP: Fallback / Direct Submit
-  const handleDirectSignUp = async (e: React.FormEvent) => {
+  const handleDirectSignUp = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -222,7 +222,7 @@ function LoginForm() {
   };
 
   // SIGN UP: Step 2 (Verify OTP & Complete)
-  const handleVerifyOtpAndSignUp = async (e: React.FormEvent) => {
+  const handleVerifyOtpAndSignUp = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -267,7 +267,7 @@ function LoginForm() {
   // ──────────────────────────────────────────────
   // LOGIN: Step 1 (Verify Password & Dispatch OTP)
   // ──────────────────────────────────────────────
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -326,7 +326,7 @@ function LoginForm() {
   };
 
   // LOGIN: Step 2 (Verify OTP & Complete 2FA Login)
-  const handleVerifyLoginOtp = async (e: React.FormEvent) => {
+  const handleVerifyLoginOtp = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
