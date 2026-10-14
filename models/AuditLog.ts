@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface IAuditLog extends Document {
   action: string;
-  category: 'FINANCIAL' | 'SECURITY' | 'SYSTEM' | 'USER_MANAGEMENT';
+  category: 'FINANCIAL' | 'SECURITY' | 'SYSTEM' | 'USER_MANAGEMENT' | 'COURSE_MANAGEMENT';
   actorId: mongoose.Types.ObjectId;
   targetId?: mongoose.Types.ObjectId;
   details?: Record<string, any>;
@@ -15,7 +15,7 @@ const auditLogSchema = new Schema<IAuditLog>(
     action: { type: String, required: true },
     category: {
       type: String,
-      enum: ['FINANCIAL', 'SECURITY', 'SYSTEM', 'USER_MANAGEMENT'],
+      enum: ['FINANCIAL', 'SECURITY', 'SYSTEM', 'USER_MANAGEMENT', 'COURSE_MANAGEMENT'],
       required: true,
     },
     actorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

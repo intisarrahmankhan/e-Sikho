@@ -20,45 +20,141 @@ import {
   Loader2,
   CreditCard,
   HelpCircle,
+  MessageSquare,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Course, getCourseById } from "@/lib/courses-data";
+import { useLanguage } from "@/context/LanguageContext";
+import { CourseRoutineBanner } from "@/components/courses/CourseRoutineBanner";
+import DiscussionBoard from "@/components/courses/DiscussionBoard";
+import NotesAndResources from "@/components/courses/NotesAndResources";
 
-/**
- * CourseDetailsPage — displays full course information and a sticky enroll
- * sidebar. Clicking "এখনই ভর্তি হন" navigates to the SSLCommerz-style
- * payment gateway at /payment/[courseId].
- *
- * NOTE: generateStaticParams is intentionally removed here because this file
- * is now a Client Component ('use client'). Static params for the [id] route
- * are handled at the layout/server-segment level if needed.
- */
+function parseArrayField(val: unknown): string[] {
+  if (Array.isArray(val)) return val.map(String).filter(Boolean);
+  if (typeof val === 'string' && val.trim()) {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+      if (typeof parsed === 'string' && parsed.trim()) return [parsed.trim()];
+    } catch {
+      return val.split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 export default function CourseDetailsPage() {
-  const router   = useRouter();
-  const params   = useParams();
+  const router = useRouter();
+  const params = useParams();
   const courseId = params?.id as string;
+  const { language } = useLanguage();
+  const { data: session } = useSession();
+
+  // Track tab state: syllabus, qa, notes, instructor
+  const [courseTab, setCourseTab] = useState<'syllabus' | 'qa' | 'notes' | 'instructor'>('syllabus');
+  const [activeLessonId, setActiveLessonId] = useState<string>('');
+  const [activeModuleId, setActiveModuleId] = useState<string>('');
+
+  const getEmbedUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.includes('watch?v=')) {
+      const vid = url.split('watch?v=')[1]?.split('&')[0];
+      return `https://www.youtube.com/embed/${vid}`;
+    }
+    return url;
+  };
 
   // Track button loading state while navigating to the payment gateway
   const [enrolling, setEnrolling] = useState(false);
-  const [course, setCourse] = useState<Course | null>(() => getCourseById(courseId) ?? null);
+  const [course, setCourse] = useState<Course | null>(() => {
+    const staticMatch = getCourseById(courseId);
+    if (!staticMatch) return null;
+    return {
+      ...staticMatch,
+      learningOutcomes: parseArrayField(staticMatch.learningOutcomes),
+      prerequisites: parseArrayField(staticMatch.prerequisites),
+      modules: Array.isArray(staticMatch.modules) ? staticMatch.modules : [],
+    };
+  });
   const [loading, setLoading] = useState(!course);
   const [activeVideo, setActiveVideo] = useState<{ title: string; videoUrl: string } | null>(null);
 
   useEffect(() => {
-    if (course) return;
-    fetch(`/api/courses/${courseId}`).then(response => response.ok ? response.json() : null).then(data => setCourse(data)).finally(() => setLoading(false));
+    if (course && Array.isArray(course.learningOutcomes)) return;
+
+    let isMounted = true;
+    fetch(`/api/courses/${courseId}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data && !data.error) {
+          setCourse({
+            ...data,
+            id: data.id || data._id || courseId,
+            learningOutcomes: parseArrayField(data.learningOutcomes),
+            prerequisites: parseArrayField(data.prerequisites),
+            modules: Array.isArray(data.modules) ? data.modules : [],
+          });
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load course details:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [course, courseId]);
 
-  if (loading) return <div className="py-12 text-center text-slate-500">Loading course...</div>;
+  if (loading) {
+    return (
+      <div className="py-12 text-center text-slate-500">
+        {language === 'en' ? 'Loading course...' : 'কোর্স লোড হচ্ছে...'}
+      </div>
+    );
+  }
+
   if (!course) {
     notFound();
   }
 
-  const discountPercent = Math.round(
-    ((course.originalPrice - course.price) / course.originalPrice) * 100
-  );
+  const learningOutcomes = parseArrayField(course.learningOutcomes);
+  const prerequisites = parseArrayField(course.prerequisites);
+  const modules = Array.isArray(course.modules) ? course.modules : [];
+  const instructor = {
+    name: course.instructor?.name || 'e-Shikho Faculty',
+    role: course.instructor?.role || 'ইন্সট্রাক্টর',
+    avatar:
+      course.instructor?.avatar ||
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    bio:
+      course.instructor?.bio ||
+      (language === 'en'
+        ? 'Experienced course instructor and industry mentor.'
+        : 'অভিজ্ঞ কোর্স ইন্সট্রাক্টর ও ইন্ডাস্ট্রি মেন্টর।'),
+  };
+
+  const originalPrice = Number(course.originalPrice) || Number(course.price) || 0;
+  const currentPrice = Number(course.price) || 0;
+  const discountPercent =
+    originalPrice > currentPrice && originalPrice > 0
+      ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+      : 0;
+
+  const totalLessons =
+    course.totalLessons ||
+    modules.reduce((acc, m) => acc + (Array.isArray(m.lessons) ? m.lessons.length : 0), 0);
+
+  const displayTitle = language === 'en' && course.titleEn ? course.titleEn : course.title;
+  const displayTagline = language === 'en' && course.taglineEn ? course.taglineEn : course.tagline;
+  const displayDescription = language === 'en' && course.descriptionEn ? course.descriptionEn : course.description;
+  const displayThumbnail = language === 'en' && course.thumbnailUrlEn ? course.thumbnailUrlEn : course.thumbnailUrl;
 
   /** Navigate to the SSLCommerz-style payment gateway for this course. */
   function handleEnroll() {
@@ -75,10 +171,10 @@ export default function CourseDetailsPage() {
           className="inline-flex items-center gap-1 hover:text-primary-600 transition"
         >
           <ChevronLeft className="h-4 w-4" />
-          <span>সকল কোর্সসমূহ</span>
+          <span>{language === 'en' ? 'All Courses' : 'সকল কোর্সসমূহ'}</span>
         </Link>
         <span>/</span>
-        <span className="text-slate-900 font-medium truncate">{course.title}</span>
+        <span className="text-slate-900 font-medium truncate">{displayTitle}</span>
       </div>
 
       {/* Main Grid: Content (Left 2 cols) & Sidebar (Right 1 col) */}
@@ -92,54 +188,80 @@ export default function CourseDetailsPage() {
                 {course.categoryBangla}
               </Badge>
               <Badge variant="outline" className="text-slate-700 bg-white border-slate-200">
-                লেভেল: {course.level}
+                {language === 'en' ? `Level: ${course.level}` : `লেভেল: ${course.level}`}
               </Badge>
             </div>
 
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">
-              {course.title}
+              {displayTitle}
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              {course.tagline}
+              {displayTagline}
             </p>
 
             {/* Quick Metrics */}
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-slate-600 pt-2 border-t border-slate-200">
               <div className="flex items-center gap-1.5 font-semibold text-amber-600">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span>{course.rating}</span>
-                <span className="text-slate-400 font-normal">({course.totalRatings} রিভিউ)</span>
+                <span>{course.rating || 5.0}</span>
+                <span className="text-slate-400 font-normal">
+                  {language === 'en' ? `(${course.totalRatings || 0} reviews)` : `(${course.totalRatings || 0} রিভিউ)`}
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Users className="h-4 w-4 text-slate-400" />
-                <span>{course.studentsEnrolled.toLocaleString("bn-BD")} জন শিক্ষার্থী</span>
+                <span>
+                  {language === 'en'
+                    ? `${(course.studentsEnrolled || 0).toLocaleString()} students`
+                    : `${(course.studentsEnrolled || 0).toLocaleString('bn-BD')} জন শিক্ষার্থী`}
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-slate-400" />
-                <span>{course.duration}</span>
+                <span>{course.duration || (language === 'en' ? '10 hours' : '১০ ঘণ্টা')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-slate-400" />
-                <span>{course.totalLessons} টি লেসন</span>
+                <span>
+                  {language === 'en' ? `${totalLessons} lessons` : `${totalLessons} টি লেসন`}
+                </span>
               </div>
             </div>
           </div>
 
+          {/* Student Personalized Routine & Reschedule Widget */}
+          <CourseRoutineBanner
+            courseId={course.id || courseId}
+            courseTitle={displayTitle}
+          />
+
           {/* Video Preview / Hero Image */}
           <div className="relative rounded-2xl overflow-hidden shadow-md aspect-video bg-slate-900 border border-slate-200 group">
             {course.previewVideoUrl ? (
-              <video src={course.previewVideoUrl} controls className="w-full h-full object-cover" />
+              course.previewVideoUrl.includes('youtube.com') || course.previewVideoUrl.includes('youtu.be') ? (
+                <iframe
+                  src={getEmbedUrl(course.previewVideoUrl)}
+                  title={displayTitle}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <video src={course.previewVideoUrl} controls className="w-full h-full object-cover" />
+              )
             ) : (
               <>
                 <img
-                  src={course.thumbnailUrl}
-                  alt={course.title}
+                  src={displayThumbnail}
+                  alt={displayTitle}
                   className="w-full h-full object-cover opacity-85 group-hover:scale-102 transition duration-300"
                 />
                 <div
                   onClick={() => {
-                    const firstVideoLesson = course.modules.flatMap(m => m.lessons).find(l => l.videoUrl);
+                    const firstVideoLesson = modules
+                      .flatMap((m) => (Array.isArray(m?.lessons) ? m.lessons : []))
+                      .find((l) => l?.videoUrl);
                     if (firstVideoLesson?.videoUrl) {
                       setActiveVideo({ title: firstVideoLesson.title, videoUrl: firstVideoLesson.videoUrl });
                     }
@@ -151,7 +273,7 @@ export default function CourseDetailsPage() {
                       <PlayCircle className="h-8 w-8 ml-0.5" />
                     </div>
                     <span className="text-xs font-semibold tracking-wide bg-slate-900/60 px-3 py-1 rounded-full backdrop-blur-sm">
-                      কোর্স প্রিভিউ ভিডিও দেখুন
+                      {language === 'en' ? 'Watch Course Preview Video' : 'কোর্স প্রিভিউ ভিডিও দেখুন'}
                     </span>
                   </div>
                 </div>
@@ -163,121 +285,200 @@ export default function CourseDetailsPage() {
           <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary-600" />
-              <span>কোর্স সম্পর্কে বিস্তারিত</span>
+              <span>{language === 'en' ? 'Course Details & Overview' : 'কোর্স সম্পর্কে বিস্তারিত'}</span>
             </h2>
             <p className="text-slate-600 leading-relaxed text-sm md:text-base">
-              {course.description}
+              {displayDescription}
             </p>
           </div>
 
           {/* Learning Outcomes */}
-          <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-xl font-bold text-slate-900">
-              কোর্সটি থেকে আপনি যা যা শিখবেন
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-              {course.learningOutcomes.map((outcome, idx) => (
-                <div key={idx} className="flex items-start gap-3 text-sm text-slate-700">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{outcome}</span>
-                </div>
-              ))}
+          {learningOutcomes.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
+              <h2 className="text-xl font-bold text-slate-900">
+                {language === 'en' ? 'What You Will Learn From This Course' : 'কোর্সটি থেকে আপনি যা যা শিখবেন'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                {learningOutcomes.map((outcome, idx) => (
+                  <div key={idx} className="flex items-start gap-3 text-sm text-slate-700">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>{outcome}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Interactive Learning Experience Tabs */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <button
+              onClick={() => setCourseTab('syllabus')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                courseTab === 'syllabus'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <BookOpen className="h-4 w-4" />
+              <span>{language === 'en' ? 'Curriculum & Lessons' : 'কারিকুলাম ও সিলেবাস'}</span>
+            </button>
+
+            <button
+              onClick={() => setCourseTab('qa')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                courseTab === 'qa'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>{language === 'en' ? 'Lecture Q&A / Community' : 'লেকচার প্রশ্নোত্তর ও ফোরাম'}</span>
+            </button>
+
+            <button
+              onClick={() => setCourseTab('notes')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+                courseTab === 'notes'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>{language === 'en' ? 'Study Notes & Resources' : 'স্টাডি নোটস ও রিসোর্স'}</span>
+            </button>
           </div>
 
           {/* Curriculum / Syllabus */}
+          {courseTab === 'syllabus' && (
           <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">কোর্স কারিকুলাম ও সিলেবাস</h2>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {language === 'en' ? 'Course Curriculum & Syllabus' : 'কোর্স কারিকুলাম ও সিলেবাস'}
+                </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  মোট {course.modules.length} টি মডিউল • {course.totalLessons} টি লেসন
+                  {language === 'en'
+                    ? `Total ${modules.length} modules • ${totalLessons} lessons`
+                    : `মোট ${modules.length} টি মডিউল • ${totalLessons} টি লেসন`}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              {course.modules.map((module, mIdx) => (
-                <div key={module.id} className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-slate-50 px-5 py-3.5 flex items-center justify-between border-b border-slate-200">
-                    <span className="font-semibold text-slate-900 text-sm md:text-base">
-                      {module.title}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">
-                      {module.duration}
-                    </span>
-                  </div>
-                  <div className="divide-y divide-slate-100 bg-white">
-                    {module.lessons.map((lesson) => (
-                      <div
-                        key={lesson.id}
-                        onClick={() => {
-                          if (lesson.videoUrl || lesson.isFree) {
-                            setActiveVideo({
-                              title: lesson.title,
-                              videoUrl: lesson.videoUrl || course.previewVideoUrl || '',
-                            });
-                          }
-                        }}
-                        className={`px-5 py-3 flex items-center justify-between text-xs sm:text-sm transition ${
-                          lesson.videoUrl || lesson.isFree ? 'hover:bg-primary-50/50 cursor-pointer' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {lesson.isFree || lesson.videoUrl ? (
-                            <PlayCircle className="h-4 w-4 text-primary-600 shrink-0" />
-                          ) : (
-                            <Lock className="h-4 w-4 text-slate-400 shrink-0" />
-                          )}
-                          <span className={lesson.isFree || lesson.videoUrl ? "font-medium text-slate-900" : "text-slate-600"}>
-                            {lesson.title}
-                          </span>
+            {modules.length > 0 ? (
+              <div className="space-y-4">
+                {modules.map((module, mIdx) => (
+                  <div key={module.id || (module as any)._id || mIdx} className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-50 px-5 py-3.5 flex items-center justify-between border-b border-slate-200">
+                      <span className="font-semibold text-slate-900 text-sm md:text-base">
+                        {module.title}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">
+                        {module.duration}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-slate-100 bg-white">
+                      {(module.lessons || []).map((lesson, lIdx) => (
+                        <div
+                          key={lesson.id || (lesson as any)._id || lIdx}
+                          onClick={() => {
+                            if (lesson.videoUrl || lesson.isFree) {
+                              setActiveVideo({
+                                title: lesson.title,
+                                videoUrl: lesson.videoUrl || course.previewVideoUrl || '',
+                              });
+                            }
+                          }}
+                          className={`px-5 py-3 flex items-center justify-between text-xs sm:text-sm transition ${
+                            lesson.videoUrl || lesson.isFree ? 'hover:bg-primary-50/50 cursor-pointer' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {lesson.isFree || lesson.videoUrl ? (
+                              <PlayCircle className="h-4 w-4 text-primary-600 shrink-0" />
+                            ) : (
+                              <Lock className="h-4 w-4 text-slate-400 shrink-0" />
+                            )}
+                            <span className={lesson.isFree || lesson.videoUrl ? "font-medium text-slate-900" : "text-slate-600"}>
+                              {lesson.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {lesson.videoUrl && (
+                              <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-[10px] font-semibold border-blue-200">
+                                {language === 'en' ? 'Video Stream' : 'ভিডিও R2'}
+                              </Badge>
+                            )}
+                            {lesson.isFree && !lesson.videoUrl && (
+                              <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-[10px] font-semibold border-emerald-200">
+                                {language === 'en' ? 'Free Preview' : 'ফ্রি প্রিভিউ'}
+                              </Badge>
+                            )}
+                            <span className="text-slate-400 text-xs">{lesson.duration}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {lesson.videoUrl && (
-                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-[10px] font-semibold border-blue-200">
-                              ভিডিও R2
-                            </Badge>
-                          )}
-                          {lesson.isFree && !lesson.videoUrl && (
-                            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-[10px] font-semibold border-emerald-200">
-                              ফ্রি প্রিভিউ
-                            </Badge>
-                          )}
-                          <span className="text-slate-400 text-xs">{lesson.duration}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-slate-500 border border-dashed border-slate-200 rounded-xl text-sm">
+                {language === 'en' ? 'Curriculum details will be updated soon.' : 'কারিকুলাম শীঘ্রই হালনাগাদ করা হবে।'}
+              </div>
+            )}
           </div>
+          )}
+
+          {/* TAB CONTENT: Lecture Discussion & Q&A */}
+          {courseTab === 'qa' && (
+            <div className="space-y-4">
+              <DiscussionBoard
+                lessonId={activeLessonId || (modules[0]?.lessons?.[0]?.id || (modules[0]?.lessons?.[0] as any)?._id || 'general-course-qa')}
+                currentUserId={(session?.user as any)?.id || 'guest-learner'}
+              />
+            </div>
+          )}
+
+          {/* TAB CONTENT: Community Study Notes & Resources */}
+          {courseTab === 'notes' && (
+            <div className="space-y-4">
+              <NotesAndResources
+                moduleId={activeModuleId || (modules[0]?.id || (modules[0] as any)?._id || 'general-course-module')}
+                currentUserId={(session?.user as any)?.id || 'guest-learner'}
+              />
+            </div>
+          )}
 
           {/* Prerequisites */}
-          <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-3">
-            <h2 className="text-xl font-bold text-slate-900">কোর্সের পূর্বশর্ত</h2>
-            <ul className="list-disc list-inside space-y-1.5 text-sm text-slate-600">
-              {course.prerequisites.map((req, idx) => (
-                <li key={idx}>{req}</li>
-              ))}
-            </ul>
-          </div>
+          {prerequisites.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-3">
+              <h2 className="text-xl font-bold text-slate-900">
+                {language === 'en' ? 'Course Prerequisites' : 'কোর্সের পূর্বশর্ত'}
+              </h2>
+              <ul className="list-disc list-inside space-y-1.5 text-sm text-slate-600">
+                {prerequisites.map((req, idx) => (
+                  <li key={idx}>{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Instructor Bio */}
           <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-xl font-bold text-slate-900">ইন্সট্রাক্টর পরিচিতি</h2>
+            <h2 className="text-xl font-bold text-slate-900">
+              {language === 'en' ? 'Instructor Profile' : 'ইন্সট্রাক্টর পরিচিতি'}
+            </h2>
             <div className="flex items-start gap-4">
               <img
-                src={course.instructor.avatar}
-                alt={course.instructor.name}
+                src={instructor.avatar}
+                alt={instructor.name}
                 className="h-16 w-16 rounded-full object-cover border-2 border-primary-100 shadow-sm"
               />
               <div className="space-y-1">
-                <h3 className="font-bold text-slate-900 text-lg">{course.instructor.name}</h3>
-                <p className="text-xs text-primary-600 font-semibold">{course.instructor.role}</p>
+                <h3 className="font-bold text-slate-900 text-lg">{instructor.name}</h3>
+                <p className="text-xs text-primary-600 font-semibold">{instructor.role}</p>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
-                  {course.instructor.bio}
+                  {instructor.bio}
                 </p>
               </div>
             </div>
@@ -289,30 +490,26 @@ export default function CourseDetailsPage() {
           <Card className="border-slate-200 shadow-xl overflow-hidden bg-white">
             <div className="bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-white text-center">
               <span className="text-xs font-medium uppercase tracking-wider text-primary-100">
-                কোর্স ফি ও ভর্তি
+                {language === 'en' ? 'Course Fee & Enrollment' : 'কোর্স ফি ও ভর্তি'}
               </span>
               <div className="flex items-baseline justify-center gap-2 mt-2">
                 <span className="text-3xl sm:text-4xl font-black">
-                  ৳{course.price.toLocaleString("bn-BD")}
+                  {language === 'en' ? `BDT ${currentPrice.toLocaleString()}` : `৳${currentPrice.toLocaleString("bn-BD")}`}
                 </span>
-                {course.originalPrice > course.price && (
+                {originalPrice > currentPrice && (
                   <span className="text-sm line-through text-primary-200">
-                    ৳{course.originalPrice.toLocaleString("bn-BD")}
+                    {language === 'en' ? `BDT ${originalPrice.toLocaleString()}` : `৳${originalPrice.toLocaleString("bn-BD")}`}
                   </span>
                 )}
               </div>
               {discountPercent > 0 && (
                 <div className="inline-block mt-2 bg-yellow-400 text-slate-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                  সীমিত সময়ের জন্য {discountPercent}% ছাড়!
+                  {language === 'en' ? `Limited time ${discountPercent}% OFF!` : `সীমিত সময়ের জন্য ${discountPercent}% ছাড়!`}
                 </div>
               )}
             </div>
 
             <CardContent className="p-6 space-y-6">
-              {/* ──────────────────────────────────────────────────────────────
-                   Enroll button — navigates to /payment/[courseId] which
-                   renders the SSLCommerz-style gateway (card, mobile, bank).
-                ────────────────────────────────────────────────────────────── */}
               <Button
                 id="btn-enroll-now"
                 size="lg"
@@ -323,13 +520,15 @@ export default function CourseDetailsPage() {
                 {enrolling ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>পেমেন্ট পেইজে যাওয়া হচ্ছে…</span>
+                    <span>{language === 'en' ? 'Redirecting to payment…' : 'পেমেন্ট পেইজে যাওয়া হচ্ছে…'}</span>
                   </>
                 ) : (
                   <>
                     <CreditCard className="h-5 w-5" />
                     <span>
-                      এখনই ভর্তি হন — ৳{course.price.toLocaleString('bn-BD')}
+                      {language === 'en'
+                        ? `Enroll Now — BDT ${currentPrice.toLocaleString()}`
+                        : `এখনই ভর্তি হন — ৳${currentPrice.toLocaleString('bn-BD')}`}
                     </span>
                   </>
                 )}
@@ -337,32 +536,50 @@ export default function CourseDetailsPage() {
 
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  এই কোর্সে যা যা পাচ্ছেন:
+                  {language === 'en' ? 'This course includes:' : 'এই কোর্সে যা যা পাচ্ছেন:'}
                 </h4>
                 <div className="space-y-2.5 text-xs sm:text-sm text-slate-600">
                   <div className="flex items-center gap-2.5">
                     <Clock className="h-4 w-4 text-primary-600" />
-                    <span>{course.duration} অন-ডিমান্ড রেকর্ডেড ভিডিও</span>
+                    <span>
+                      {language === 'en'
+                        ? `${course.duration || '10+ hours'} on-demand video`
+                        : `${course.duration || '১০ ঘণ্টা'} অন-ডিমান্ড রেকর্ডেড ভিডিও`}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <FileText className="h-4 w-4 text-primary-600" />
-                    <span>রিসোর্স ফাইল ও সোর্স কোড ডাউনলোড</span>
+                    <span>
+                      {language === 'en'
+                        ? 'Downloadable resource files & source code'
+                        : 'রিসোর্স ফাইল ও সোর্স কোড ডাউনলোড'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <Award className="h-4 w-4 text-primary-600" />
-                    <span>কোর্স সমাপ্তি সার্টিফিকেট</span>
+                    <span>
+                      {language === 'en' ? 'Certificate of Completion' : 'কোর্স সমাপ্তি সার্টিফিকেট'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <Users className="h-4 w-4 text-primary-600" />
-                    <span>ডেডিকেটেড ডিসকর্ড/কমিউনিটি সাপোর্ট</span>
+                    <span>
+                      {language === 'en' ? 'Dedicated community support' : 'ডেডিকেটেড ডিসকর্ড/কমিউনিটি সাপোর্ট'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-primary-600" />
-                    <span>আজীবন (Lifetime) অ্যাক্সেস</span>
+                    <span>
+                      {language === 'en' ? 'Full Lifetime Access' : 'আজীবন (Lifetime) অ্যাক্সেস'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <HelpCircle className="h-4 w-4 text-primary-600" />
-                    <span>LaTeX সূত্রসহ কুইজ ও অনলাইন মূল্যায়ন</span>
+                    <span>
+                      {language === 'en'
+                        ? 'Chapter quizzes and online assessments'
+                        : 'LaTeX সূত্রসহ কুইজ ও অনলাইন মূল্যায়ন'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -370,10 +587,14 @@ export default function CourseDetailsPage() {
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-200 text-center space-y-1">
                 <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-800">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <span>৭ দিনের মানিব্যাক গ্যারান্টি</span>
+                  <span>
+                    {language === 'en' ? '7-Day Money-Back Guarantee' : '৭ দিনের মানিব্যাক গ্যারান্টি'}
+                  </span>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  কোর্স পছন্দ না হলে কোনো প্রশ্ন ছাড়াই সম্পূর্ণ রিফান্ড পাবেন।
+                  {language === 'en'
+                    ? 'Get a full refund if not satisfied with no questions asked.'
+                    : 'কোর্স পছন্দ না হলে কোনো প্রশ্ন ছাড়াই সম্পূর্ণ রিফান্ড পাবেন।'}
                 </p>
               </div>
             </CardContent>
@@ -399,9 +620,21 @@ export default function CourseDetailsPage() {
             </div>
             <div className="aspect-video bg-black flex items-center justify-center">
               {activeVideo.videoUrl ? (
-                <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+                activeVideo.videoUrl.includes('youtube.com') || activeVideo.videoUrl.includes('youtu.be') ? (
+                  <iframe
+                    src={getEmbedUrl(activeVideo.videoUrl)}
+                    title={activeVideo.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                ) : (
+                  <video src={activeVideo.videoUrl} controls autoPlay className="w-full h-full object-contain" />
+                )
               ) : (
-                <p className="text-sm text-slate-400">এই লেসনের কোনো ভিডিও ইউআরএল পাওয়া যায়নি।</p>
+                <p className="text-sm text-slate-400">
+                  {language === 'en' ? 'No video URL available for this lesson.' : 'এই লেসনের কোনো ভিডিও ইউআরএল পাওয়া যায়নি।'}
+                </p>
               )}
             </div>
           </div>

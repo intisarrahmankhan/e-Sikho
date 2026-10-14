@@ -1,7 +1,9 @@
+'use client';
+
 import React from "react";
-import { Trophy, Medal, Flame } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface StudentScore {
   id: string;
@@ -10,20 +12,28 @@ interface StudentScore {
 }
 
 export function LeaderboardSnippet({ topStudents }: { topStudents: StudentScore[] }) {
+  const { language } = useLanguage();
+
   return (
     <Card className="border border-slate-200/90 rounded-2xl bg-white shadow-sm overflow-hidden">
       <CardHeader className="p-5 pb-3 border-b border-slate-100 bg-slate-50/50">
         <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-500" />
-            টপ লিডারবোর্ড
+            {language === 'en' ? 'Top Leaderboard' : 'টপ লিডারবোর্ড'}
           </span>
-          <span className="text-[10px] text-slate-400 font-semibold">Weekly Rank</span>
+          <span className="text-[10px] text-slate-400 font-semibold">
+            {language === 'en' ? 'Weekly Rank' : 'সাপ্তাহিক র‍্যাংক'}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-5 space-y-2.5">
         {topStudents.map((student, index) => {
-          const isUser = student.name === "You";
+          const isUser = student.name === "You" || student.name === "আপনি";
+          const displayName = isUser
+            ? language === 'en' ? 'You' : 'আপনি'
+            : student.name;
+
           return (
             <div
               key={student.id}
@@ -47,7 +57,7 @@ export function LeaderboardSnippet({ topStudents }: { topStudents: StudentScore[
                 >
                   #{index + 1}
                 </span>
-                <span className="text-xs font-semibold">{student.name}</span>
+                <span className="text-xs font-semibold">{displayName}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black text-primary-600">{student.elo}</span>
@@ -60,3 +70,5 @@ export function LeaderboardSnippet({ topStudents }: { topStudents: StudentScore[
     </Card>
   );
 }
+
+export default LeaderboardSnippet;

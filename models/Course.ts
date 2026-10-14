@@ -1,9 +1,13 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
+import '@/models/Instructor';
 
 export interface ICourse extends Document {
   title: string;
+  titleEn?: string;
   tagline: string;
+  taglineEn?: string;
   description: string;
+  descriptionEn?: string;
   category: string;
   categoryBangla: string;
   level: string;
@@ -15,6 +19,7 @@ export interface ICourse extends Document {
   price: number;
   originalPrice: number;
   thumbnailUrl: string;
+  thumbnailUrlEn?: string;
   previewVideoUrl?: string;
   status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED';
   approvalStatus: string;
@@ -25,6 +30,7 @@ export interface ICourse extends Document {
   instructorId: mongoose.Types.ObjectId | string;
   learningOutcomes: string;
   prerequisites: string;
+  hasCertificate: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,8 +38,11 @@ export interface ICourse extends Document {
 const courseSchema = new Schema<ICourse>(
   {
     title: { type: String, required: true },
+    titleEn: { type: String, default: '' },
     tagline: { type: String, required: true },
+    taglineEn: { type: String, default: '' },
     description: { type: String, required: true },
+    descriptionEn: { type: String, default: '' },
     category: { type: String, required: true },
     categoryBangla: { type: String, required: true },
     level: { type: String, required: true },
@@ -45,6 +54,7 @@ const courseSchema = new Schema<ICourse>(
     price: { type: Number, required: true },
     originalPrice: { type: Number, required: true },
     thumbnailUrl: { type: String, required: true },
+    thumbnailUrlEn: { type: String, default: '' },
     previewVideoUrl: { type: String, default: '' },
     status: {
       type: String,
@@ -59,11 +69,21 @@ const courseSchema = new Schema<ICourse>(
     instructorId: { type: Schema.Types.ObjectId, ref: 'Instructor', required: true },
     learningOutcomes: { type: String, required: true },
     prerequisites: { type: String, required: true },
+    hasCertificate: { type: Boolean, default: false },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+courseSchema.virtual('instructor', {
+  ref: 'Instructor',
+  localField: 'instructorId',
+  foreignField: '_id',
+  justOne: true,
+});
 
 const Course: Model<ICourse> =
   mongoose.models.Course || mongoose.model<ICourse>('Course', courseSchema);

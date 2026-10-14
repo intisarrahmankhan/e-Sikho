@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node -e \"if(require('fs').existsSync('.next/BUILD_ID')) try{require('fs').rmSync('.next', {recursive:true, force:true})}catch(e){}\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -31,7 +32,6 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

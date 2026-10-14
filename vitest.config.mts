@@ -8,7 +8,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './vitest.setup.ts',
-    exclude: ['e2e/**/*', 'e-sikho-testing/**/*', 'unit-testing/**/*', 'node_modules/**/*', '.next/**/*'],
+    include: ['__tests__/unit-testing/**/*.{test,spec}.{ts,tsx}'],
+    exclude: [
+      '__tests__/ui-testing/**/*',
+      '__tests__/integration-testing/**/*',
+      'node_modules/**/*',
+      '.next/**/*',
+    ],
   },
   resolve: {
     alias: {

@@ -10,7 +10,7 @@ export default async function CreateCoursePage() {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
 
-  if (!user?.id || user.role !== 'INSTRUCTOR') redirect('/login');
+  if (!user?.id || (user.role !== 'INSTRUCTOR' && user.role !== 'SUPERADMIN' && user.role !== 'ADMIN')) redirect('/login');
 
   return (
     <div className="space-y-6 pb-12">

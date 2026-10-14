@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { BookOpen, Home, Settings, Target, LogIn, LayoutDashboard } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const { t } = useLanguage();
   const isLoggedIn = status === 'authenticated' && !!session?.user;
   const role = (session?.user as any)?.role;
 
@@ -20,13 +22,13 @@ export function Sidebar() {
       : '/student';
 
   const navItems = [
-    { name: 'হোম পেজ', href: '/', icon: Home, matchExact: true },
-    { name: 'কোর্সসমূহ', href: '/courses', icon: BookOpen },
+    { name: t('sidebar.home', 'হোম পেজ'), href: '/', icon: Home, matchExact: true },
+    { name: t('sidebar.courses', 'কোর্সসমূহ'), href: '/courses', icon: BookOpen },
     ...(isLoggedIn
       ? [
-          { name: 'ড্যাশবোর্ড', href: userDashboardUrl, icon: LayoutDashboard },
-          { name: 'গোলস ও ট্র্যাকিং', href: '/student/goals', icon: Target },
-          { name: 'সেটিংস', href: '/student/settings', icon: Settings },
+          { name: t('sidebar.dashboard', 'ড্যাশবোর্ড'), href: userDashboardUrl, icon: LayoutDashboard },
+          { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
+          { name: t('sidebar.settings', 'সেটিংস'), href: '/student/settings', icon: Settings },
         ]
       : []),
   ];
@@ -51,13 +53,13 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-          নেভিগেশন
+          {t('sidebar.navigation', 'নেভিগেশন')}
         </p>
         {navItems.map((item) => {
           const active = isActive(item);
           return (
             <Link
-              key={item.name}
+              key={item.href}
               href={item.href}
               className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium ${
                 active
@@ -75,19 +77,21 @@ export function Sidebar() {
       {/* Guest sign-in prompt */}
       {!isLoggedIn && (
         <div className="p-3 m-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
-          <p className="text-xs font-semibold text-gray-800">অগ্রগতি সংরক্ষণ করুন</p>
+          <p className="text-xs font-semibold text-gray-800">{t('sidebar.saveProgress', 'অগ্রগতি সংরক্ষণ করুন')}</p>
           <p className="text-[11px] text-gray-500 leading-relaxed">
-            কোর্স এনরোলমেন্ট ও কুইজ ট্র্যাক করতে সাইন ইন করুন।
+            {t('sidebar.guestDesc', 'কোর্স এনরোলমেন্ট ও কুইজ ট্র্যাক করতে সাইন ইন করুন।')}
           </p>
           <Link
             href="/login"
             className="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-md"
           >
             <LogIn className="h-3.5 w-3.5" />
-            লগইন করুন
+            {t('sidebar.loginBtn', 'লগইন করুন')}
           </Link>
         </div>
       )}
     </aside>
   );
 }
+
+export default Sidebar;

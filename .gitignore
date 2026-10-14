@@ -18,6 +18,8 @@
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+/playwright-proof/
+/test-proof/
 # next.js
 /.next/
 /out/
@@ -28,6 +30,7 @@
 # misc
 .DS_Store
 *.pem
+run_rewrite.sh
 
 # debug
 npm-debug.log*

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e-sikho-testing',
+  testDir: './__tests__/ui-testing',
   timeout: 90000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
@@ -11,7 +11,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
-    headless: true,
+    headless: false,
   },
   projects: [
     {
