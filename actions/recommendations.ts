@@ -13,6 +13,7 @@ import {
   RecommendationScoreResult,
   RecommendedCourseItem,
 } from '@/lib/recommendations-engine';
+import { isValidMongoObjectId } from '@/lib/auth-helpers';
 
 export type {
   StudentProfileForRecommendation,
@@ -58,15 +59,23 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
 
     await dbConnect();
 
-    if (sessionUserId) {
-      let query: any = { _id: sessionUserId };
-      if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
+    const sessionUserEmail = (session?.user as any)?.email;
+
+    if (sessionUserId || sessionUserEmail) {
+      let query: any = null;
+      if (isValidMongoObjectId(sessionUserId)) {
+        query = { _id: sessionUserId };
+      } else if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
         query = { email: sessionUserId };
+      } else if (sessionUserEmail) {
+        query = { email: sessionUserEmail };
       }
 
-      const userDoc = await User.findOne(query)
-        .select('_id targetTrack academicBackground elo interests skills completedCoursesCount')
-        .lean() as any;
+      const userDoc = query
+        ? ((await User.findOne(query)
+            .select('_id targetTrack academicBackground elo interests skills completedCoursesCount')
+            .lean()) as any)
+        : null;
 
       if (userDoc) {
         profile = {

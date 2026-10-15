@@ -9,6 +9,7 @@ import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
 import AuditLog from '@/models/AuditLog';
 import { auth } from '@/auth';
+import { isValidMongoObjectId } from '@/lib/auth-helpers';
 
 /**
  * Calculates platform commission and updates instructor balance.
@@ -51,7 +52,7 @@ export async function processEnrollmentCommission(
     );
 
     // Update the instructor's balance
-    if (course.createdById) {
+    if (course.createdById && isValidMongoObjectId(course.createdById)) {
       await User.findByIdAndUpdate(
         course.createdById,
         {
@@ -90,6 +91,7 @@ export async function requestPayout(
   try {
     dbSession.startTransaction();
 
+    if (!isValidMongoObjectId(userId)) throw new Error('Invalid user ID');
     const user = await User.findById(userId).session(dbSession);
     if (!user) throw new Error('User not found');
     if (user.availableBalance < amount) {

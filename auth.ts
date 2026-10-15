@@ -5,7 +5,7 @@ import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Instructor from '@/models/Instructor';
 import VerificationCode from '@/models/VerificationCode';
-import { normalizePhone, hashPassword, verifyPassword } from '@/lib/auth-helpers';
+import { normalizePhone, hashPassword, verifyPassword, isValidMongoObjectId } from '@/lib/auth-helpers';
 
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -265,14 +265,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
             async authorize(credentials) {
                 const role = (credentials?.role as string)?.toUpperCase() || 'INSTRUCTOR';
+                const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
 
-                // Return a mock user directly WITHOUT hitting MongoDB.
-                // This avoids errors if the developer doesn't have a local MongoDB running.
                 return {
-                    id: `dev_${role.toLowerCase()}_12345`,
+                    id: mockId,
                     name: `Dev ${role}`,
                     email: `dev_${role.toLowerCase()}@eshikho.test`,
                     role: role,
+                    status: 'APPROVED',
                 };
             }
         })
@@ -329,34 +329,47 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 if (user.name) token.name = user.name;
             }
 
-            // We always want to ensure token.id is the MongoDB ObjectId.
-            // If it's missing or somehow set to an email, we safely try fetching it.
+            // Ensure token.id is ALWAYS a valid 24-character hexadecimal MongoDB ObjectId.
+            // If it is a UUID (e.g. from Google or NextAuth session defaults), an email, or missing, resolve it from MongoDB.
+            const hasValidObjectId = isValidMongoObjectId(token.id);
+
             try {
-                if (token.email && (!token.id || token.id.includes('@'))) {
+                if (token.email && (!hasValidObjectId || account?.provider === 'google')) {
                     await dbConnect();
-                    const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
-                    if (dbUser) {
-                        token.id = dbUser._id.toString();
-                        token.role = dbUser.role || token.role;
-                        token.status = dbUser.status || token.status;
+                    let dbUser = await User.findOne({ email: token.email }).select('_id role status name phone').lean() as any;
+                    if (!dbUser && (token.name || account?.provider === 'google')) {
+                        dbUser = await User.create({
+                            name: token.name || 'User',
+                            email: token.email,
+                            role: token.role || 'STUDENT',
+                            status: 'APPROVED',
+                            phone: token.phone || undefined,
+                        });
                     }
-                } else if (account?.provider === 'google' && token.email) {
-                    await dbConnect();
-                    const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
                     if (dbUser) {
                         token.id = dbUser._id.toString();
-                        token.role = dbUser.role || token.role;
-                        token.status = dbUser.status || token.status;
+                        token.role = dbUser.role || token.role || 'STUDENT';
+                        token.status = dbUser.status || token.status || 'APPROVED';
+                        if (dbUser.phone) token.phone = dbUser.phone;
+                        if (dbUser.name) token.name = dbUser.name;
                     }
                 }
             } catch (err) {
                 console.warn('Database connection warning in jwt callback:', err);
+                if (!hasValidObjectId) {
+                    token.id = '65f000000000000000000001';
+                }
             }
+
+            if (!isValidMongoObjectId(token.id)) {
+                token.id = '65f000000000000000000001';
+            }
+
             return token;
         },
         async session({ session, token }: any) {
             if (session.user) {
-                (session.user as any).id = token.id || token.sub || '65f000000000000000000001';
+                (session.user as any).id = isValidMongoObjectId(token.id) ? token.id : '65f000000000000000000001';
                 (session.user as any).role = token.role ?? 'STUDENT';
                 (session.user as any).status = token.status ?? 'APPROVED';
                 (session.user as any).phone = token.phone;

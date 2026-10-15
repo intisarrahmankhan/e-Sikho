@@ -10,18 +10,30 @@ export const dynamic = 'force-dynamic';
 export default async function ContestsPage() {
   const session = await auth();
   const userId = (session?.user as any)?.id;
+  const userEmail = (session?.user as any)?.email;
 
   let userBackground = 'Computer Science & Engineering (CSE)';
 
-  if (userId) {
-    await dbConnect();
-    let userQuery: any = { _id: userId };
-    if (typeof userId === 'string' && userId.includes('@')) {
-      userQuery = { email: userId };
-    }
-    const user = await User.findOne(userQuery).select('academicBackground').lean() as any;
-    if (user?.academicBackground) {
-      userBackground = user.academicBackground;
+  if (userId || userEmail) {
+    try {
+      await dbConnect();
+      let userQuery: any = null;
+      if (typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId)) {
+        userQuery = { _id: userId };
+      } else if (typeof userId === 'string' && userId.includes('@')) {
+        userQuery = { email: userId };
+      } else if (userEmail) {
+        userQuery = { email: userEmail };
+      }
+
+      if (userQuery) {
+        const user = (await User.findOne(userQuery).select('academicBackground').lean()) as any;
+        if (user?.academicBackground) {
+          userBackground = user.academicBackground;
+        }
+      }
+    } catch (err) {
+      console.warn('MongoDB query warning in ContestsPage:', err);
     }
   }
 

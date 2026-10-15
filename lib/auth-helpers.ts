@@ -48,3 +48,11 @@ export function verifyPassword(password: string, storedHash: string): boolean {
     return false;
   }
 }
+
+/**
+ * Checks if a value is a valid 24-character hexadecimal MongoDB ObjectId string
+ */
+export function isValidMongoObjectId(id: any): boolean {
+  return typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id.trim());
+}
+

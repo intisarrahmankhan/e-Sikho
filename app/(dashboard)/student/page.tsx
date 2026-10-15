@@ -20,7 +20,9 @@ export default async function StudentDashboardPage() {
   const session = await auth();
   if (!session || !session.user) redirect('/login');
 
-  let userId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  const rawUserId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  const userEmail = (session.user as any).email;
+  let userId = rawUserId;
 
   let userDoc: any = null;
   let enrollments: any[] = [];
@@ -38,29 +40,38 @@ export default async function StudentDashboardPage() {
 
     // Resolve user document for accurate stats, elo, and streak
     const userSelect = '_id name elo competitiveElo problemsSolved completedCoursesCount streak academicBackground eloHistory';
-    if (typeof userId === 'string' && userId.includes('@')) {
-      userDoc = await User.findOne({ email: userId }).select(userSelect).lean();
-      if (userDoc) {
-        userId = userDoc._id.toString();
-      }
-    } else if (userId && String(userId).length === 24) {
-      userDoc = await User.findById(userId).select(userSelect).lean();
+    const isObjectId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId);
+
+    if (isObjectId) {
+      userDoc = await User.findById(rawUserId).select(userSelect).lean();
+    } else if (typeof rawUserId === 'string' && rawUserId.includes('@')) {
+      userDoc = await User.findOne({ email: rawUserId }).select(userSelect).lean();
+    } else if (userEmail) {
+      userDoc = await User.findOne({ email: userEmail }).select(userSelect).lean();
     }
+
+    if (userDoc) {
+      userId = userDoc._id.toString();
+    } else if (!isObjectId) {
+      userId = '65f000000000000000000001';
+    }
+
+    const safeUserId = /^[0-9a-fA-F]{24}$/.test(userId) ? userId : '65f000000000000000000001';
 
     // 1. Live Enrollments
     const enrollmentsList = await Enrollment.find({
-      userId,
+      userId: safeUserId,
       paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
     }).lean();
     enrollments = enrollmentsList || [];
 
     // 2. Instructor request status
-    instructorRequest = await InstructorRequest.findOne({ userId }).lean();
+    instructorRequest = await InstructorRequest.findOne({ userId: safeUserId }).lean();
 
     // 3. Real Quiz Submissions & Certificate Stats
-    completedQuizzesCount = await ExamSubmission.countDocuments({ studentId: userId });
+    completedQuizzesCount = await ExamSubmission.countDocuments({ studentId: safeUserId });
     earnedCertificatesCount = await ExamSubmission.countDocuments({
-      studentId: userId,
+      studentId: safeUserId,
       passed: true,
     });
 
@@ -144,11 +155,11 @@ export default async function StudentDashboardPage() {
       { id: 'u2', name: 'নাফিস সাদিক', elo: 1720 },
       { id: 'u3', name: 'ফারহানা ইয়াসমিন', elo: 1640 },
       { id: 'u4', name: 'সাদিয়া রহমান', elo: 1580 },
-      { id: String(userId), name: 'You', elo },
+      { id: String(safeUserId), name: 'You', elo },
     ];
-  } else if (!topStudents.some((s) => s.id === userId.toString())) {
+  } else if (!topStudents.some((s) => s.id === safeUserId.toString())) {
     topStudents[topStudents.length - 1] = {
-      id: userId.toString(),
+      id: safeUserId.toString(),
       name: 'You',
       elo,
     };
@@ -165,7 +176,7 @@ export default async function StudentDashboardPage() {
 
             let userRoutine: any = null;
             try {
-              userRoutine = await CourseRoutine.findOne({ userId, courseId: courseIdStr }).lean();
+              userRoutine = await CourseRoutine.findOne({ userId: safeUserId, courseId: courseIdStr }).lean();
             } catch {}
 
             let targetCompletionDate = new Date(new Date().setMonth(new Date().getMonth() + 2))

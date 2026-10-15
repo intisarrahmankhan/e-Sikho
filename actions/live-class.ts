@@ -129,8 +129,16 @@ export async function getLiveSessionDetailsAction(sessionId: string): Promise<{
     let currentUserId = sessionUser?.id ? String(sessionUser.id) : undefined;
     let currentUserRole = sessionUser?.role || 'STUDENT';
 
-    if (currentUserId && currentUserId.includes('@')) {
-      const u = await User.findOne({ email: currentUserId }).select('_id role').lean() as any;
+    if (currentUserId && /^[0-9a-fA-F]{24}$/.test(currentUserId)) {
+      // already valid
+    } else if (currentUserId && currentUserId.includes('@')) {
+      const u = (await User.findOne({ email: currentUserId }).select('_id role').lean()) as any;
+      if (u) {
+        currentUserId = u._id.toString();
+        currentUserRole = u.role || currentUserRole;
+      }
+    } else if (sessionUser?.email) {
+      const u = (await User.findOne({ email: sessionUser.email }).select('_id role').lean()) as any;
       if (u) {
         currentUserId = u._id.toString();
         currentUserRole = u.role || currentUserRole;
@@ -333,8 +341,17 @@ export async function submitLiveQuestionAction(params: {
     let studentName = session.user.name || 'শিক্ষার্থী';
     let studentAvatar = session.user.image || '';
 
-    if (studentId && typeof studentId === 'string' && studentId.includes('@')) {
-      const u = await User.findOne({ email: studentId }).select('_id name image').lean() as any;
+    if (studentId && /^[0-9a-fA-F]{24}$/.test(studentId)) {
+      // already valid
+    } else if (studentId && typeof studentId === 'string' && studentId.includes('@')) {
+      const u = (await User.findOne({ email: studentId }).select('_id name image').lean()) as any;
+      if (u) {
+        studentId = u._id.toString();
+        studentName = u.name || studentName;
+        studentAvatar = u.image || studentAvatar;
+      }
+    } else if (session.user.email) {
+      const u = (await User.findOne({ email: session.user.email }).select('_id name image').lean()) as any;
       if (u) {
         studentId = u._id.toString();
         studentName = u.name || studentName;
@@ -406,8 +423,13 @@ export async function toggleUpvoteLiveQuestionAction(questionId: string): Promis
     await dbConnect();
 
     let userId = (session.user as any).id;
-    if (userId && typeof userId === 'string' && userId.includes('@')) {
-      const u = await User.findOne({ email: userId }).select('_id').lean() as any;
+    if (userId && typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId)) {
+      // already valid
+    } else if (userId && typeof userId === 'string' && userId.includes('@')) {
+      const u = (await User.findOne({ email: userId }).select('_id').lean()) as any;
+      if (u) userId = u._id.toString();
+    } else if (session.user.email) {
+      const u = (await User.findOne({ email: session.user.email }).select('_id').lean()) as any;
       if (u) userId = u._id.toString();
     }
     const userIdStr = String(userId);
@@ -540,8 +562,13 @@ export async function getLiveQuestionsAction(sessionId: string): Promise<{
     const sessionUser = authSession?.user as any;
     let currentUserId = sessionUser?.id ? String(sessionUser.id) : undefined;
 
-    if (currentUserId && currentUserId.includes('@')) {
-      const u = await User.findOne({ email: currentUserId }).select('_id').lean() as any;
+    if (currentUserId && /^[0-9a-fA-F]{24}$/.test(currentUserId)) {
+      // already valid
+    } else if (currentUserId && currentUserId.includes('@')) {
+      const u = (await User.findOne({ email: currentUserId }).select('_id').lean()) as any;
+      if (u) currentUserId = u._id.toString();
+    } else if (sessionUser?.email) {
+      const u = (await User.findOne({ email: sessionUser.email }).select('_id').lean()) as any;
       if (u) currentUserId = u._id.toString();
     }
 

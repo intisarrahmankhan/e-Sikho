@@ -23,20 +23,31 @@ export default async function StudentGoalsPage({
   const session = await auth();
   if (!session || !session.user) redirect('/login');
 
-  let userId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  let rawUserId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  const userEmail = (session.user as any).email;
+  let userId = rawUserId;
 
   let enrollments: any[] = [];
   try {
     await dbConnect();
-    if (typeof userId === 'string' && userId.includes('@')) {
-      const userDoc = (await User.findOne({ email: userId }).select('_id').lean()) as any;
-      if (userDoc) {
-        userId = userDoc._id.toString();
-      }
+    const isObjectId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId);
+
+    if (isObjectId) {
+      // valid
+    } else if (typeof rawUserId === 'string' && rawUserId.includes('@')) {
+      const userDoc = (await User.findOne({ email: rawUserId }).select('_id').lean()) as any;
+      if (userDoc) userId = userDoc._id.toString();
+    } else if (userEmail) {
+      const userDoc = (await User.findOne({ email: userEmail }).select('_id').lean()) as any;
+      if (userDoc) userId = userDoc._id.toString();
     }
 
+    const safeUserId = typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId)
+      ? userId
+      : '65f000000000000000000001';
+
     const rawEnrollments = await Enrollment.find({
-      userId,
+      userId: safeUserId,
       paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
     }).lean();
     enrollments = rawEnrollments || [];
