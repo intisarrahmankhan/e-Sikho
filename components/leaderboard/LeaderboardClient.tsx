@@ -5,21 +5,11 @@ import Link from 'next/link';
 import {
   Trophy,
   Medal,
-  Award,
   Globe,
   BookOpen,
   Search,
   ChevronRight,
-  TrendingUp,
-  Sparkles,
   Flame,
-  CheckCircle2,
-  Filter,
-  User,
-  GraduationCap,
-  Layers,
-  Star,
-  ChevronLeft,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -191,11 +181,10 @@ export function LeaderboardClient({
         <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200/80 shadow-2xs">
           <button
             onClick={() => setMode('GLOBAL')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              mode === 'GLOBAL'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${mode === 'GLOBAL'
                 ? 'bg-white text-indigo-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Globe className="w-4 h-4 text-primary-600" />
             <span>সার্বজনীন লিডারবোর্ড (Global)</span>
@@ -211,11 +200,10 @@ export function LeaderboardClient({
                 fetchCourseLeaderboard(selectedCourseId);
               }
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              mode === 'COURSE'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${mode === 'COURSE'
                 ? 'bg-white text-indigo-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <BookOpen className="w-4 h-4 text-emerald-600" />
             <span>কোর্স ব্যাচ লিডারবোর্ড (Course Cohort)</span>
@@ -248,11 +236,10 @@ export function LeaderboardClient({
                 <button
                   key={trk.key}
                   onClick={() => handleTrackChange(trk.key)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition border ${
-                    selectedTrack === trk.key
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition border ${selectedTrack === trk.key
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {trk.label}
                 </button>
@@ -454,9 +441,8 @@ export function LeaderboardClient({
                 globalStudents.map((st) => (
                   <div
                     key={st.id}
-                    className={`flex items-center justify-between p-4 px-5 hover:bg-slate-50/80 transition ${
-                      st.isCurrentUser ? 'bg-primary-50/50 border-l-4 border-l-primary-600' : ''
-                    }`}
+                    className={`flex items-center justify-between p-4 px-5 hover:bg-slate-50/80 transition ${st.isCurrentUser ? 'bg-primary-50/50 border-l-4 border-l-primary-600' : ''
+                      }`}
                   >
                     {/* Left: Rank & Avatar & Info */}
                     <div className="flex items-center gap-4 min-w-0">
@@ -767,9 +753,8 @@ export function LeaderboardClient({
                 filteredCourseStudents.map((st) => (
                   <div
                     key={st.id}
-                    className={`flex items-center justify-between p-4 px-5 hover:bg-slate-50/80 transition ${
-                      st.isCurrentUser ? 'bg-emerald-50/60 border-l-4 border-l-emerald-600' : ''
-                    }`}
+                    className={`flex items-center justify-between p-4 px-5 hover:bg-slate-50/80 transition ${st.isCurrentUser ? 'bg-emerald-50/60 border-l-4 border-l-emerald-600' : ''
+                      }`}
                   >
                     {/* Left: Course Rank & Avatar & Name */}
                     <div className="flex items-center gap-4 min-w-0">

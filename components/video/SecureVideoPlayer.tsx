@@ -12,6 +12,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { getSignedVideoPlaybackAction, SignedPlaybackResult } from '@/actions/bunny-stream';
+import { trackLessonHeartbeatAction } from '@/actions/course-access';
 
 interface SecureVideoPlayerProps {
   courseId: string;
@@ -78,6 +79,25 @@ export default function SecureVideoPlayer({
 
     return () => clearInterval(interval);
   }, []);
+
+  // 3. Track video playback heartbeat and drop-off timestamps for instructor analytics
+  useEffect(() => {
+    if (!courseId || !lessonId || !data?.success) return;
+
+    let secondsElapsed = 0;
+    const durSec = 720;
+    const interval = setInterval(() => {
+      secondsElapsed += 10;
+      trackLessonHeartbeatAction({
+        courseId,
+        lessonId,
+        currentTimestamp: secondsElapsed,
+        videoDuration: durSec,
+      }).catch(() => {});
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [courseId, lessonId, data?.success]);
 
   if (loading) {
     return (

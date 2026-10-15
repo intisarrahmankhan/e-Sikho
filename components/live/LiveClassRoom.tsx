@@ -21,6 +21,10 @@ import {
   ArrowLeft,
   Share2,
   Check,
+  Shield,
+  Lock,
+  Save,
+  Film,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -33,6 +37,7 @@ import {
   answerLiveQuestionAction,
   pinLiveQuestionAction,
   getLiveQuestionsAction,
+  completeLiveSessionAndSaveToModuleAction,
 } from '@/actions/live-class';
 
 interface LiveClassRoomProps {
@@ -64,6 +69,12 @@ export function LiveClassRoom({
   const [viewerCount, setViewerCount] = useState(initialSession.viewerCount || 154);
   const [copiedLink, setCopiedLink] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Archive and Recording states
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [recordingInputUrl, setRecordingInputUrl] = useState(initialSession.recordingUrl || initialSession.streamUrl || '');
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveSuccessMsg, setArchiveSuccessMsg] = useState<string | null>(null);
 
   // Gentle realistic viewer count variation
   useEffect(() => {
@@ -223,6 +234,32 @@ export function LiveClassRoom({
     }
   };
 
+  const handleArchiveLiveSession = async () => {
+    setIsArchiving(true);
+    setArchiveSuccessMsg(null);
+    try {
+      const res = await completeLiveSessionAndSaveToModuleAction({
+        sessionId: session.id,
+        recordingUrl: recordingInputUrl,
+      });
+      if (res.error) {
+        alert(res.error);
+      } else {
+        setSession((prev) => ({
+          ...prev,
+          status: 'COMPLETED',
+          recordingUrl: recordingInputUrl || prev.streamUrl,
+        }));
+        setArchiveSuccessMsg(res.message || 'লাইভ ক্লাস সম্পন্ন হয়েছে এবং কোর্স মডিউলে সংরক্ষিত হয়েছে!');
+        setTimeout(() => setArchiveModalOpen(false), 2200);
+      }
+    } catch (err: any) {
+      alert(err.message || 'ক্লাস সংরক্ষণ ব্যর্থ হয়েছে।');
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   // Filter and sort questions based on active tab
   const filteredQuestions = [...questions].filter((q) => {
     if (activeTab === 'unanswered') return !q.isAnswered;
@@ -284,6 +321,19 @@ export function LiveClassRoom({
           </div>
 
           <div className="flex items-center gap-2">
+            {isInstructorOrAdmin && session.status !== 'COMPLETED' && (
+              <Button
+                size="sm"
+                onClick={() => setArchiveModalOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl gap-1.5 shadow-md shadow-emerald-600/20"
+              >
+                <Film className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {language === 'en' ? 'End & Archive Class' : 'ক্লাস সম্পন্ন ও সংরক্ষণ'}
+                </span>
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="sm"
@@ -314,10 +364,26 @@ export function LiveClassRoom({
         {/* Left Column: Video Player & Stream Details (8 cols) */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-4">
           {/* Video Container */}
-          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-black aspect-video relative shadow-2xl group">
-            {session.streamUrl ? (
+          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-black aspect-video relative shadow-2xl group select-none">
+            {/* DRM Anti-Piracy Watermark Overlay for Recorded Live Classes */}
+            {session.status === 'COMPLETED' && (
+              <div
+                className="pointer-events-none absolute inset-0 z-20 flex flex-wrap items-center justify-around opacity-20 overflow-hidden p-6 select-none"
+                aria-hidden="true"
+              >
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="rotate-[-25deg] text-center font-mono text-xs font-bold text-white tracking-widest my-6">
+                    <div>e-Shikho DRM Protected Recording</div>
+                    <div>User: {currentUserId || 'Enrolled Student'}</div>
+                    <div className="text-[10px]">Restricted Enrollment Playback</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {session.streamUrl || session.recordingUrl ? (
               <iframe
-                src={`${session.streamUrl}?autoplay=1&mute=0`}
+                src={`${session.recordingUrl || session.streamUrl}?autoplay=1&mute=0`}
                 title={displayTitle}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -664,6 +730,83 @@ export function LiveClassRoom({
           </div>
         </div>
       </main>
+
+      {/* ── Complete & Archive Live Class Modal (For Instructor) ── */}
+      {archiveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-base">
+                <Film className="w-5 h-5 text-emerald-400" />
+                <span>{language === 'en' ? 'Complete Live Class & Archive' : 'লাইভ ক্লাস সম্পন্ন ও মডিউলে সংরক্ষণ'}</span>
+              </div>
+              <button
+                onClick={() => setArchiveModalOpen(false)}
+                className="text-slate-400 hover:text-white transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {language === 'en'
+                ? 'Marking this class as completed will automatically generate a recorded lecture inside the course module. Enrolled and absent students will receive an instant notification to watch the DRM-protected recording.'
+                : 'এই ক্লাসটি সম্পন্ন করলে স্বয়ংক্রিয়ভাবে সংশ্লিষ্ট কোর্স মডিউলে এর রেকর্ডিং তৈরি হয়ে যাবে। অনুপস্থিত শিক্ষার্থীসহ সকল এনরোল্ড শিক্ষার্থী তাৎক্ষণিক নোটিফিকেশন পাবেন এবং সুরক্ষিতভাবে রেকর্ডিং দেখতে পারবেন।'}
+            </p>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-300">
+                {language === 'en' ? 'Recording / Stream Embed URL:' : 'ক্লাস রেকর্ডিং / স্ট্রিম লিঙ্ক:'}
+              </label>
+              <input
+                type="url"
+                value={recordingInputUrl}
+                onChange={(e) => setRecordingInputUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=... অথবা Bunny Stream URL"
+                className="w-full text-xs rounded-xl bg-slate-950 border border-slate-800 p-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span className="text-[11px] text-slate-500 block">
+                {language === 'en'
+                  ? 'Default will use the live broadcast feed link.'
+                  : 'খালি রাখলে বর্তমান লাইভ স্ট্রিম ফিড স্বয়ংক্রিয়ভাবে রেকর্ডিং হিসেবে ব্যবহৃত হবে।'}
+              </span>
+            </div>
+
+            {archiveSuccessMsg && (
+              <div className="p-3 bg-emerald-950/60 border border-emerald-800/80 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>{archiveSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setArchiveModalOpen(false)}
+                disabled={isArchiving}
+                className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white text-xs rounded-xl"
+              >
+                {language === 'en' ? 'Cancel' : 'বাতিল'}
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={handleArchiveLiveSession}
+                disabled={isArchiving}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl px-5 gap-1.5"
+              >
+                {isArchiving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>{language === 'en' ? 'Save to Module & Notify Students' : 'মডিউলে সংরক্ষণ ও নোটিফাই করুন'}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

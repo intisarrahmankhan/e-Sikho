@@ -8,6 +8,12 @@ export interface IEnrollment extends Document {
   amountPaid: number;
   couponApplied?: mongoose.Types.ObjectId | string | null;
   enrolledAt: Date;
+  validUntil?: Date;
+  isRevisionGranted?: boolean;
+  revisionAccessExpiresAt?: Date;
+  revisionRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  revisionReason?: string;
+  revisionExamDate?: string;
 }
 
 const enrollmentSchema = new Schema<IEnrollment>(
@@ -19,6 +25,16 @@ const enrollmentSchema = new Schema<IEnrollment>(
     amountPaid: { type: Number, required: true, default: 0 },
     couponApplied: { type: Schema.Types.ObjectId, ref: 'Coupon', default: null },
     enrolledAt: { type: Date, default: Date.now },
+    validUntil: { type: Date },
+    isRevisionGranted: { type: Boolean, default: false },
+    revisionAccessExpiresAt: { type: Date },
+    revisionRequestStatus: {
+      type: String,
+      enum: ['NONE', 'PENDING', 'APPROVED', 'REJECTED'],
+      default: 'NONE',
+    },
+    revisionReason: { type: String, default: '' },
+    revisionExamDate: { type: String, default: '' },
   },
   {
     timestamps: false,

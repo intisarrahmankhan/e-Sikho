@@ -6,6 +6,10 @@ export interface ILessonProgress extends Document {
   lessonId: mongoose.Types.ObjectId | string;
   isCompleted: boolean;
   watchTime: number; // in seconds
+  stoppedTimestamp?: number; // exact second where student stopped watching
+  stoppedAtFormatted?: string; // e.g. "04:32"
+  videoDuration?: number; // total duration in seconds
+  dropOffRate?: number; // percentage where student dropped off (e.g. 42.5%)
   lastAccessedAt: Date;
 }
 
@@ -16,6 +20,10 @@ const lessonProgressSchema = new Schema<ILessonProgress>(
     lessonId: { type: Schema.Types.ObjectId, ref: 'Lesson', required: true },
     isCompleted: { type: Boolean, default: false },
     watchTime: { type: Number, default: 0 },
+    stoppedTimestamp: { type: Number, default: 0 },
+    stoppedAtFormatted: { type: String, default: '00:00' },
+    videoDuration: { type: Number, default: 0 },
+    dropOffRate: { type: Number, default: 0 },
     lastAccessedAt: { type: Date, default: Date.now },
   },
   {

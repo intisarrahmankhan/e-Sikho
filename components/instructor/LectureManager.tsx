@@ -60,6 +60,7 @@ export interface Lesson {
   pdfName?: string;
   quizId?: any;
   type?: 'VIDEO' | 'PDF' | 'QUIZ';
+  isDownloadable?: boolean;
   bunnyVideoId?: string;
   bunnyLibraryId?: string;
 }
@@ -135,6 +136,7 @@ export default function LectureManager({
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState('');
   const [pdfName, setPdfName] = useState('');
+  const [isDownloadable, setIsDownloadable] = useState(false); // false = View-Only by default
 
   // Quiz state
   const [selectedQuizId, setSelectedQuizId] = useState<string>(
@@ -146,6 +148,7 @@ export default function LectureManager({
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPdfUrl, setEditPdfUrl] = useState('');
   const [editPdfName, setEditPdfName] = useState('');
+  const [editIsDownloadable, setEditIsDownloadable] = useState(false);
   const [editQuizId, setEditQuizId] = useState('');
   const [editBunnyVideoId, setEditBunnyVideoId] = useState('');
   const [editBunnyLibraryId, setEditBunnyLibraryId] = useState('345678');
@@ -208,6 +211,7 @@ export default function LectureManager({
     setPdfFile(null);
     setPdfUrl('');
     setPdfName('');
+    setIsDownloadable(false);
     setSelectedQuizId(quizzes.length > 0 ? quizzes[0].id || quizzes[0]._id || '' : '');
     setStatusMessage(null);
     setIsAddLectureOpen(true);
@@ -224,6 +228,7 @@ export default function LectureManager({
     setEditPdfFile(null);
     setEditPdfUrl(lesson.pdfUrl || '');
     setEditPdfName(lesson.pdfName || '');
+    setEditIsDownloadable(!!lesson.isDownloadable);
     const qId =
       typeof lesson.quizId === 'object'
         ? lesson.quizId?._id || lesson.quizId?.id || ''
@@ -265,6 +270,7 @@ export default function LectureManager({
     formData.append('duration', lectureDuration.trim());
     formData.append('isFree', String(lectureIsFree));
     formData.append('type', lectureType);
+    formData.append('isDownloadable', String(isDownloadable));
 
     // Video details
     if (lectureType === 'VIDEO') {
@@ -336,6 +342,7 @@ export default function LectureManager({
     formData.append('duration', activeLectureForEdit.duration || '15:00');
     formData.append('isFree', String(activeLectureForEdit.isFree || false));
     formData.append('type', editLectureType);
+    formData.append('isDownloadable', String(editIsDownloadable));
 
     if (activeLectureForEdit.videoUrl) {
       formData.append('videoUrl', activeLectureForEdit.videoUrl);
@@ -1017,6 +1024,29 @@ export default function LectureManager({
                       className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs shadow-sm outline-none focus:border-amber-500"
                     />
                   </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-amber-200 bg-amber-50/80">
+                    <div>
+                      <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-amber-600" />
+                        <span>শিক্ষার্থীদের ডাউনলোড অনুমতি (Allow Download)</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 mt-0.5">
+                        {isDownloadable
+                          ? 'ডাউনলোড সক্রিয়: শিক্ষার্থীরা মূল পিডিএফ ফাইল সরাসরি ডাউনলোড করতে পারবে।'
+                          : 'ডিফল্ট ভিউ-অনলি: মেধা সম্পদ সুরক্ষায় শিক্ষার্থীদের জন্য ডাউনলোড বন্ধ থাকবে (ভিউ-অনলি DRM)।'}
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
+                      <input
+                        type="checkbox"
+                        checked={isDownloadable}
+                        onChange={(e) => setIsDownloadable(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -1403,6 +1433,29 @@ export default function LectureManager({
                       placeholder="পিডিএফ শিরোনাম (যেমন: মডিউল স্লাইড.pdf)"
                       className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs outline-none focus:border-amber-500"
                     />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-amber-200 bg-amber-50/80">
+                    <div>
+                      <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-amber-600" />
+                        <span>শিক্ষার্থীদের ডাউনলোড অনুমতি (Allow Download)</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 mt-0.5">
+                        {editIsDownloadable
+                          ? 'ডাউনলোড সক্রিয়: শিক্ষার্থীরা মূল ফাইল সরাসরি ডাউনলোড করতে পারবে।'
+                          : 'ডিফল্ট ভিউ-অনলি: শিক্ষার্থীদের জন্য ডাউনলোড বন্ধ থাকবে (মেধা সম্পদ সুরক্ষিত)।'}
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
+                      <input
+                        type="checkbox"
+                        checked={editIsDownloadable}
+                        onChange={(e) => setEditIsDownloadable(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
                   </div>
                 </div>
               )}

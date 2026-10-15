@@ -274,7 +274,38 @@ export default function ExamTakingPage() {
 
               {/* Start Button or Enrollment Requirement */}
               <div className="pt-4">
-                {exam.canAttempt === false ? (
+                {exam.isCooldownActive ? (
+                  <div className="space-y-4">
+                    <div className="p-5 bg-gradient-to-br from-indigo-50 to-blue-50 border border-blue-200 rounded-3xl space-y-3">
+                      <div className="flex items-center gap-2.5 text-blue-900 font-bold text-sm">
+                        <Clock className="w-5 h-5 text-blue-600" />
+                        <span>বাধ্যতামূলক ২৪ ঘণ্টার কুলডাউন বিরতি (24-Hour Cooldown)</span>
+                      </div>
+                      <p className="text-xs text-blue-800 leading-relaxed">
+                        ইন্সট্রাক্টরের নিয়ম অনুসারে পরীক্ষার প্রতিটি প্রচেষ্টার পর শিক্ষার্থীদের ভুল পর্যালোচনা নিশ্চিত করতে ২৪ ঘণ্টা বিরতি বাধ্যতামূলক। অনুগ্রহ করে পূর্ববর্তী পরীক্ষার ভুলগুলো পর্যালোচনা করুন।
+                      </p>
+                      <div className="flex items-center justify-between p-3 bg-white/90 rounded-2xl border border-blue-100 text-xs">
+                        <span className="font-semibold text-slate-700">পরবর্তী প্রচেষ্টার সুযোগ:</span>
+                        <span className="font-mono font-bold text-blue-700 bg-blue-100/80 px-2.5 py-1 rounded-lg">
+                          আর {exam.cooldownRemainingHours || 0} ঘণ্টা {exam.cooldownRemainingMinutes || 0} মিনিট
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      disabled
+                      size="lg"
+                      className="w-full bg-slate-200 text-slate-500 font-bold text-sm py-6 rounded-2xl cursor-not-allowed shadow-none"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      <span>২৪ ঘণ্টার বিরতি সক্রিয় (লকড)</span>
+                    </Button>
+                    <div className="text-center">
+                      <Link href="/exams" className="inline-block text-xs text-primary-600 hover:underline font-semibold">
+                        সকল পরীক্ষায় ফিরে যান
+                      </Link>
+                    </div>
+                  </div>
+                ) : exam.canAttempt === false ? (
                   <div className="space-y-3 text-center">
                     <Button
                       disabled
