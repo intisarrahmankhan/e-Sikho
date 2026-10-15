@@ -36,7 +36,7 @@ async function getAuthenticatedUserId(): Promise<string | null> {
     if (userDoc) return userDoc._id.toString();
   }
 
-  return /^[0-9a-fA-F]{24}$/.test(String(userId)) ? userId : null;
+  return typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId) ? userId : null;
 }
 
 async function resolveCourseData(courseId: string): Promise<SchedulerCourse> {
