@@ -23,6 +23,7 @@ export default async function StudentDashboardPage() {
   const rawUserId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
   const userEmail = (session.user as any).email;
   let userId = rawUserId;
+  let safeUserId = /^[0-9a-fA-F]{24}$/.test(rawUserId) ? rawUserId : '65f000000000000000000001';
 
   let userDoc: any = null;
   let enrollments: any[] = [];
@@ -56,7 +57,7 @@ export default async function StudentDashboardPage() {
       userId = '65f000000000000000000001';
     }
 
-    const safeUserId = /^[0-9a-fA-F]{24}$/.test(userId) ? userId : '65f000000000000000000001';
+    safeUserId = /^[0-9a-fA-F]{24}$/.test(userId) ? userId : '65f000000000000000000001';
 
     // 1. Live Enrollments
     const enrollmentsList = await Enrollment.find({
