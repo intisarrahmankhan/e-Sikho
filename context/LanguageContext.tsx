@@ -158,7 +158,104 @@ export const translations: Translations = {
   'courses.lessons': { bn: 'টি লেসন', en: 'lessons' },
   'courses.hours': { bn: 'ঘণ্টা', en: 'hours' },
   'courses.students': { bn: 'শিক্ষার্থী', en: 'students' },
+
+  // ── General & Common ──
+  'common.loading': { bn: 'লোড হচ্ছে...', en: 'Loading...' },
+  'common.save': { bn: 'সংরক্ষণ করুন', en: 'Save' },
+  'common.cancel': { bn: 'বাতিল', en: 'Cancel' },
+  'common.edit': { bn: 'সম্পাদনা', en: 'Edit' },
+  'common.delete': { bn: 'মুছুন', en: 'Delete' },
+  'common.confirm': { bn: 'নিশ্চিত করুন', en: 'Confirm' },
+  'common.success': { bn: 'সফল হয়েছে', en: 'Success' },
+  'common.error': { bn: 'ত্রুটি', en: 'Error' },
+  'common.viewAll': { bn: 'সব দেখুন', en: 'View All' },
+  'common.back': { bn: 'ফিরে যান', en: 'Back' },
+  'common.next': { bn: 'পরবর্তী', en: 'Next' },
+  'common.previous': { bn: 'পূর্ববর্তী', en: 'Previous' },
 };
+
+export function toEnglishDigits(str: string): string {
+  const bnToEnMap: Record<string, string> = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+  };
+  return str.replace(/[০-৯]/g, (ch) => bnToEnMap[ch] || ch);
+}
+
+export function toBanglaDigits(val: string | number): string {
+  const enToBnMap: Record<string, string> = {
+    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪',
+    '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯',
+  };
+  return String(val).replace(/[0-9]/g, (ch) => enToBnMap[ch] || ch);
+}
+
+export function formatBilingualDuration(duration: string, durationEn?: string, lang: Language = 'bn'): string {
+  if (!duration) return '';
+  if (lang === 'bn') return duration;
+  if (durationEn) return durationEn;
+
+  return toEnglishDigits(duration)
+    .replace(/ঘণ্টা/g, 'hours')
+    .replace(/মিনিট/g, 'mins')
+    .replace(/মি\./g, 'mins')
+    .replace(/দিন/g, 'days')
+    .replace(/সপ্তাহ/g, 'weeks')
+    .replace(/মাস/g, 'months')
+    .trim();
+}
+
+export function translateCategory(cat: string, lang: Language = 'bn'): string {
+  if (!cat) return '';
+  if (lang === 'bn') {
+    const map: Record<string, string> = {
+      'web-dev': 'ওয়েব ডেভেলপমেন্ট',
+      'data-science': 'ডাটা সায়েন্স ও এআই',
+      'programming': 'প্রোগ্রামিং ও ডিএসএ',
+      'system-design': 'সিস্টেম ডিজাইন',
+      'app-dev': 'অ্যাপ ডেভেলপমেন্ট',
+      'Web Development': 'ওয়েব ডেভেলপমেন্ট',
+      'Data Science & AI': 'ডাটা সায়েন্স ও এআই',
+      'Programming & DSA': 'প্রোগ্রামিং ও ডিএসএ',
+      'System Design': 'সিস্টেম ডিজাইন',
+      'App Development': 'অ্যাপ ডেভেলপমেন্ট',
+    };
+    return map[cat] || cat;
+  }
+  const enMap: Record<string, string> = {
+    'web-dev': 'Web Development',
+    'data-science': 'Data Science & AI',
+    'programming': 'Programming & DSA',
+    'system-design': 'System Design',
+    'app-dev': 'App Development',
+    'ওয়েব ডেভেলপমেন্ট': 'Web Development',
+    'ডাটা সায়েন্স ও এআই': 'Data Science & AI',
+    'ডাটা সায়েন্স ও এআই': 'Data Science & AI',
+    'প্রোগ্রামিং ফান্ডামেন্টালস': 'Programming Fundamentals',
+    'প্রোগ্রামিং ও ডিএসএ': 'Programming & DSA',
+    'সিস্টেম ডিজাইন': 'System Design',
+    'অ্যাপ ডেভেলপমেন্ট': 'App Development',
+  };
+  return enMap[cat] || cat;
+}
+
+export function translateLevel(lvl: string, lang: Language = 'bn'): string {
+  if (!lvl) return '';
+  if (lang === 'bn') {
+    const map: Record<string, string> = {
+      'Beginner': 'বিগিনার',
+      'Intermediate': 'ইন্টারমিডিয়েট',
+      'Advanced': 'অ্যাডভান্সড',
+    };
+    return map[lvl] || lvl;
+  }
+  const enMap: Record<string, string> = {
+    'বিগিনার': 'Beginner',
+    'ইন্টারমিডিয়েট': 'Intermediate',
+    'অ্যাডভান্সড': 'Advanced',
+  };
+  return enMap[lvl] || lvl;
+}
 
 interface LanguageContextType {
   language: Language;

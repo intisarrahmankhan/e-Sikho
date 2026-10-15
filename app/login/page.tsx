@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, type FormEvent } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   BookOpen,
@@ -126,7 +126,7 @@ function LoginForm() {
       if (err?.message !== 'NEXT_REDIRECT' && !err?.digest?.startsWith('NEXT_REDIRECT')) {
         setError(
           err?.message ||
-            (language === 'en' ? 'Error signing in with Google.' : 'Google সাইন ইন করতে সমস্যা হয়েছে।')
+          (language === 'en' ? 'Error signing in with Google.' : 'Google সাইন ইন করতে সমস্যা হয়েছে।')
         );
         setIsGoogleLoading(false);
       }
@@ -136,7 +136,7 @@ function LoginForm() {
   // ──────────────────────────────────────────────
   // SIGN UP: Step 1 (Send OTP)
   // ──────────────────────────────────────────────
-  const handleSendSignupOtp = async (e?: FormEvent) => {
+  const handleSendSignupOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -175,7 +175,7 @@ function LoginForm() {
   };
 
   // SIGN UP: Fallback / Direct Submit
-  const handleDirectSignUp = async (e: FormEvent) => {
+  const handleDirectSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -222,7 +222,7 @@ function LoginForm() {
   };
 
   // SIGN UP: Step 2 (Verify OTP & Complete)
-  const handleVerifyOtpAndSignUp = async (e: FormEvent) => {
+  const handleVerifyOtpAndSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -267,7 +267,7 @@ function LoginForm() {
   // ──────────────────────────────────────────────
   // LOGIN: Step 1 (Verify Password & Dispatch OTP)
   // ──────────────────────────────────────────────
-  const handleLoginSubmit = async (e: FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -326,7 +326,7 @@ function LoginForm() {
   };
 
   // LOGIN: Step 2 (Verify OTP & Complete 2FA Login)
-  const handleVerifyLoginOtp = async (e: FormEvent) => {
+  const handleVerifyLoginOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -458,11 +458,10 @@ function LoginForm() {
               setError(null);
               setSuccess(null);
             }}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'signup'
-                ? 'bg-white text-primary-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'signup'
+              ? 'bg-white text-primary-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-900'
+              }`}
           >
             {t('auth.tabSignUp', 'মোবাইল দিয়ে সাইন আপ')}
           </button>
@@ -474,11 +473,10 @@ function LoginForm() {
               setError(null);
               setSuccess(null);
             }}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'login'
-                ? 'bg-white text-primary-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'login'
+              ? 'bg-white text-primary-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-900'
+              }`}
           >
             {t('auth.tabLogin', 'মোবাইল দিয়ে লগইন')}
           </button>
@@ -533,11 +531,10 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setRole('STUDENT')}
-                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                        role === 'STUDENT'
-                          ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${role === 'STUDENT'
+                        ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
                     >
                       <GraduationCap className="h-4 w-4 text-primary-600" />
                       <span>{t('auth.roleStudent', 'শিক্ষার্থী')}</span>
@@ -545,11 +542,10 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setRole('INSTRUCTOR')}
-                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                        role === 'INSTRUCTOR'
-                          ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${role === 'INSTRUCTOR'
+                        ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
                     >
                       <Briefcase className="h-4 w-4 text-primary-600" />
                       <span>{t('auth.roleInstructor', 'ইন্সট্রাক্টর')}</span>
@@ -954,6 +950,7 @@ function LoginForm() {
             </button>
           </div>
         </div>
+
         <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">
           {t('auth.termsPrefix', 'সাইন ইন করার মাধ্যমে আপনি আমাদের ')}
           <Link href="/terms" className="text-primary-600 hover:underline">

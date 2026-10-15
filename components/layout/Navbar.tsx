@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target, Trophy } from 'lucide-react';
+import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target, Trophy, Award } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { Input } from '@/components/ui/Input';
 import { useLanguage } from '@/context/LanguageContext';
@@ -112,6 +112,18 @@ export function Navbar() {
         >
           <Trophy className="h-4 w-4 text-amber-500" />
           <span>{language === 'en' ? 'Contests & Arena' : 'কনটেস্ট অ্যারেনা'}</span>
+        </Link>
+
+        <Link
+          href="/leaderboard"
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+            pathname.startsWith('/leaderboard')
+              ? 'bg-indigo-50 text-indigo-700 font-bold'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        >
+          <Award className="h-4 w-4 text-indigo-600" />
+          <span>{language === 'en' ? 'Leaderboard' : 'লিডারবোর্ড'}</span>
         </Link>
 
         {/* Global EN / BN Language Switcher */}

@@ -12,6 +12,7 @@ import { getCourseById } from "@/lib/courses-data";
 import { redirect } from "next/navigation";
 import { StudentDashboardClient } from "@/components/dashboard/StudentDashboardClient";
 import { getHomepageContestsAction } from "@/actions/contest";
+import { getPersonalizedRecommendationsAction } from "@/actions/recommendations";
 
 export const dynamic = 'force-dynamic';
 
@@ -188,6 +189,9 @@ export default async function StudentDashboardPage() {
       : enrolledCourses.length * 6
   );
 
+  // 7. Personalized Course Recommendations
+  const recommendationsRes = await getPersonalizedRecommendationsAction(4);
+
   return (
     <StudentDashboardClient
       userName={name}
@@ -206,6 +210,8 @@ export default async function StudentDashboardPage() {
       ongoingLessonsCount={ongoingLessonsCount}
       completedQuizzesCount={completedQuizzesCount}
       earnedCertificatesCount={earnedCertificatesCount}
+      recommendedCourses={recommendationsRes.recommendations}
+      studentProfile={recommendationsRes.studentProfile}
     />
   );
 }

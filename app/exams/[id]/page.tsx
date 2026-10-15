@@ -17,6 +17,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Loader2,
+  Lock,
+  CreditCard,
+  RotateCcw,
+  XCircle,
 } from 'lucide-react';
 
 export default function ExamTakingPage() {
@@ -52,7 +56,7 @@ export default function ExamTakingPage() {
   }, [examId]);
 
   const handleSubmitExam = async (
-    answers: Record<number, number>,
+    answers: Record<number, any>,
     timeTakenSeconds: number
   ) => {
     setIsSubmitting(true);
@@ -78,7 +82,13 @@ export default function ExamTakingPage() {
     }
   };
 
-  const handleRetake = () => {
+  const handleRetake = async () => {
+    try {
+      const res = await getExamByIdAction(examId, true);
+      if (res.exam) {
+        setExam(res.exam);
+      }
+    } catch (_) {}
     setResultData(null);
     setExamState('INTRO');
   };
@@ -152,7 +162,7 @@ export default function ExamTakingPage() {
 
             <CardContent className="p-6 sm:p-8 space-y-6">
               {/* Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                   <Clock className="w-5 h-5 text-primary-600 mx-auto mb-1" />
                   <span className="text-[11px] text-slate-400 block font-medium">সময়সীমা</span>
@@ -175,7 +185,59 @@ export default function ExamTakingPage() {
                   <span className="text-[11px] text-slate-400 block font-medium">পাস মার্ক</span>
                   <span className="text-base font-bold text-emerald-600">{exam.passMarks}</span>
                 </div>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 col-span-2 sm:col-span-1">
+                  <RotateCcw className="w-5 h-5 text-indigo-600 mx-auto mb-1" />
+                  <span className="text-[11px] text-slate-400 block font-medium">প্রচেষ্টার সীমা</span>
+                  <span className="text-base font-bold text-indigo-700">
+                    {exam.attemptsCount ?? 0} / {exam.maxAttempts ?? 3}
+                  </span>
+                </div>
               </div>
+
+              {/* Retake Policy & Attempt Tracking Banner */}
+              {exam.canAttempt === false ? (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+                  <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                  <div>
+                    <span className="font-bold block text-sm">সর্বোচ্চ প্রচেষ্টার সীমা সমাপ্ত (Attempt Limit Reached)</span>
+                    <span className="text-[11px]">
+                      আপনি এই পরীক্ষার জন্য নির্ধারিত সর্বোচ্চ {exam.maxAttempts ?? 3} টি প্রচেষ্টা ইতিমধ্যে সম্পন্ন করেছেন। নতুন করে পুনরায় অংশ নেওয়ার সুযোগ নেই।
+                    </span>
+                  </div>
+                </div>
+              ) : exam.attemptsCount > 0 ? (
+                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs text-indigo-900">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <RotateCcw className="w-4 h-4 text-indigo-600" />
+                    <span>
+                      আপনি ইতিমধ্যে {exam.attemptsCount} বার পরীক্ষা দিয়েছেন। আপনার আর <strong>{exam.remainingAttempts}</strong> বার প্রচেষ্টা বাকি আছে।
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="bg-white border-indigo-300 text-indigo-800 text-[10px] shrink-0">
+                    সর্বোচ্চ {exam.maxAttempts ?? 3} বার
+                  </Badge>
+                </div>
+              ) : null}
+
+              {/* Negative Marking Policy Banner */}
+              {exam.hasNegativeMarking ? (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-amber-900 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span>
+                      নেগেটিভ মার্কিং সক্রিয়: ভুল উত্তরের জন্য <strong>-{exam.negativeMarkingValue ?? 0.25}</strong> নম্বর কর্তন করা হবে।
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="bg-white border-amber-300 text-amber-800 text-[10px] shrink-0">
+                    এড়িয়ে গেলে ০ পেনাল্টি
+                  </Badge>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-2 text-xs text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>এই পরীক্ষায় কোনো নেগেটিভ মার্কিং নেই। প্রতিটি ভুল উত্তরের জন্য ০ নম্বর।</span>
+                </div>
+              )}
 
               {/* Instructions */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
@@ -187,8 +249,20 @@ export default function ExamTakingPage() {
                     প্রশ্নপত্রে গাণিতিক ও বৈজ্ঞানিক সূত্রসমূহ <span className="font-semibold text-primary-700">LaTeX / KaTeX</span> ফরম্যাটে সঠিকভাবে রেন্ডার করা হয়েছে।
                   </li>
                   <li>
-                    প্রতিটি প্রশ্নের জন্য ৪টি করে বিকল্প থাকবে, যার মধ্যে সঠিক উত্তরটি নির্বাচন করতে হবে।
+                    পরীক্ষাটিতে MCQ, সত্য/মিথ্যা, সংক্ষিপ্ত উত্তর ও কোডিং ভেরিফিকেশন প্রশ্ন অন্তর্ভুক্ত থাকতে পারে।
                   </li>
+                  <li>
+                    এই পরীক্ষায় একজন শিক্ষার্থী সর্বোচ্চ <strong className="text-indigo-700">{exam.maxAttempts ?? 3} বার</strong> অংশ নিতে পারবেন।
+                  </li>
+                  {exam.hasNegativeMarking ? (
+                    <li className="text-amber-800 font-medium">
+                      নেগেটিভ মার্কিং থাকায় নিশ্চিত না হয়ে উত্তর দেওয়া পরিহার করুন। যে প্রশ্নটির উত্তর আপনি দেবেন না (এড়িয়ে যাবেন), সেটিতে কোনো নম্বর কাটা হবে না।
+                    </li>
+                  ) : (
+                    <li>
+                      ভুল উত্তরের জন্য কোনো নম্বর কাটা হবে না।
+                    </li>
+                  )}
                   <li>
                     পরীক্ষা শুরু করার পর টাইমার স্বয়ংক্রিয়ভাবে চালু হবে এবং নির্ধারিত সময় শেষে স্বয়ংক্রিয়ভাবে জমা হবে।
                   </li>
@@ -198,16 +272,53 @@ export default function ExamTakingPage() {
                 </ul>
               </div>
 
-              {/* Start Button */}
+              {/* Start Button or Enrollment Requirement */}
               <div className="pt-4">
-                <Button
-                  onClick={() => setExamState('TAKING')}
-                  size="lg"
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm py-6 rounded-2xl shadow-md gap-2"
-                >
-                  <span>পরীক্ষা শুরু করুন</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+                {exam.canAttempt === false ? (
+                  <div className="space-y-3 text-center">
+                    <Button
+                      disabled
+                      size="lg"
+                      className="w-full bg-slate-200 text-slate-500 font-bold text-sm py-6 rounded-2xl cursor-not-allowed shadow-none"
+                    >
+                      <span>সর্বোচ্চ প্রচেষ্টার সীমা সমাপ্ত ({exam.attemptsCount}/{exam.maxAttempts ?? 3})</span>
+                    </Button>
+                    <Link href="/exams" className="inline-block text-xs text-primary-600 hover:underline font-semibold">
+                      সকল পরীক্ষায় ফিরে যান
+                    </Link>
+                  </div>
+                ) : exam.requiresEnrollment && !exam.isEnrolledInCourse ? (
+                  <div className="space-y-3">
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 text-xs">
+                      <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+                      <span>
+                        এই পরীক্ষাটি <strong className="font-semibold">{exam.courseTitle || 'কোর্স'}</strong> এর শিক্ষার্থীদের জন্য সংরক্ষিত। পরীক্ষায় অংশ নিতে অনুগ্রহ করে সংশ্লিষ্ট কোর্সে ভর্তি হন।
+                      </span>
+                    </div>
+                    <Link href={`/courses/${exam.courseId || ''}`} className="block">
+                      <Button
+                        size="lg"
+                        className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm py-6 rounded-2xl shadow-md gap-2"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        <span>কোর্সে ভর্তি হন (Enroll Now)</span>
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setExamState('TAKING')}
+                    size="lg"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm py-6 rounded-2xl shadow-md gap-2"
+                  >
+                    <span>
+                      {exam.attemptsCount > 0
+                        ? `পুনরায় পরীক্ষা শুরু করুন (প্রচেষ্টা #${exam.attemptsCount + 1})`
+                        : 'পরীক্ষা শুরু করুন'}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -223,6 +334,8 @@ export default function ExamTakingPage() {
           durationMinutes={exam.duration}
           totalMarks={exam.totalMarks}
           questions={exam.questions}
+          hasNegativeMarking={exam.hasNegativeMarking}
+          negativeMarkingValue={exam.negativeMarkingValue}
           onSubmit={handleSubmitExam}
           isSubmitting={isSubmitting}
         />
@@ -232,10 +345,21 @@ export default function ExamTakingPage() {
       {examState === 'RESULT' && resultData && (
         <ExamResultCard
           score={resultData.score}
+          rawEarnedScore={resultData.rawEarnedScore}
           totalMarks={resultData.totalMarks}
           percentage={resultData.percentage}
           passed={resultData.passed}
           timeTakenSeconds={resultData.timeTakenSeconds}
+          hasNegativeMarking={resultData.hasNegativeMarking}
+          negativeMarkingRate={resultData.negativeMarkingRate}
+          negativeMarksDeducted={resultData.negativeMarksDeducted}
+          totalCorrect={resultData.totalCorrect}
+          totalWrong={resultData.totalWrong}
+          totalSkipped={resultData.totalSkipped}
+          attemptNumber={resultData.attemptNumber}
+          maxAttempts={resultData.maxAttempts ?? exam.maxAttempts}
+          attemptsRemaining={resultData.attemptsRemaining}
+          canRetake={resultData.canRetake}
           breakdown={resultData.breakdown}
           onRetake={handleRetake}
         />

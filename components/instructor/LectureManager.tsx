@@ -21,6 +21,11 @@ import {
   Eye,
   X,
   Sparkles,
+  GraduationCap,
+  Download,
+  HelpCircle,
+  FileDown,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -33,7 +38,16 @@ import {
   deleteCourseLecture,
 } from '@/actions/instructor';
 
-interface Lesson {
+export interface QuizOption {
+  id: string;
+  _id?: string;
+  title: string;
+  totalMarks?: number;
+  duration?: number;
+  questionCount?: number;
+}
+
+export interface Lesson {
   _id: string;
   id?: string;
   title: string;
@@ -42,9 +56,15 @@ interface Lesson {
   isFree?: boolean;
   order: number;
   videoUrl?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+  quizId?: any;
+  type?: 'VIDEO' | 'PDF' | 'QUIZ';
+  bunnyVideoId?: string;
+  bunnyLibraryId?: string;
 }
 
-interface Module {
+export interface Module {
   _id: string;
   id?: string;
   title: string;
@@ -53,7 +73,7 @@ interface Module {
   lessons: Lesson[];
 }
 
-interface Course {
+export interface Course {
   _id: string;
   id?: string;
   title: string;
@@ -66,11 +86,15 @@ interface Course {
   modules: Module[];
 }
 
-interface LectureManagerProps {
+export interface LectureManagerProps {
   course: Course;
+  quizzes?: QuizOption[];
 }
 
-export default function LectureManager({ course: initialCourse }: LectureManagerProps) {
+export default function LectureManager({
+  course: initialCourse,
+  quizzes = [],
+}: LectureManagerProps) {
   const [course, setCourse] = useState<Course>(initialCourse);
   const [modules, setModules] = useState<Module[]>(initialCourse.modules || []);
   const [openModules, setOpenModules] = useState<Record<string, boolean>>(() => {
@@ -95,10 +119,36 @@ export default function LectureManager({ course: initialCourse }: LectureManager
   const [lectureContent, setLectureContent] = useState('');
   const [lectureDuration, setLectureDuration] = useState('15:00');
   const [lectureIsFree, setLectureIsFree] = useState(false);
-  const [videoMode, setVideoMode] = useState<'url' | 'file'>('url');
+  const [lectureType, setLectureType] = useState<'VIDEO' | 'PDF' | 'QUIZ'>('VIDEO');
+
+  // Video states
+  const [videoMode, setVideoMode] = useState<'url' | 'file' | 'bunny'>('url');
   const [videoUrl, setVideoUrl] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewSrc, setVideoPreviewSrc] = useState('');
+  const [bunnyVideoId, setBunnyVideoId] = useState('');
+  const [bunnyLibraryId, setBunnyLibraryId] = useState('345678');
+  const [uploadToBunny, setUploadToBunny] = useState(true);
+
+  // PDF states
+  const [pdfMode, setPdfMode] = useState<'file' | 'url'>('file');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [pdfName, setPdfName] = useState('');
+
+  // Quiz state
+  const [selectedQuizId, setSelectedQuizId] = useState<string>(
+    quizzes.length > 0 ? quizzes[0].id || quizzes[0]._id || '' : ''
+  );
+
+  // Edit states
+  const [editLectureType, setEditLectureType] = useState<'VIDEO' | 'PDF' | 'QUIZ'>('VIDEO');
+  const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
+  const [editPdfUrl, setEditPdfUrl] = useState('');
+  const [editPdfName, setEditPdfName] = useState('');
+  const [editQuizId, setEditQuizId] = useState('');
+  const [editBunnyVideoId, setEditBunnyVideoId] = useState('');
+  const [editBunnyLibraryId, setEditBunnyLibraryId] = useState('345678');
 
   // Form states for adding module
   const [newModuleTitle, setNewModuleTitle] = useState('');
@@ -123,6 +173,22 @@ export default function LectureManager({ course: initialCourse }: LectureManager
     }
   };
 
+  const handlePdfFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPdfFile(file);
+      if (!pdfName) setPdfName(file.name);
+    }
+  };
+
+  const handleEditPdfFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditPdfFile(file);
+      if (!editPdfName) setEditPdfName(file.name);
+    }
+  };
+
   const openAddLectureModal = (moduleId?: string) => {
     if (moduleId) setTargetModuleId(moduleId);
     else if (modules.length > 0) setTargetModuleId(modules[0]._id || modules[0].id || '');
@@ -130,11 +196,39 @@ export default function LectureManager({ course: initialCourse }: LectureManager
     setLectureContent('');
     setLectureDuration('15:00');
     setLectureIsFree(false);
+    setLectureType('VIDEO');
+    setVideoMode('url');
     setVideoUrl('');
     setVideoFile(null);
     setVideoPreviewSrc('');
+    setBunnyVideoId('');
+    setBunnyLibraryId('345678');
+    setUploadToBunny(true);
+    setPdfMode('file');
+    setPdfFile(null);
+    setPdfUrl('');
+    setPdfName('');
+    setSelectedQuizId(quizzes.length > 0 ? quizzes[0].id || quizzes[0]._id || '' : '');
     setStatusMessage(null);
     setIsAddLectureOpen(true);
+  };
+
+  const openEditLectureModal = (lesson: Lesson) => {
+    setActiveLectureForEdit(lesson);
+    const resolvedType =
+      lesson.type || (lesson.quizId ? 'QUIZ' : lesson.pdfUrl ? 'PDF' : 'VIDEO');
+    setEditLectureType(resolvedType);
+    setVideoFile(null);
+    setEditBunnyVideoId(lesson.bunnyVideoId || '');
+    setEditBunnyLibraryId(lesson.bunnyLibraryId || '345678');
+    setEditPdfFile(null);
+    setEditPdfUrl(lesson.pdfUrl || '');
+    setEditPdfName(lesson.pdfName || '');
+    const qId =
+      typeof lesson.quizId === 'object'
+        ? lesson.quizId?._id || lesson.quizId?.id || ''
+        : lesson.quizId || '';
+    setEditQuizId(qId);
   };
 
   const handleAddModule = async (e: React.FormEvent) => {
@@ -170,11 +264,39 @@ export default function LectureManager({ course: initialCourse }: LectureManager
     formData.append('content', lectureContent.trim());
     formData.append('duration', lectureDuration.trim());
     formData.append('isFree', String(lectureIsFree));
+    formData.append('type', lectureType);
 
-    if (videoMode === 'url' && videoUrl.trim()) {
-      formData.append('videoUrl', videoUrl.trim());
-    } else if (videoMode === 'file' && videoFile) {
-      formData.append('videoFile', videoFile);
+    // Video details
+    if (lectureType === 'VIDEO') {
+      if (videoMode === 'url' && videoUrl.trim()) {
+        formData.append('videoUrl', videoUrl.trim());
+      } else if (videoMode === 'file' && videoFile) {
+        formData.append('videoFile', videoFile);
+        if (uploadToBunny) {
+          formData.append('videoProvider', 'bunny');
+        }
+      } else if (videoMode === 'bunny' && bunnyVideoId.trim()) {
+        formData.append('bunnyVideoId', bunnyVideoId.trim());
+        formData.append('bunnyLibraryId', bunnyLibraryId.trim());
+        formData.append('videoUrl', `https://iframe.mediadelivery.net/embed/${bunnyLibraryId.trim() || '345678'}/${bunnyVideoId.trim()}`);
+      }
+    }
+
+    // PDF attachment (allowed for PDF type or optional slide with VIDEO)
+    if (lectureType === 'PDF' || pdfFile || pdfUrl) {
+      if (pdfMode === 'url' && pdfUrl.trim()) {
+        formData.append('pdfUrl', pdfUrl.trim());
+      } else if (pdfMode === 'file' && pdfFile) {
+        formData.append('pdfFile', pdfFile);
+      }
+      if (pdfName.trim()) {
+        formData.append('pdfName', pdfName.trim());
+      }
+    }
+
+    // Quiz attachment
+    if (lectureType === 'QUIZ' && selectedQuizId) {
+      formData.append('quizId', selectedQuizId);
     }
 
     const res = await addCourseLecture(formData);
@@ -188,14 +310,14 @@ export default function LectureManager({ course: initialCourse }: LectureManager
           if (mId === targetModuleId) {
             return {
               ...m,
-              lessons: [...m.lessons, newLesson],
+              lessons: [...(m.lessons || []), newLesson],
             };
           }
           return m;
         })
       );
       setIsAddLectureOpen(false);
-      setStatusMessage({ text: 'ভিডিও ও লেকচার সফলভাবে যুক্ত হয়েছে!' });
+      setStatusMessage({ text: 'পাঠ / লেকচার সফলভাবে যুক্ত হয়েছে!' });
     }
     setIsSubmitting(false);
   };
@@ -213,11 +335,31 @@ export default function LectureManager({ course: initialCourse }: LectureManager
     formData.append('content', activeLectureForEdit.content || '');
     formData.append('duration', activeLectureForEdit.duration || '15:00');
     formData.append('isFree', String(activeLectureForEdit.isFree || false));
+    formData.append('type', editLectureType);
+
     if (activeLectureForEdit.videoUrl) {
       formData.append('videoUrl', activeLectureForEdit.videoUrl);
     }
     if (videoFile) {
       formData.append('videoFile', videoFile);
+    }
+    if (editBunnyVideoId) {
+      formData.append('bunnyVideoId', editBunnyVideoId.trim());
+      formData.append('bunnyLibraryId', editBunnyLibraryId.trim());
+      formData.append('videoUrl', `https://iframe.mediadelivery.net/embed/${editBunnyLibraryId.trim() || '345678'}/${editBunnyVideoId.trim()}`);
+    }
+
+    if (editPdfFile) {
+      formData.append('pdfFile', editPdfFile);
+    } else if (editPdfUrl) {
+      formData.append('pdfUrl', editPdfUrl);
+    }
+    if (editPdfName) {
+      formData.append('pdfName', editPdfName);
+    }
+
+    if (editLectureType === 'QUIZ' && editQuizId) {
+      formData.append('quizId', editQuizId);
     }
 
     const res = await updateCourseLecture(formData);
@@ -264,7 +406,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-0.5 text-xs font-semibold backdrop-blur-sm">
-                <Video className="h-3.5 w-3.5" /> কোর্স কারিকুলাম ও ভিডিও স্টুডিও
+                <Layers className="h-3.5 w-3.5" /> কোর্স কারিকুলাম ও কন্টেন্ট বিল্ডার
               </span>
               <Badge variant="outline" className="border-white/30 text-white text-xs">
                 {course.categoryBangla || 'কোর্স'}
@@ -274,7 +416,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
               {course.title}
             </h1>
             <p className="text-xs sm:text-sm text-indigo-200">
-              মোট {modules.length} টি মডিউল • {totalLessonsCount} টি ভিডিও লেকচার
+              মোট {modules.length} টি মডিউল / সেকশন • {totalLessonsCount} টি পাঠ (ভিডিও, পিডিএফ ও কুইজ)
             </p>
           </div>
 
@@ -284,7 +426,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
               className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs sm:text-sm gap-1.5 shadow-sm"
             >
               <PlusCircle className="h-4 w-4" />
-              <span>নতুন মডিউল</span>
+              <span>নতুন মডিউল যোগ করুন</span>
             </Button>
 
             <Button
@@ -292,7 +434,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
               className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md"
             >
               <PlusCircle className="h-4 w-4" />
-              <span>+ লেকচার ও ভিডিও যোগ করুন</span>
+              <span>+ লেকচার যোগ করুন</span>
             </Button>
 
             <Link
@@ -329,11 +471,11 @@ export default function LectureManager({ course: initialCourse }: LectureManager
       {modules.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-indigo-200 bg-indigo-50/30 rounded-2xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 mb-4">
-            <Video className="h-8 w-8 text-indigo-600" />
+            <Layers className="h-8 w-8 text-indigo-600" />
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-1">এখনো কোনো লেকচার বা মডিউল যোগ করা হয়নি</h3>
           <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
-            কোর্সে ভিডিও লেকচার যুক্ত করতে প্রথমে একটি মডিউল তৈরি করুন অথবা সরাসরি লেকচার যোগ করুন।
+            কোর্সের পাঠ সাজাতে প্রথমে একটি মডিউল তৈরি করুন অথবা সরাসরি লেকচার, ভিডিও বা পিডিএফ স্লাইডস যোগ করুন।
           </p>
           <div className="flex justify-center gap-3">
             <Button
@@ -380,7 +522,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                         <span>{mod.duration || '১ ঘণ্টা'}</span>
                         <span>•</span>
-                        <span>{mod.lessons?.length || 0} টি লেকচার</span>
+                        <span>{mod.lessons?.length || 0} টি লেকচার ও আইটেম</span>
                       </div>
                     </div>
                   </div>
@@ -408,12 +550,21 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                   <div className="divide-y divide-gray-100 border-t border-gray-100">
                     {mod.lessons?.length === 0 ? (
                       <div className="p-6 text-center text-sm text-gray-400">
-                        এই মডিউলে কোনো লেকচার নেই। &quot;লেকচার যোগ করুন&quot; বাটনে ক্লিক করুন।
+                        এই মডিউলে এখনো কোনো পাঠ নেই। &quot;লেকচার যোগ করুন&quot; বাটনে ক্লিক করে ভিডিও, পিডিএফ বা কুইজ যুক্ত করুন।
                       </div>
                     ) : (
                       mod.lessons.map((lesson, lIdx) => {
                         const lId = lesson._id || lesson.id || '';
                         const hasVideo = !!lesson.videoUrl;
+                        const hasPdf = !!lesson.pdfUrl;
+                        const hasQuiz = !!lesson.quizId;
+                        const isQuiz = lesson.type === 'QUIZ' || hasQuiz;
+                        const isPdf = lesson.type === 'PDF' || (hasPdf && !hasVideo);
+                        const isBunny =
+                          !!lesson.bunnyVideoId ||
+                          (!!lesson.videoUrl &&
+                            (lesson.videoUrl.includes('mediadelivery.net') ||
+                              lesson.videoUrl.includes('bunny')));
 
                         return (
                           <div
@@ -429,21 +580,45 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                                   <h4 className="font-semibold text-gray-900 text-sm truncate">
                                     {lesson.title}
                                   </h4>
+
                                   {lesson.isFree && (
                                     <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
                                       ফ্রি প্রিভিউ
                                     </span>
                                   )}
-                                  {hasVideo ? (
+
+                                  {/* Media Badges */}
+                                  {isQuiz ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200">
+                                      <GraduationCap className="h-3 w-3" /> কুইজ / পরীক্ষা
+                                    </span>
+                                  ) : isPdf ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                                      <FileText className="h-3 w-3" /> PDF লেকচার নোটস
+                                    </span>
+                                  ) : hasVideo ? (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
-                                      <Video className="h-3 w-3" /> ভিডিও সংযুক্ত
+                                      <Video className="h-3 w-3" /> ভিডিও লেকচার
                                     </span>
                                   ) : (
-                                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 border border-amber-200">
-                                      ভিডিও নেই
+                                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200">
+                                      টেক্সট পাঠ
+                                    </span>
+                                  )}
+
+                                  {isBunny && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                                      <ShieldCheck className="h-3 w-3 text-emerald-600" /> Bunny DRM
+                                    </span>
+                                  )}
+
+                                  {hasPdf && hasVideo && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                                      <FileDown className="h-3 w-3" /> PDF সংযুক্ত
                                     </span>
                                   )}
                                 </div>
+
                                 <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
                                   <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" /> {lesson.duration || '15:00'}
@@ -471,16 +646,42 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                                   className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
                                 >
                                   <PlayCircle className="h-3.5 w-3.5" />
-                                  <span>ভিডিও দেখুন</span>
+                                  <span>ভিডিও</span>
                                 </button>
+                              )}
+
+                              {hasPdf && (
+                                <a
+                                  href={lesson.pdfUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
+                                  title="পিডিএফ ফাইল দেখুন"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span>পিডিএফ</span>
+                                </a>
+                              )}
+
+                              {isQuiz && (
+                                <Link
+                                  href={`/exams/${
+                                    typeof lesson.quizId === 'object'
+                                      ? lesson.quizId?._id || lesson.quizId?.id
+                                      : lesson.quizId
+                                  }`}
+                                  target="_blank"
+                                  className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 transition"
+                                  title="কুইজ প্রশ্ন ও সেটিংস"
+                                >
+                                  <GraduationCap className="h-3.5 w-3.5" />
+                                  <span>কুইজ প্রিভিউ</span>
+                                </Link>
                               )}
 
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setActiveLectureForEdit(lesson);
-                                  setVideoFile(null);
-                                }}
+                                onClick={() => openEditLectureModal(lesson)}
                                 className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition"
                                 title="এডিট করুন"
                               >
@@ -515,11 +716,11 @@ export default function LectureManager({ course: initialCourse }: LectureManager
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
-                  <Video className="h-5 w-5" />
+                  <PlusCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">নতুন ভিডিও লেকচার যোগ করুন</h3>
-                  <p className="text-xs text-gray-500">লেকচারের তথ্য এবং ভিডিও লিংক বা ফাইল আপলোড করুন</p>
+                  <h3 className="text-lg font-bold text-gray-900">নতুন লেকচার বা পাঠ যোগ করুন</h3>
+                  <p className="text-xs text-gray-500">ভিডিও ক্লাস, পিডিএফ স্লাইডস বা কুইজ অ্যাসেসমেন্ট সংযুক্ত করুন</p>
                 </div>
               </div>
               <button
@@ -550,10 +751,57 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                 </select>
               </div>
 
+              {/* Content Type Selector */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  পাঠের প্রধান ধরন (Content Type) *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLectureType('VIDEO')}
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs sm:text-sm font-bold transition ${
+                      lectureType === 'VIDEO'
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Video className="h-4 w-4 text-indigo-600" />
+                    <span>ভিডিও লেকচার</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLectureType('PDF')}
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs sm:text-sm font-bold transition ${
+                      lectureType === 'PDF'
+                        ? 'border-amber-600 bg-amber-50 text-amber-800 ring-2 ring-amber-200'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4 text-amber-600" />
+                    <span>পিডিএফ স্লাইডস</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLectureType('QUIZ')}
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs sm:text-sm font-bold transition ${
+                      lectureType === 'QUIZ'
+                        ? 'border-purple-600 bg-purple-50 text-purple-800 ring-2 ring-purple-200'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <GraduationCap className="h-4 w-4 text-purple-600" />
+                    <span>কুইজ / পরীক্ষা</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Lecture Title */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  লেকচারের শিরোনাম *
+                  পাঠ বা লেকচারের শিরোনাম *
                 </label>
                 <input
                   type="text"
@@ -565,80 +813,271 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                 />
               </div>
 
-              {/* Video Source Tabs */}
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
-                    ভিডিও সোর্স (Video Source)
-                  </span>
-                  <div className="inline-flex rounded-lg bg-white p-1 border border-indigo-200 shadow-sm text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setVideoMode('url')}
-                      className={`px-3 py-1 rounded-md font-semibold transition ${
-                        videoMode === 'url' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      <LinkIcon className="inline h-3 w-3 mr-1" />
-                      ইউআরএল লিংক (YouTube / Vimeo / MP4)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVideoMode('file')}
-                      className={`px-3 py-1 rounded-md font-semibold transition ${
-                        videoMode === 'file' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      <Upload className="inline h-3 w-3 mr-1" />
-                      ভিডিও ফাইল আপলোড
-                    </button>
+              {/* Video Source (shown if VIDEO) */}
+              {lectureType === 'VIDEO' && (
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
+                      ভিডিও সোর্স (Video Source)
+                    </span>
+                    <div className="inline-flex rounded-lg bg-white p-1 border border-indigo-200 shadow-sm text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setVideoMode('url')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition ${
+                          videoMode === 'url' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <LinkIcon className="inline h-3 w-3 mr-1" />
+                        ইউআরএল (YouTube/Vimeo)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoMode('file')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition ${
+                          videoMode === 'file' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <Upload className="inline h-3 w-3 mr-1" />
+                        ভিডিও আপলোড
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoMode('bunny')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 ${
+                          videoMode === 'bunny' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                        Bunny DRM
+                      </button>
+                    </div>
+                  </div>
+
+                  {videoMode === 'url' ? (
+                    <div>
+                      <input
+                        type="url"
+                        value={videoUrl}
+                        onChange={(e) => {
+                          setVideoUrl(e.target.value);
+                          setVideoPreviewSrc(e.target.value);
+                        }}
+                        placeholder="https://www.youtube.com/watch?v=... বা ভিমিও লিংক বা সরাসরি এমপি৪ লিংক"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        YouTube (unlisted বা public), Vimeo অথবা যেকোনো পাবলিক এমপি৪ ভিডিও সাপোর্ট করে।
+                      </p>
+                    </div>
+                  ) : videoMode === 'file' ? (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoFileChange}
+                        className="w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                      />
+                      <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-indigo-100">
+                        <input
+                          type="checkbox"
+                          checked={uploadToBunny}
+                          onChange={(e) => setUploadToBunny(e.target.checked)}
+                          className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        />
+                        <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 inline" />
+                          Bunny.net DRM স্বয়ংক্রিয় এনক্রিপশন সহ আপলোড করুন (ভিডিও ডাউনলোড প্রতিরোধে HLS AES-128)
+                        </span>
+                      </label>
+                      <p className="text-[11px] text-gray-500">
+                        সরাসরি এমপি৪, ওয়েবএম ভিডিও ফাইল নির্বাচন করুন। ক্লাউডফ্লেয়ার বা Bunny.net মাধ্যমে এনক্রিপ্ট হবে।
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 bg-white p-3.5 rounded-xl border border-indigo-200">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                        <span>Bunny.net DRM এনক্রিপ্টেড স্ট্রিমিং (Token-signed HLS)</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                            Bunny Video ID *
+                          </label>
+                          <input
+                            type="text"
+                            value={bunnyVideoId}
+                            onChange={(e) => {
+                              setBunnyVideoId(e.target.value);
+                              if (e.target.value.trim()) {
+                                setVideoPreviewSrc(`https://iframe.mediadelivery.net/embed/${bunnyLibraryId || '345678'}/${e.target.value.trim()}`);
+                              }
+                            }}
+                            placeholder="যেমন: 8a7c2b1e-3f90-4d56-a123-abcdef012345"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                            Library ID (ঐচ্ছিক)
+                          </label>
+                          <input
+                            type="text"
+                            value={bunnyLibraryId}
+                            onChange={(e) => setBunnyLibraryId(e.target.value)}
+                            placeholder="যেমন: 345678"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        Bunny Stream ড্যাশবোর্ড থেকে ভিডিও আইডি দিলে এটি ছাত্রছাত্রীদের কাছে টাইম-লিমিটেড টোকেন এবং ডাইনামিক ওয়াটারমার্ক সহ সুরক্ষিতভাবে এনক্রিপ্টেড চলবে। ডাউনলোড করা অসম্ভব।
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Instant Video Preview Box */}
+                  {(videoUrl || videoPreviewSrc) && (
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-gray-600 mb-1.5">ভিডিও প্রিভিউ:</p>
+                      <VideoEmbedPlayer url={videoPreviewSrc || videoUrl} title={lectureTitle} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PDF Slides Section (shown if PDF or as optional attachment for VIDEO) */}
+              {(lectureType === 'PDF' || lectureType === 'VIDEO') && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-amber-600" />
+                      {lectureType === 'PDF'
+                        ? 'পিডিএফ স্লাইডস ও লেকচার নোটস *'
+                        : 'ঐচ্ছিক পিডিএফ স্লাইডস সংযুক্তি (Optional Slides)'}
+                    </span>
+                    <div className="inline-flex rounded-lg bg-white p-1 border border-amber-200 shadow-sm text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setPdfMode('file')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition ${
+                          pdfMode === 'file' ? 'bg-amber-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <Upload className="inline h-3 w-3 mr-1" />
+                        ফাইল আপলোড
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPdfMode('url')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition ${
+                          pdfMode === 'url' ? 'bg-amber-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        <LinkIcon className="inline h-3 w-3 mr-1" />
+                        লিংক
+                      </button>
+                    </div>
+                  </div>
+
+                  {pdfMode === 'file' ? (
+                    <div>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={handlePdfFileChange}
+                        className="w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-amber-700 cursor-pointer"
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        পিডিএফ ফাইল আপলোড করুন (সর্বোচ্চ ৫০ এমবি)।
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="url"
+                        value={pdfUrl}
+                        onChange={(e) => setPdfUrl(e.target.value)}
+                        placeholder="https://.../lecture-notes.pdf"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                      পিডিএফ ফাইলের নাম / ডিসপ্লে লেবেল
+                    </label>
+                    <input
+                      type="text"
+                      value={pdfName}
+                      onChange={(e) => setPdfName(e.target.value)}
+                      placeholder="যেমন: লেকচার ১ স্লাইডস ও রিসোর্স গাইড.pdf"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs shadow-sm outline-none focus:border-amber-500"
+                    />
                   </div>
                 </div>
+              )}
 
-                {videoMode === 'url' ? (
-                  <div>
-                    <input
-                      type="url"
-                      value={videoUrl}
-                      onChange={(e) => {
-                        setVideoUrl(e.target.value);
-                        setVideoPreviewSrc(e.target.value);
-                      }}
-                      placeholder="https://www.youtube.com/watch?v=... বা ভিমিও লিংক বা সরাসরি এমপি৪ লিংক"
-                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                    />
-                    <p className="text-[11px] text-gray-500 mt-1">
-                      YouTube (unlisted বা public), Vimeo অথবা যেকোনো পাবলিক এমপি৪ ভিডিও সাপোর্ট করে।
-                    </p>
+              {/* Quiz Selection Section (shown if QUIZ) */}
+              {lectureType === 'QUIZ' && (
+                <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <GraduationCap className="h-4 w-4 text-purple-600" />
+                      কুইজ / পরীক্ষা নির্বাচন করুন *
+                    </span>
+                    <Link
+                      href="/exams/create"
+                      target="_blank"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 hover:text-purple-900"
+                    >
+                      <PlusCircle className="h-3.5 w-3.5" />
+                      <span>নতুন কুইজ তৈরি করুন</span>
+                    </Link>
                   </div>
-                ) : (
-                  <div>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoFileChange}
-                      className="w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-700 cursor-pointer"
-                    />
-                    <p className="text-[11px] text-gray-500 mt-1">
-                      সরাসরি এমপি৪, ওয়েবএম ভিডিও ফাইল নির্বাচন করুন (লোকাল স্টোরেজ অথবা Cloudflare R2-তে সংরক্ষিত হবে)।
-                    </p>
-                  </div>
-                )}
 
-                {/* Instant Video Preview Box */}
-                {(videoUrl || videoPreviewSrc) && (
-                  <div className="pt-2">
-                    <p className="text-xs font-semibold text-gray-600 mb-1.5">ভিডিও প্রিভিউ:</p>
-                    <VideoEmbedPlayer url={videoPreviewSrc || videoUrl} title={lectureTitle} />
-                  </div>
-                )}
-              </div>
+                  {quizzes.length > 0 ? (
+                    <div>
+                      <select
+                        value={selectedQuizId}
+                        onChange={(e) => setSelectedQuizId(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                      >
+                        {quizzes.map((q) => (
+                          <option key={q.id || q._id} value={q.id || q._id}>
+                            {q.title} ({q.questionCount || 0} টি প্রশ্ন • {q.totalMarks || 0} নম্বর • {q.duration || 15} মিনিট)
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        এই পাঠটি সম্পন্ন করতে শিক্ষার্থীকে এই কুইজে অংশগ্রহণ করতে হবে।
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-white border border-dashed border-purple-200 text-center space-y-2">
+                      <p className="text-xs text-gray-600">
+                        এই কোর্সের সাথে সংযুক্ত কোনো কুইজ পাওয়া যায়নি।
+                      </p>
+                      <Link
+                        href="/exams/create"
+                        target="_blank"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-700 transition"
+                      >
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        <span>এখনই কুইজ তৈরি করুন</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Duration and Free preview checkbox */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    ভিডিওর দৈর্ঘ্য (Duration)
+                    সময়কাল (Duration)
                   </label>
                   <input
                     type="text"
@@ -658,7 +1097,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span className="text-xs font-semibold text-gray-700">
-                      ফ্রি প্রিভিউ লেকচার হিসেবে সেট করুন (বিনা মূল্যে উন্মুক্ত)
+                      ফ্রি প্রিভিউ লেকচার (ভর্তি ছাড়াও উন্মুক্ত)
                     </span>
                   </label>
                 </div>
@@ -667,13 +1106,13 @@ export default function LectureManager({ course: initialCourse }: LectureManager
               {/* Lecture Content / Notes */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  লেকচারের বিবরণ ও রিসোর্স নোট
+                  লেকচারের বিবরণ ও সহায়ক নোট
                 </label>
                 <textarea
                   rows={3}
                   value={lectureContent}
                   onChange={(e) => setLectureContent(e.target.value)}
-                  placeholder="এই লেকচারের প্রয়োজনীয় লিংক, কোড স্নিপেট বা ব্যাখ্যা..."
+                  placeholder="এই পাঠের মূল বিষয়, লিংক বা রেফারেন্স নোট..."
                   className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
@@ -701,7 +1140,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>লেকচার যোগ করুন</span>
+                      <span>লেকচার সংরক্ষণ করুন</span>
                     </>
                   )}
                 </Button>
@@ -716,7 +1155,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-100">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-              <h3 className="font-bold text-gray-900 text-base">নতুন কোর্স মডিউল তৈরি করুন</h3>
+              <h3 className="font-bold text-gray-900 text-base">নতুন কোর্স মডিউল / সেকশন তৈরি করুন</h3>
               <button
                 onClick={() => setIsAddModuleOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -735,7 +1174,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                   required
                   value={newModuleTitle}
                   onChange={(e) => setNewModuleTitle(e.target.value)}
-                  placeholder="যেমন: মডিউল ২: স্টেট ম্যানেজমেন্ট ও এপিআই"
+                  placeholder="যেমন: মডিউল ২: স্টেট ম্যানেজমেন্ট ও এপিআই ইন্টিগ্রেশন"
                   className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
@@ -784,7 +1223,7 @@ export default function LectureManager({ course: initialCourse }: LectureManager
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 shadow-2xl border border-gray-100 my-8">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-              <h3 className="text-lg font-bold text-gray-900">লেকচার ও ভিডিও সম্পাদন করুন</h3>
+              <h3 className="text-lg font-bold text-gray-900">লেকচার ও কন্টেন্ট সম্পাদন করুন</h3>
               <button
                 onClick={() => setActiveLectureForEdit(null)}
                 className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
@@ -809,37 +1248,187 @@ export default function LectureManager({ course: initialCourse }: LectureManager
                 />
               </div>
 
+              {/* Type Switcher */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  ভিডিও ইউআরএল (YouTube, Vimeo, বা এমপি৪ লিংক)
+                  পাঠের ধরন
                 </label>
-                <input
-                  type="text"
-                  value={activeLectureForEdit.videoUrl || ''}
-                  onChange={(e) =>
-                    setActiveLectureForEdit({ ...activeLectureForEdit, videoUrl: e.target.value })
-                  }
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditLectureType('VIDEO')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      editLectureType === 'VIDEO'
+                        ? 'bg-indigo-50 border-indigo-600 text-indigo-700'
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    <span>ভিডিও</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditLectureType('PDF')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      editLectureType === 'PDF'
+                        ? 'bg-amber-50 border-amber-600 text-amber-800'
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>পিডিএফ</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditLectureType('QUIZ')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      editLectureType === 'QUIZ'
+                        ? 'bg-purple-50 border-purple-600 text-purple-800'
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    <span>কুইজ</span>
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  অথবা নতুন ভিডিও ফাইল নির্বাচন করুন (অপশনাল)
-                </label>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoFileChange}
-                  className="w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-700 cursor-pointer"
-                />
-              </div>
+              {/* Video inputs */}
+              {editLectureType === 'VIDEO' && (
+                <div className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                  <div>
+                    <label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1.5">
+                      ভিডিও ইউআরএল (YouTube, Vimeo, বা এমপি৪ লিংক)
+                    </label>
+                    <input
+                      type="text"
+                      value={activeLectureForEdit.videoUrl || ''}
+                      onChange={(e) =>
+                        setActiveLectureForEdit({ ...activeLectureForEdit, videoUrl: e.target.value })
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    />
+                  </div>
 
-              {activeLectureForEdit.videoUrl && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1.5">বর্তমান ভিডিও প্রিভিউ:</p>
-                  <VideoEmbedPlayer url={activeLectureForEdit.videoUrl} title={activeLectureForEdit.title} />
+                  <div>
+                    <label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1.5">
+                      অথবা নতুন ভিডিও ফাইল নির্বাচন করুন (অপশনাল)
+                    </label>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoFileChange}
+                      className="w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Bunny DRM inputs in Edit Modal */}
+                  <div className="rounded-lg border border-indigo-200 bg-white p-3 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                      <span>Bunny.net DRM সিকিউর স্ট্রিমিং আইডি (অপশনাল)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Bunny Video ID
+                        </label>
+                        <input
+                          type="text"
+                          value={editBunnyVideoId}
+                          onChange={(e) => setEditBunnyVideoId(e.target.value)}
+                          placeholder="8a7c2b1e-3f90-4d56-a123-abcdef012345"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          Library ID
+                        </label>
+                        <input
+                          type="text"
+                          value={editBunnyLibraryId}
+                          onChange={(e) => setEditBunnyLibraryId(e.target.value)}
+                          placeholder="345678"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {activeLectureForEdit.videoUrl && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-1.5">বর্তমান ভিডিও প্রিভিউ:</p>
+                      <VideoEmbedPlayer url={activeLectureForEdit.videoUrl} title={activeLectureForEdit.title} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* PDF inputs */}
+              {(editLectureType === 'PDF' || editLectureType === 'VIDEO') && (
+                <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-amber-600" />
+                      পিডিএফ স্লাইডস / লেকচার নোটস
+                    </label>
+                    {editPdfUrl && (
+                      <a
+                        href={editPdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-amber-700 hover:underline"
+                      >
+                        বর্তমান ফাইল দেখুন
+                      </a>
+                    )}
+                  </div>
+
+                  <div>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleEditPdfFileChange}
+                      className="w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-amber-700 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={editPdfName}
+                      onChange={(e) => setEditPdfName(e.target.value)}
+                      placeholder="পিডিএফ শিরোনাম (যেমন: মডিউল স্লাইড.pdf)"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Quiz inputs */}
+              {editLectureType === 'QUIZ' && (
+                <div className="space-y-3 rounded-xl border border-purple-200 bg-purple-50/40 p-4">
+                  <label className="block text-xs font-bold text-purple-900 uppercase tracking-wider">
+                    সংযুক্ত কুইজ / পরীক্ষা নির্বাচন করুন
+                  </label>
+                  {quizzes.length > 0 ? (
+                    <select
+                      value={editQuizId}
+                      onChange={(e) => setEditQuizId(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                    >
+                      <option value="">-- কুইজ নির্বাচন করুন --</option>
+                      {quizzes.map((q) => (
+                        <option key={q.id || q._id} value={q.id || q._id}>
+                          {q.title} ({q.questionCount || 0} টি প্রশ্ন • {q.totalMarks || 0} নম্বর)
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-gray-500">কোনো কুইজ পাওয়া যায়নি।</p>
+                  )}
                 </div>
               )}
 

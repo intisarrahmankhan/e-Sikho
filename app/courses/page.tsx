@@ -6,15 +6,21 @@ import Course from '@/models/Course';
 import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import Instructor from '@/models/Instructor';
+import { getPersonalizedRecommendationsAction } from '@/actions/recommendations';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CoursesPage() {
   let additionalCourses: CourseType[] = [];
+  let recommendationsRes: any = { success: false, recommendations: [], studentProfile: null };
 
   try {
     // Try fetching from MongoDB
     await dbConnect();
+
+    // Fetch recommendations for current user
+    recommendationsRes = await getPersonalizedRecommendationsAction(4);
+
     const submittedCourses = await Course.find({ approvalStatus: 'APPROVED' })
       .populate('instructor')
       .lean();
@@ -81,7 +87,11 @@ export default async function CoursesPage() {
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-primary-600" />
       </div>
     }>
-      <CoursesCatalog additionalCourses={additionalCourses} />
+      <CoursesCatalog
+        additionalCourses={additionalCourses}
+        recommendations={recommendationsRes.recommendations}
+        studentProfile={recommendationsRes.studentProfile}
+      />
     </Suspense>
   );
 }

@@ -8,6 +8,7 @@ import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import User from '@/models/User';
 import { uploadToR2 } from '@/lib/r2';
+import { getCourseById } from '@/lib/courses-data';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
@@ -49,6 +50,17 @@ async function handleVideoUpload(file: File | null, existingUrl: string): Promis
   await mkdir(directory, { recursive: true });
   await writeFile(path.join(directory, filename), buffer);
   return `/uploads/videos/${filename}`;
+}
+
+async function handlePdfUpload(file: File | null, existingUrl: string): Promise<string> {
+  if (!file || file.size === 0) return existingUrl;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${cleanName}`;
+  const directory = path.join(process.cwd(), 'public', 'uploads', 'pdfs');
+  await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, filename), buffer);
+  return `/uploads/pdfs/${filename}`;
 }
 
 export async function createCourse(formData: FormData) {
@@ -170,7 +182,9 @@ export async function createCourse(formData: FormData) {
 export async function addCourseModule(courseId: string, title: string, duration = '১ ঘণ্টা') {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || user.role !== 'INSTRUCTOR') return { error: 'Unauthorized. Instructors only.' };
+  if (!user?.id || (user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+    return { error: 'Unauthorized. Instructors only.' };
+  }
 
   if (!courseId || !title.trim()) {
     return { error: 'Course ID and Module title are required.' };
@@ -201,7 +215,9 @@ export async function addCourseModule(courseId: string, title: string, duration 
 export async function addCourseLecture(formData: FormData) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || user.role !== 'INSTRUCTOR') return { error: 'Unauthorized. Instructors only.' };
+  if (!user?.id || (user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+    return { error: 'Unauthorized. Instructors only.' };
+  }
 
   const courseId = String(formData.get('courseId') || '').trim();
   let moduleId = String(formData.get('moduleId') || '').trim();
@@ -223,9 +239,53 @@ export async function addCourseLecture(formData: FormData) {
     if (!course) return { error: 'Course not found.' };
 
     // Video handling
+    let bunnyVideoId = String(formData.get('bunnyVideoId') || '').trim();
+    let bunnyLibraryId = String(formData.get('bunnyLibraryId') || '').trim();
+    const videoProvider = String(formData.get('videoProvider') || '').trim();
+
     if (videoFile && videoFile.size > 0) {
-      videoUrl = await handleVideoUpload(videoFile, '');
+      if (videoProvider === 'bunny' || process.env.BUNNY_STREAM_API_KEY) {
+        try {
+          const { uploadVideoToBunny } = await import('@/lib/bunny');
+          const buffer = Buffer.from(await videoFile.arrayBuffer());
+          const bunnyRes = await uploadVideoToBunny(buffer, title, bunnyLibraryId || undefined);
+          if (bunnyRes.success) {
+            videoUrl = bunnyRes.embedUrl;
+            bunnyVideoId = bunnyRes.videoId;
+            bunnyLibraryId = bunnyRes.libraryId;
+          } else {
+            videoUrl = await handleVideoUpload(videoFile, '');
+          }
+        } catch {
+          videoUrl = await handleVideoUpload(videoFile, '');
+        }
+      } else {
+        videoUrl = await handleVideoUpload(videoFile, '');
+      }
     }
+
+    if (videoUrl) {
+      const { parseBunnyVideoUrl } = await import('@/lib/bunny');
+      const parsed = parseBunnyVideoUrl(videoUrl);
+      if (parsed) {
+        if (!bunnyVideoId) bunnyVideoId = parsed.videoId;
+        if (!bunnyLibraryId) bunnyLibraryId = parsed.libraryId;
+      }
+    }
+
+    // PDF handling
+    const pdfFile = formData.get('pdfFile') as File | null;
+    let pdfUrl = String(formData.get('pdfUrl') || '').trim();
+    let pdfName = String(formData.get('pdfName') || '').trim();
+    if (pdfFile && pdfFile.size > 0) {
+      pdfUrl = await handlePdfUpload(pdfFile, '');
+      if (!pdfName) pdfName = pdfFile.name;
+    }
+
+    const quizId = String(formData.get('quizId') || '').trim() || undefined;
+    const rawType = String(formData.get('type') || (quizId ? 'QUIZ' : pdfFile || pdfUrl ? 'PDF' : 'VIDEO'));
+    const lessonType: 'VIDEO' | 'PDF' | 'QUIZ' =
+      rawType === 'PDF' || rawType === 'QUIZ' ? rawType : 'VIDEO';
 
     // Ensure a module exists
     if (!moduleId) {
@@ -251,6 +311,12 @@ export async function addCourseLecture(formData: FormData) {
       order: lessonCount,
       moduleId,
       videoUrl,
+      bunnyVideoId: bunnyVideoId || undefined,
+      bunnyLibraryId: bunnyLibraryId || undefined,
+      pdfUrl,
+      pdfName,
+      quizId,
+      type: lessonType,
     });
 
     // Update course totalLessons
@@ -274,7 +340,9 @@ export async function addCourseLecture(formData: FormData) {
 export async function updateCourseLecture(formData: FormData) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || user.role !== 'INSTRUCTOR') return { error: 'Unauthorized. Instructors only.' };
+  if (!user?.id || (user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+    return { error: 'Unauthorized. Instructors only.' };
+  }
 
   const lessonId = String(formData.get('lessonId') || '').trim();
   const courseId = String(formData.get('courseId') || '').trim();
@@ -286,6 +354,12 @@ export async function updateCourseLecture(formData: FormData) {
   let videoUrl = String(formData.get('videoUrl') || '').trim();
   const videoFile = formData.get('videoFile') as File | null;
 
+  const pdfFile = formData.get('pdfFile') as File | null;
+  let pdfUrl = String(formData.get('pdfUrl') || '').trim();
+  let pdfName = String(formData.get('pdfName') || '').trim();
+  const quizId = String(formData.get('quizId') || '').trim();
+  const lessonType = String(formData.get('type') || '').trim();
+
   if (!lessonId || !title) {
     return { error: 'Lesson ID and title are required.' };
   }
@@ -295,15 +369,56 @@ export async function updateCourseLecture(formData: FormData) {
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) return { error: 'Lesson not found.' };
 
+    let bunnyVideoId = String(formData.get('bunnyVideoId') || '').trim();
+    let bunnyLibraryId = String(formData.get('bunnyLibraryId') || '').trim();
+
     if (videoFile && videoFile.size > 0) {
-      videoUrl = await handleVideoUpload(videoFile, '');
+      const videoProvider = String(formData.get('videoProvider') || '').trim();
+      if (videoProvider === 'bunny' || process.env.BUNNY_STREAM_API_KEY) {
+        try {
+          const { uploadVideoToBunny } = await import('@/lib/bunny');
+          const buffer = Buffer.from(await videoFile.arrayBuffer());
+          const bunnyRes = await uploadVideoToBunny(buffer, title, bunnyLibraryId || undefined);
+          if (bunnyRes.success) {
+            videoUrl = bunnyRes.embedUrl;
+            bunnyVideoId = bunnyRes.videoId;
+            bunnyLibraryId = bunnyRes.libraryId;
+          } else {
+            videoUrl = await handleVideoUpload(videoFile, '');
+          }
+        } catch {
+          videoUrl = await handleVideoUpload(videoFile, '');
+        }
+      } else {
+        videoUrl = await handleVideoUpload(videoFile, '');
+      }
+    }
+
+    if (videoUrl) {
+      const { parseBunnyVideoUrl } = await import('@/lib/bunny');
+      const parsed = parseBunnyVideoUrl(videoUrl);
+      if (parsed) {
+        if (!bunnyVideoId) bunnyVideoId = parsed.videoId;
+        if (!bunnyLibraryId) bunnyLibraryId = parsed.libraryId;
+      }
+    }
+
+    if (pdfFile && pdfFile.size > 0) {
+      pdfUrl = await handlePdfUpload(pdfFile, lesson.pdfUrl || '');
+      if (!pdfName) pdfName = pdfFile.name;
     }
 
     lesson.title = title;
     if (content !== undefined) lesson.content = content;
     if (duration) lesson.duration = duration;
     lesson.isFree = isFree;
-    if (videoUrl) lesson.videoUrl = videoUrl;
+    if (videoUrl !== undefined && videoUrl !== '') lesson.videoUrl = videoUrl;
+    if (bunnyVideoId) lesson.bunnyVideoId = bunnyVideoId;
+    if (bunnyLibraryId) lesson.bunnyLibraryId = bunnyLibraryId;
+    if (pdfUrl) lesson.pdfUrl = pdfUrl;
+    if (pdfName) lesson.pdfName = pdfName;
+    if (quizId) lesson.quizId = quizId as any;
+    if (lessonType) lesson.type = lessonType as any;
 
     await lesson.save();
 
@@ -323,7 +438,9 @@ export async function updateCourseLecture(formData: FormData) {
 export async function deleteCourseLecture(lessonId: string, courseId: string) {
   const session = await auth();
   const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || user.role !== 'INSTRUCTOR') return { error: 'Unauthorized.' };
+  if (!user?.id || (user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+    return { error: 'Unauthorized.' };
+  }
 
   try {
     await dbConnect();
@@ -350,13 +467,37 @@ export async function deleteCourseLecture(lessonId: string, courseId: string) {
 export async function getCourseCurriculum(courseId: string) {
   try {
     await dbConnect();
-    const course = await Course.findById(courseId).lean();
-    if (!course) return { error: 'Course not found.' };
+    let course = (await Course.findById(courseId).lean()) as any;
+
+    if (!course) {
+      const staticCourse = getCourseById(courseId);
+      if (staticCourse) {
+        return {
+          success: true,
+          course: {
+            ...staticCourse,
+            _id: staticCourse.id,
+            modules: staticCourse.modules.map((m) => ({
+              ...m,
+              _id: m.id,
+              lessons: m.lessons.map((l) => ({
+                ...l,
+                _id: l.id,
+              })),
+            })),
+          },
+        };
+      }
+      return { error: 'Course not found.' };
+    }
 
     const rawModules = await Module.find({ courseId }).sort({ order: 1 }).lean();
     const modules = await Promise.all(
       rawModules.map(async (mod: any) => {
-        const lessons = await Lesson.find({ moduleId: mod._id }).sort({ order: 1 }).lean();
+        const lessons = await Lesson.find({ moduleId: mod._id })
+          .populate('quizId', 'title duration totalMarks passMarks')
+          .sort({ order: 1 })
+          .lean();
         return {
           ...mod,
           id: mod._id.toString(),
@@ -374,14 +515,35 @@ export async function getCourseCurriculum(courseId: string) {
       success: true,
       course: {
         ...course,
-        id: (course as any)._id.toString(),
-        _id: (course as any)._id.toString(),
+        id: course._id.toString(),
+        _id: course._id.toString(),
         modules,
       },
     };
   } catch (error: any) {
     console.error('Error loading course curriculum:', error);
     return { error: error.message || 'Failed to load course curriculum.' };
+  }
+}
+
+export async function getCourseQuizzes(courseId: string) {
+  try {
+    await dbConnect();
+    const Exam = (await import('@/models/Exam')).default;
+    const exams = await Exam.find({ courseId }).select('_id title totalMarks passMarks duration questions').lean();
+    return {
+      success: true,
+      quizzes: exams.map((ex: any) => ({
+        id: ex._id.toString(),
+        _id: ex._id.toString(),
+        title: ex.title,
+        totalMarks: ex.totalMarks,
+        duration: ex.duration,
+        questionCount: ex.questions?.length || 0,
+      })),
+    };
+  } catch (err: any) {
+    return { error: err.message || 'Failed to load course quizzes' };
   }
 }
 

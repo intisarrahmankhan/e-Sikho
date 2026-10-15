@@ -84,4 +84,42 @@ describe('Bilingual Course Display & Fallback Rules', () => {
     expect(screen.getByText('Enrolled')).toBeTruthy();
     expect(screen.getByText(/Completed/i)).toBeTruthy();
   });
+
+  it('correctly translates durations, categories, and levels via bilingual helpers', async () => {
+    const { formatBilingualDuration, translateCategory, translateLevel } = await import('@/context/LanguageContext');
+
+    // Durations
+    expect(formatBilingualDuration('১০ ঘণ্টা', '10 hours', 'en')).toBe('10 hours');
+    expect(formatBilingualDuration('১০ ঘণ্টা', undefined, 'en')).toBe('10 hours');
+    expect(formatBilingualDuration('৪৫ মিনিট', undefined, 'en')).toBe('45 mins');
+    expect(formatBilingualDuration('১০ ঘণ্টা', '10 hours', 'bn')).toBe('১০ ঘণ্টা');
+
+    // Categories
+    expect(translateCategory('web-dev', 'en')).toBe('Web Development');
+    expect(translateCategory('ওয়েব ডেভেলপমেন্ট', 'en')).toBe('Web Development');
+    expect(translateCategory('web-dev', 'bn')).toBe('ওয়েব ডেভেলপমেন্ট');
+
+    // Levels
+    expect(translateLevel('বিগিনার', 'en')).toBe('Beginner');
+    expect(translateLevel('ইন্টারমিডিয়েট', 'en')).toBe('Intermediate');
+    expect(translateLevel('Beginner', 'bn')).toBe('বিগিনার');
+  });
+
+  it('renders LatexPlayground in English when language is toggled to en', async () => {
+    const { LatexPlayground } = await import('@/components/exam/LatexPlayground');
+
+    render(
+      <LanguageProvider>
+        <LanguageSetter targetLang="en">
+          <LatexPlayground />
+        </LanguageSetter>
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText('LaTeX Math Rendering Playground & Live Preview')).toBeTruthy();
+    expect(screen.getByText('Select sample equation:')).toBeTruthy();
+    expect(screen.getByText('Quadratic Formula')).toBeTruthy();
+    expect(screen.getByText('Copy Code')).toBeTruthy();
+    expect(screen.getByText('Instant Rendering')).toBeTruthy();
+  });
 });

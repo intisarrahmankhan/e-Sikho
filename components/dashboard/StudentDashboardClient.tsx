@@ -28,6 +28,8 @@ import { UpcomingExamsWidget } from '@/components/dashboard/UpcomingExamsWidget'
 import { LeaderboardSnippet } from '@/components/dashboard/LeaderboardSnippet';
 import { EmptyEnrollments } from '@/components/dashboard/EmptyEnrollments';
 import InstructorRequestForm from '@/components/dashboard/InstructorRequestForm';
+import { PersonalizedRecommendations } from '@/components/dashboard/PersonalizedRecommendations';
+import { RecommendedCourseItem } from '@/actions/recommendations';
 import { useLanguage } from '@/context/LanguageContext';
 import { getRatingTier } from '@/lib/elo';
 
@@ -48,6 +50,14 @@ interface StudentDashboardClientProps {
   ongoingLessonsCount?: number;
   completedQuizzesCount?: number;
   earnedCertificatesCount?: number;
+  recommendedCourses?: RecommendedCourseItem[];
+  studentProfile?: {
+    targetTrack: string;
+    elo: number;
+    interests: string[];
+    skills: string[];
+    academicBackground?: string;
+  };
 }
 
 export function StudentDashboardClient({
@@ -67,6 +77,8 @@ export function StudentDashboardClient({
   ongoingLessonsCount = 0,
   completedQuizzesCount = 0,
   earnedCertificatesCount = 0,
+  recommendedCourses = [],
+  studentProfile,
 }: StudentDashboardClientProps) {
   const { language } = useLanguage();
 
@@ -211,6 +223,14 @@ export function StudentDashboardClient({
           </Card>
         ))}
       </div>
+
+      {/* ── Personalized Course Recommendations ── */}
+      {recommendedCourses.length > 0 && (
+        <PersonalizedRecommendations
+          recommendations={recommendedCourses}
+          studentProfile={studentProfile}
+        />
+      )}
 
       {/* ── Elo Performance & Mastery Engine Breakdown ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">

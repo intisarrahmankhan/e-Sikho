@@ -142,7 +142,7 @@ export function ContestDetailClient({ contest, hasSubmitted, submission }: Conte
           </div>
 
           <p className="text-xs text-slate-600 font-medium italic">
-            "{submission.performanceSummary}"
+            &ldquo;{submission.performanceSummary}&rdquo;
           </p>
         </div>
       )}

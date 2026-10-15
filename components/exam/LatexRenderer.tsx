@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import katex from 'katex';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface LatexRendererProps {
   content: string;
@@ -168,35 +169,42 @@ interface FormulaHelperProps {
 }
 
 export function LatexFormulaToolbar({ onInsert }: FormulaHelperProps) {
+  const { language } = useLanguage();
+
   const commonFormulas = [
-    { label: 'x/y ভগ্নাংশ', code: '\\frac{a}{b}', preview: '\\frac{a}{b}' },
-    { label: '√x বর্গমূল', code: '\\sqrt{x}', preview: '\\sqrt{x}' },
-    { label: 'xⁿ ঘাত', code: 'x^{n}', preview: 'x^n' },
-    { label: 'xₙ সাবস্ক্রিপ্ট', code: 'x_{n}', preview: 'x_n' },
-    { label: '∫ ইন্টিগ্রাল', code: '\\int_{a}^{b} f(x) \\, dx', preview: '\\int f(x)dx' },
-    { label: '∑ সামেশন', code: '\\sum_{i=1}^{n} x_i', preview: '\\sum x_i' },
-    { label: 'π পাই', code: '\\pi', preview: '\\pi' },
-    { label: 'θ থিটা', code: '\\theta', preview: '\\theta' },
-    { label: 'α আলফা', code: '\\alpha', preview: '\\alpha' },
-    { label: 'β বিটা', code: '\\beta', preview: '\\beta' },
-    { label: 'λ ল্যাম্বডা', code: '\\lambda', preview: '\\lambda' },
-    { label: '∞ অসীম', code: '\\infty', preview: '\\infty' },
-    { label: '± প্লাস-মাইনাস', code: '\\pm', preview: '\\pm' },
-    { label: '≤ লেস দেন', code: '\\le', preview: '\\le' },
-    { label: '≥ গ্রেটার দেন', code: '\\ge', preview: '\\ge' },
-    { label: '≠ নট ইকুয়াল', code: '\\neq', preview: '\\neq' },
-    { label: '→ তীরচিহ্ন', code: '\\rightarrow', preview: '\\rightarrow' },
-    { label: 'ম্যাট্রিক্স', code: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', preview: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
-    { label: 'লিম লিমিট', code: '\\lim_{x \\to 0} \\frac{\\sin x}{x}', preview: '\\lim_{x \\to 0}' },
+    { labelBn: 'x/y ভগ্নাংশ', labelEn: 'x/y Fraction', code: '\\frac{a}{b}', preview: '\\frac{a}{b}' },
+    { labelBn: '√x বর্গমূল', labelEn: '√x Sqrt', code: '\\sqrt{x}', preview: '\\sqrt{x}' },
+    { labelBn: 'xⁿ ঘাত', labelEn: 'xⁿ Power', code: 'x^{n}', preview: 'x^n' },
+    { labelBn: 'xₙ সাবস্ক্রিপ্ট', labelEn: 'xₙ Subscript', code: 'x_{n}', preview: 'x_n' },
+    { labelBn: '∫ ইন্টিগ্রাল', labelEn: '∫ Integral', code: '\\int_{a}^{b} f(x) \\, dx', preview: '\\int f(x)dx' },
+    { labelBn: '∑ সামেশন', labelEn: '∑ Sum', code: '\\sum_{i=1}^{n} x_i', preview: '\\sum x_i' },
+    { labelBn: 'π পাই', labelEn: 'π Pi', code: '\\pi', preview: '\\pi' },
+    { labelBn: 'θ থিটা', labelEn: 'θ Theta', code: '\\theta', preview: '\\theta' },
+    { labelBn: 'α আলফা', labelEn: 'α Alpha', code: '\\alpha', preview: '\\alpha' },
+    { labelBn: 'β বিটা', labelEn: 'β Beta', code: '\\beta', preview: '\\beta' },
+    { labelBn: 'λ ল্যাম্বডা', labelEn: 'λ Lambda', code: '\\lambda', preview: '\\lambda' },
+    { labelBn: '∞ অসীম', labelEn: '∞ Infinity', code: '\\infty', preview: '\\infty' },
+    { labelBn: '± প্লাস-মাইনাস', labelEn: '± Plus-Minus', code: '\\pm', preview: '\\pm' },
+    { labelBn: '≤ লেস দেন', labelEn: '≤ Less-Equal', code: '\\le', preview: '\\le' },
+    { labelBn: '≥ গ্রেটার দেন', labelEn: '≥ Greater-Equal', code: '\\ge', preview: '\\ge' },
+    { labelBn: '≠ নট ইকুয়াল', labelEn: '≠ Not Equal', code: '\\neq', preview: '\\neq' },
+    { labelBn: '→ তীরচিহ্ন', labelEn: '→ Arrow', code: '\\rightarrow', preview: '\\rightarrow' },
+    { labelBn: 'ম্যাট্রিক্স', labelEn: 'Matrix', code: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}', preview: '\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}' },
+    { labelBn: 'লিম লিমিট', labelEn: 'lim Limit', code: '\\lim_{x \\to 0} \\frac{\\sin x}{x}', preview: '\\lim_{x \\to 0}' },
   ];
 
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5">
       <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
         <span className="flex items-center gap-1">
-          <span className="text-primary-600 font-bold">LaTeX সূত্র শর্টকাট:</span> ক্লিক করে যোগ করুন
+          <span className="text-primary-600 font-bold">
+            {language === 'en' ? 'LaTeX Formula Shortcuts:' : 'LaTeX সূত্র শর্টকাট:'}
+          </span>{' '}
+          {language === 'en' ? 'Click to insert' : 'ক্লিক করে যোগ করুন'}
         </span>
-        <span className="text-slate-400">ইনলাইন: $...$ | ব্লক: $$...$$</span>
+        <span className="text-slate-400">
+          {language === 'en' ? 'Inline: $...$ | Block: $$...$$' : 'ইনলাইন: $...$ | ব্লক: $$...$$'}
+        </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {commonFormulas.map((item, idx) => (
@@ -207,7 +215,7 @@ export function LatexFormulaToolbar({ onInsert }: FormulaHelperProps) {
             className="px-2 py-1 text-xs bg-white hover:bg-primary-50 hover:text-primary-700 hover:border-primary-300 border border-slate-200 rounded-md font-mono transition shadow-2xs"
             title={item.code}
           >
-            {item.label}
+            {language === 'en' ? item.labelEn : item.labelBn}
           </button>
         ))}
       </div>
