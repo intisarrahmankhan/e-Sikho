@@ -84,6 +84,9 @@ export function ExamActivePlayer({
   const [codeTestResults, setCodeTestResults] = useState<any | null>(null);
 
   const initialSeconds = durationMinutes * 60;
+  const deadlineStorageKey = `eshikho_exam_deadline_${examId}`;
+  const answersStorageKey = `eshikho_exam_answers_${examId}`;
+
   const answersRef = useRef(answers);
   answersRef.current = answers;
 
@@ -91,6 +94,40 @@ export function ExamActivePlayer({
   onSubmitRef.current = onSubmit;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasAutoSubmittedRef = useRef(false);
+
+  // Clean submission helper that cleans storage keys
+  const triggerSubmit = (answersToSubmit: Record<number, StudentAnswerItem>, timeTaken: number) => {
+    if (hasAutoSubmittedRef.current) return;
+    hasAutoSubmittedRef.current = true;
+    try {
+      localStorage.removeItem(deadlineStorageKey);
+      localStorage.removeItem(answersStorageKey);
+    } catch {}
+    onSubmitRef.current(answersToSubmit, timeTaken);
+  };
+
+  // Restore saved answers from previous tab / crash if available
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(answersStorageKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          setAnswers((prev) => ({ ...prev, ...parsed }));
+        }
+      }
+    } catch {}
+  }, [answersStorageKey]);
+
+  // Persist answers on every change
+  useEffect(() => {
+    if (Object.keys(answers).length > 0) {
+      try {
+        localStorage.setItem(answersStorageKey, JSON.stringify(answers));
+      } catch {}
+    }
+  }, [answers, answersStorageKey]);
 
   // Initialize starter code in answers if not present
   useEffect(() => {
@@ -112,23 +149,64 @@ export function ExamActivePlayer({
     });
   }, [questions]);
 
-  // Timer effect
+  // Strict Countdown Timer Effect: Enforces strict deadline across interrupted/closed tabs
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          onSubmitRef.current(answersRef.current, initialSeconds);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // 1. Establish or retrieve persistent deadline
+    let deadline: number;
+    try {
+      const stored = localStorage.getItem(deadlineStorageKey);
+      if (stored) {
+        deadline = Number(stored);
+      } else {
+        deadline = Date.now() + durationMinutes * 60 * 1000;
+        localStorage.setItem(deadlineStorageKey, String(deadline));
+      }
+    } catch {
+      deadline = Date.now() + durationMinutes * 60 * 1000;
+    }
+
+    const checkAndTick = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+      setSecondsLeft(remaining);
+
+      // Auto-submit strictly when time expires (even after tab is restored)
+      if (remaining <= 0) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        triggerSubmit(answersRef.current, initialSeconds);
+      }
+    };
+
+    // Immediate check on mount
+    checkAndTick();
+
+    // Regular interval
+    timerRef.current = setInterval(checkAndTick, 1000);
+
+    // Visibility change handler: immediately re-check deadline when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkAndTick();
+      }
+    };
+
+    // Cross-tab storage synchronization
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === deadlineStorageKey && e.newValue) {
+        deadline = Number(e.newValue);
+        checkAndTick();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, [initialSeconds]);
+  }, [examId, durationMinutes, initialSeconds, deadlineStorageKey]);
 
   const currentQuestion = questions[currentIndex] || questions[0];
   const qType = currentQuestion?.type || 'MCQ';
@@ -838,7 +916,7 @@ export function ExamActivePlayer({
                 onClick={() => {
                   setShowSubmitModal(false);
                   const timeTaken = initialSeconds - secondsLeft;
-                  onSubmit(answers, timeTaken);
+                  triggerSubmit(answers, timeTaken);
                 }}
                 disabled={isSubmitting}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl px-5"

@@ -264,22 +264,54 @@ export async function getExamByIdAction(examId: string, forTaking: boolean = fal
       }
     }
 
-    // Retake Policy & Attempt Tracking
+    // Retake Policy & Attempt Tracking with Mandatory 24-hour Cooldown
     const maxAttempts =
       exam.maxAttempts !== undefined && Number(exam.maxAttempts) > 0
         ? Number(exam.maxAttempts)
         : 3;
     let attemptsCount = 0;
+    let isCooldownActive = false;
+    let cooldownEndsAt: string | undefined = undefined;
+    let cooldownRemainingHours = 0;
+    let cooldownRemainingMinutes = 0;
+    let lastSubmissionScore: number | undefined = undefined;
+    let lastSubmissionTotalMarks: number | undefined = undefined;
+    let lastSubmissionPercentage: number | undefined = undefined;
 
     if (checkUserId && typeof ExamSubmission?.countDocuments === 'function') {
       attemptsCount = await ExamSubmission.countDocuments({
         examId: exam._id,
         studentId: checkUserId,
       });
+
+      if (attemptsCount > 0 && typeof ExamSubmission?.findOne === 'function') {
+        const lastSub = await ExamSubmission.findOne({
+          examId: exam._id,
+          studentId: checkUserId,
+        })
+          .sort({ submittedAt: -1 })
+          .lean() as any;
+
+        if (lastSub?.submittedAt) {
+          lastSubmissionScore = lastSub.score;
+          lastSubmissionTotalMarks = lastSub.totalMarks;
+          lastSubmissionPercentage = lastSub.percentage;
+
+          const cooldownMs = 24 * 60 * 60 * 1000; // Mandatory 24 hours
+          const timeSince = Date.now() - new Date(lastSub.submittedAt).getTime();
+          if (timeSince < cooldownMs) {
+            isCooldownActive = true;
+            const diffMs = cooldownMs - timeSince;
+            cooldownRemainingHours = Math.floor(diffMs / (1000 * 60 * 60));
+            cooldownRemainingMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            cooldownEndsAt = new Date(new Date(lastSub.submittedAt).getTime() + cooldownMs).toISOString();
+          }
+        }
+      }
     }
 
     const remainingAttempts = Math.max(0, maxAttempts - attemptsCount);
-    const canAttempt = attemptsCount < maxAttempts;
+    const canAttempt = attemptsCount < maxAttempts && !isCooldownActive;
 
     return {
       success: true,
@@ -301,6 +333,13 @@ export async function getExamByIdAction(examId: string, forTaking: boolean = fal
         attemptsCount,
         remainingAttempts,
         canAttempt,
+        isCooldownActive,
+        cooldownEndsAt,
+        cooldownRemainingHours,
+        cooldownRemainingMinutes,
+        lastSubmissionScore,
+        lastSubmissionTotalMarks,
+        lastSubmissionPercentage,
         questions: formattedQuestions,
       },
     };
@@ -387,6 +426,29 @@ export async function submitExamAction({
       return {
         error: `আপনি এই পরীক্ষার জন্য নির্ধারিত সর্বোচ্চ ${maxAttempts} বার প্রচেষ্টার সীমা সম্পন্ন করেছেন। আর নতুন করে উত্তর জমা দেওয়া সম্ভব নয়।`,
       };
+    }
+
+    // Mandatory 24-Hour Cooldown Between Exam Attempts
+    if (existingAttempts > 0 && typeof ExamSubmission?.findOne === 'function') {
+      const lastSub = await ExamSubmission.findOne({
+        examId: exam._id,
+        studentId: checkUserId,
+      })
+        .sort({ submittedAt: -1 })
+        .lean() as any;
+
+      if (lastSub?.submittedAt) {
+        const cooldownMs = 24 * 60 * 60 * 1000;
+        const timeSince = Date.now() - new Date(lastSub.submittedAt).getTime();
+        if (timeSince < cooldownMs) {
+          const diffMs = cooldownMs - timeSince;
+          const hoursLeft = Math.floor(diffMs / (1000 * 60 * 60));
+          const minsLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          return {
+            error: `পরীক্ষার প্রচেষ্টার মধ্যে বাধ্যতামূলক ২৪ ঘণ্টার বিরতি (24-Hour Cooldown) সক্রিয় রয়েছে। অনুগ্রহ করে পূর্ববর্তী পরীক্ষার ভুলগুলো পর্যালোচনা করুন। পরবর্তী সুযোগ: আর ${hoursLeft} ঘণ্টা ${minsLeft} মিনিট পর।`,
+          };
+        }
+      }
     }
 
     const currentAttemptNumber = existingAttempts + 1;

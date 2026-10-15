@@ -8,6 +8,7 @@ import User from '@/models/User';
 import Course from '@/models/Course';
 import { COURSES_DATA } from '@/lib/courses-data';
 import { revalidatePath } from 'next/cache';
+import { sendRealtimeNotification, broadcastRealtimeEvent } from '@/lib/realtime-notifications';
 
 export interface LiveQuestionItem {
   id: string;
@@ -576,3 +577,242 @@ export async function getLiveQuestionsAction(sessionId: string): Promise<{
     return { success: false, questions: [] };
   }
 }
+
+/**
+ * Completes a live class and automatically records and saves it into the respective
+ * course module so that absent students can watch it later.
+ */
+export async function completeLiveSessionAndSaveToModuleAction({
+  sessionId,
+  recordingUrl,
+  moduleId,
+}: {
+  sessionId: string;
+  recordingUrl?: string;
+  moduleId?: string;
+}): Promise<{
+  success: boolean;
+  message?: string;
+  lessonId?: string;
+  moduleId?: string;
+  error?: string;
+}> {
+  try {
+    const authSession = await auth();
+    const user = authSession?.user as any;
+    if (!user) {
+      return { success: false, error: 'লগইন আবশ্যক।' };
+    }
+
+    await dbConnect();
+
+    const Module = (await import('@/models/Module')).default;
+    const Lesson = (await import('@/models/Lesson')).default;
+    const Notification = (await import('@/models/Notification')).default;
+    const Enrollment = (await import('@/models/Enrollment')).default;
+
+    let sessionDoc = await LiveSession.findById(sessionId);
+    if (!sessionDoc) {
+      // Create record if mock session
+      sessionDoc = await LiveSession.create({
+        courseId: 'fullstack-nextjs',
+        title: 'লাইভ ডাউট সলভিং ও রিভিশন ক্লাস',
+        instructorName: user.name || 'ইন্সট্রাক্টর',
+        scheduledTime: new Date(),
+        status: 'LIVE_NOW',
+      });
+    }
+
+    const courseId = sessionDoc.courseId;
+    const finalRecordingUrl =
+      recordingUrl?.trim() ||
+      sessionDoc.recordingUrl ||
+      sessionDoc.streamUrl ||
+      'https://www.youtube.com/watch?v=wm5gMKuwSYk';
+
+    // 1. Update LiveSession status to COMPLETED
+    sessionDoc.status = 'COMPLETED';
+    sessionDoc.recordingUrl = finalRecordingUrl;
+    await sessionDoc.save();
+
+    // 2. Find or create the dedicated Live Recordings Module
+    let targetModuleId = moduleId;
+    if (!targetModuleId) {
+      let archiveMod = await Module.findOne({
+        courseId,
+        title: { $regex: /লাইভ ক্লাস|Live Class Recordings/i },
+      });
+
+      if (!archiveMod) {
+        archiveMod = await Module.create({
+          courseId,
+          title: 'লাইভ ক্লাস রেকর্ডিং ও আর্কাইভ (Live Class Recordings)',
+          duration: '১০ ঘণ্টা',
+          order: 99,
+        });
+      }
+      targetModuleId = archiveMod._id.toString();
+    }
+
+    // 3. Save as a Lesson inside the module
+    const lessonCount = await Lesson.countDocuments({ moduleId: targetModuleId });
+    const newLesson = await Lesson.create({
+      title: `[রেকর্ডেড লাইভ ক্লাস] ${sessionDoc.title}`,
+      content: sessionDoc.description || 'লাইভ ক্লাস সেশনের সম্পূর্ণ রেকর্ডিং।',
+      duration: sessionDoc.duration || '১ ঘণ্টা ৩০ মিনিট',
+      isFree: false, // Strictly locked to enrolled students
+      order: lessonCount + 1,
+      moduleId: targetModuleId,
+      videoUrl: finalRecordingUrl,
+      type: 'VIDEO',
+      isDownloadable: false, // DRM protected
+    });
+
+    // 4. Notify all enrolled students (including absent students)
+    try {
+      const enrollments = await Enrollment.find({
+        courseId,
+        paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
+      }).select('userId').lean() as any[];
+
+      const notificationsToInsert = enrollments.map((enr: any) => ({
+        recipientId: enr.userId,
+        title: 'নতুন লাইভ ক্লাসের রেকর্ডিং সংরক্ষিত হয়েছে',
+        message: `"${sessionDoc.title}" ক্লাসের সম্পূর্ণ রেকর্ডিং কোর্স মডিউলে যোগ করা হয়েছে। মিস করে থাকলে এখনই দেখে নিন!`,
+        type: 'LIVE_CLASS_RECORDING_READY',
+        priority: 'HIGH',
+        priorityWeight: 3,
+        actionUrl: `/courses/${courseId}`,
+        badgeLabel: 'Live Recording Ready',
+      }));
+
+      if (notificationsToInsert.length > 0) {
+        await Notification.insertMany(notificationsToInsert);
+
+        // Instantly push real-time alerts to open student tabs via SSE
+        notificationsToInsert.forEach((notif: any) => {
+          sendRealtimeNotification(notif.recipientId.toString(), {
+            title: notif.title,
+            message: notif.message,
+            type: notif.type,
+            priority: notif.priority,
+            actionUrl: notif.actionUrl,
+            badgeLabel: notif.badgeLabel,
+            createdAt: new Date().toISOString(),
+          });
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Could not dispatch batch live recording notifications:', notifErr);
+    }
+
+    revalidatePath(`/live/${sessionId}`);
+    revalidatePath(`/courses/${courseId}`);
+    revalidatePath('/student');
+
+    return {
+      success: true,
+      message: 'লাইভ ক্লাস সফলভাবে সম্পন্ন হয়েছে এবং রেকর্ডিং কোর্স মডিউলে সংরক্ষিত হয়েছে!',
+      lessonId: newLesson._id.toString(),
+      moduleId: targetModuleId,
+    };
+  } catch (err: any) {
+    console.error('Error in completeLiveSessionAndSaveToModuleAction:', err);
+    return { success: false, error: err.message || 'লাইভ ক্লাস সংরক্ষণ করতে ব্যর্থ হয়েছে।' };
+  }
+}
+
+/**
+ * Enforces same enrollment access and DRM security rules as regular course videos
+ * for recorded live classes with student watermarking.
+ */
+export async function getLiveRecordingPlaybackAction(sessionId: string): Promise<{
+  success: boolean;
+  isLocked?: boolean;
+  recordingUrl?: string;
+  videoType?: 'youtube' | 'bunny' | 'html5';
+  title?: string;
+  watermark?: {
+    studentId: string;
+    studentEmail: string;
+    studentName: string;
+    timestamp: string;
+  };
+  error?: string;
+}> {
+  try {
+    const authSession = await auth();
+    const sessionUser = authSession?.user as any;
+    if (!sessionUser?.email) {
+      return {
+        success: false,
+        isLocked: true,
+        error: 'সুরক্ষিত লাইভ ক্লাসের রেকর্ডিং দেখতে অনুগ্রহ করে লগইন করুন।',
+      };
+    }
+
+    await dbConnect();
+
+    let sessionDoc = await LiveSession.findById(sessionId).lean() as any;
+    if (!sessionDoc) {
+      // Check static list
+      const { getCourseLiveSessionsAction } = await import('@/actions/course-access');
+      const list = await getCourseLiveSessionsAction('fullstack-nextjs');
+      const found = list.liveSessions.find((s) => s.id === sessionId);
+      if (found) {
+        sessionDoc = {
+          ...found,
+          courseId: 'fullstack-nextjs',
+        };
+      }
+    }
+
+    if (!sessionDoc) {
+      return { success: false, error: 'লাইভ সেশনটি পাওয়া যায়নি।' };
+    }
+
+    const courseId = sessionDoc.courseId;
+
+    // Verify course enrollment / revision access / staff rights
+    const { getCourseAccessDetails } = await import('@/actions/course-access');
+    const access = await getCourseAccessDetails(courseId);
+
+    if (!access.canAccessAll) {
+      return {
+        success: false,
+        isLocked: true,
+        error: 'এই রেকর্ডেড লাইভ ক্লাসটি শুধুমাত্র কোর্সে ভর্তিকৃত শিক্ষার্থীদের জন্য সংরক্ষিত (Enrollment Required)।',
+      };
+    }
+
+    const rawUrl = sessionDoc.recordingUrl || sessionDoc.streamUrl || 'https://www.youtube.com/watch?v=wm5gMKuwSYk';
+    let videoType: 'youtube' | 'bunny' | 'html5' = 'html5';
+    if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
+      videoType = 'youtube';
+    } else if (rawUrl.includes('mediadelivery.net') || rawUrl.includes('bunny')) {
+      videoType = 'bunny';
+    }
+
+    const watermark = {
+      studentId: sessionUser.id || 'std-drm',
+      studentEmail: sessionUser.email,
+      studentName: sessionUser.name || 'Student',
+      timestamp: new Date().toLocaleTimeString('bn-BD', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
+
+    return {
+      success: true,
+      recordingUrl: rawUrl,
+      videoType,
+      title: sessionDoc.title,
+      watermark,
+    };
+  } catch (err: any) {
+    console.error('Error getting live recording DRM playback:', err);
+    return { success: false, error: err.message || 'রেকর্ডিং প্লেব্যাক তৈরি করতে ব্যর্থ হয়েছে।' };
+  }
+}
+

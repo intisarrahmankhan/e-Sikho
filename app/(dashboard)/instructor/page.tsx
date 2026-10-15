@@ -14,6 +14,7 @@ import { MiniSparkline } from '@/components/instructor/MiniSparkline';
 import InstructorPayout from '@/components/instructor/InstructorPayout';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { VideoDropOffAnalytics } from '@/components/instructor/VideoDropOffAnalytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -328,6 +329,9 @@ export default async function InstructorDashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* ── Video Lesson Drop-Off Analytics & Retention ── */}
+      <VideoDropOffAnalytics courses={courses.map((c: any) => ({ id: c.id, title: c.title }))} />
 
       {/* ── Engagement & Drop-off Row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
