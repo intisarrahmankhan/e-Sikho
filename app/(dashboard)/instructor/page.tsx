@@ -63,31 +63,37 @@ export default async function InstructorDashboardPage() {
 
   let userId = user.id;
 
-  await dbConnect();
-
-  // Fallback in case session cookie has the email instead of the ObjectId
   let availableBalance = 0;
   let totalEarnings = 0;
-  const { default: User } = await import('@/models/User');
-  const userDoc = await User.findOne({ 
-    $or: [
-      { _id: userId.length === 24 ? userId : null },
-      { email: userId }
-    ]
-  }).select('_id availableBalance totalEarnings').lean() as any;
+  let courses: any[] = [];
 
-  if (userDoc) {
-    userId = userDoc._id.toString();
-    availableBalance = userDoc.availableBalance || 0;
-    totalEarnings = userDoc.totalEarnings || 0;
+  try {
+    await dbConnect();
+
+    // Fallback in case session cookie has the email instead of the ObjectId
+    const { default: User } = await import('@/models/User');
+    const userDoc = await User.findOne({ 
+      $or: [
+        { _id: userId && userId.length === 24 ? userId : null },
+        { email: userId }
+      ]
+    }).select('_id availableBalance totalEarnings').lean() as any;
+
+    if (userDoc) {
+      userId = userDoc._id.toString();
+      availableBalance = userDoc.availableBalance || 0;
+      totalEarnings = userDoc.totalEarnings || 0;
+    }
+
+    const rawCourses = await Course.find({ createdById: userId })
+      .sort({ createdAt: -1 })
+      .select('_id title status approvalStatus price studentsEnrolled rating totalRatings createdAt category level')
+      .lean();
+
+    courses = (rawCourses || []).map((c: any) => ({ ...c, id: c._id.toString() }));
+  } catch (err) {
+    console.warn('MongoDB connection/query warning in InstructorDashboardPage, using fallback defaults:', err);
   }
-
-  const rawCourses = await Course.find({ createdById: userId })
-    .sort({ createdAt: -1 })
-    .select('_id title status approvalStatus price studentsEnrolled rating totalRatings createdAt category level')
-    .lean();
-
-  const courses = rawCourses.map((c: any) => ({ ...c, id: c._id.toString() }));
 
   // ── aggregated stats ──
   const published = courses.filter((c) => c.status === 'PUBLISHED');

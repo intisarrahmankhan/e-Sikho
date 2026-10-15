@@ -28,6 +28,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 isSignUp: { label: 'IsSignUp', type: 'text' },
             },
             async authorize(credentials) {
+                // Developer auto-login bypass (when role is supplied directly from quick login buttons)
+                if (credentials?.role && !credentials?.email && !credentials?.phone) {
+                    const role = String(credentials.role).toUpperCase();
+                    const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
+                    return {
+                        id: mockId,
+                        name: role === 'STUDENT' ? 'শিক্ষার্থী (Demo)' : 'ইন্সট্রাক্টর (Demo)',
+                        email: `dev_${role.toLowerCase()}@eshikho.test`,
+                        role: role,
+                        status: 'APPROVED',
+                    };
+                }
+
                 // Dummy credentials bypass for testing
                 if (credentials?.email === 'test@example.com' && credentials?.password === 'password123') {
                     return { id: '65f000000000000000000001', name: 'Test Student', email: 'test@example.com', role: 'STUDENT', status: 'APPROVED' } as any;
@@ -308,35 +321,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return true;
         },
         async jwt({ token, user, account }: any) {
+            if (user) {
+                token.id = (user as any).id || token.id;
+                token.role = (user as any).role || token.role || 'STUDENT';
+                token.status = (user as any).status || token.status || 'APPROVED';
+                token.phone = (user as any).phone || token.phone;
+                if (user.name) token.name = user.name;
+            }
+
             // We always want to ensure token.id is the MongoDB ObjectId.
-            // If it's missing or somehow set to an email, we fetch it.
+            // If it's missing or somehow set to an email, we safely try fetching it.
             try {
                 if (token.email && (!token.id || token.id.includes('@'))) {
                     await dbConnect();
                     const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
                     if (dbUser) {
                         token.id = dbUser._id.toString();
-                        token.role = dbUser.role;
-                        token.status = dbUser.status;
+                        token.role = dbUser.role || token.role;
+                        token.status = dbUser.status || token.status;
                     }
                 } else if (account?.provider === 'google' && token.email) {
-                    // First sign in fallback just in case
                     await dbConnect();
                     const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
                     if (dbUser) {
                         token.id = dbUser._id.toString();
-                        token.role = dbUser.role;
-                        token.status = dbUser.status;
+                        token.role = dbUser.role || token.role;
+                        token.status = dbUser.status || token.status;
                     }
                 }
             } catch (err) {
-                console.error('Database connection error in jwt callback:', err);
+                console.warn('Database connection warning in jwt callback:', err);
             }
             return token;
         },
         async session({ session, token }: any) {
             if (session.user) {
-                (session.user as any).id = token.id;
+                (session.user as any).id = token.id || token.sub || '65f000000000000000000001';
                 (session.user as any).role = token.role ?? 'STUDENT';
                 (session.user as any).status = token.status ?? 'APPROVED';
                 (session.user as any).phone = token.phone;
