@@ -9,6 +9,7 @@ import { normalizePhone, hashPassword, verifyPassword } from '@/lib/auth-helpers
 
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    trustHost: true,
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'e-sikho-auth-super-secret-key-cse314-2026',
     providers: [
         Google({
@@ -38,7 +39,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     return { id: '65f000000000000000000003', name: 'Test Admin', email: 'admin@eshikho.com', role: 'ADMIN', status: 'APPROVED' } as any;
                 }
 
-                await dbConnect();
+                try {
+                    await dbConnect();
+                } catch (dbErr: any) {
+                    console.error('MongoDB connection error during authorize:', dbErr);
+                    throw new Error('ডাটাবেজ সংযোগে সমস্যা হয়েছে (Database Connection Error)। অনুগ্রহ করে MongoDB Atlas-এ আপনার IP Whitelist যাচাই করুন।');
+                }
 
                 // 1. Phone number authentication (Sign up or Login with OTP / Password)
                 if (credentials?.phone) {
@@ -260,6 +266,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ],
     pages: {
         signIn: '/login',
+        error: '/login',
     },
     callbacks: {
         authorized({ auth, request: { nextUrl } }: any) {
@@ -303,23 +310,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         async jwt({ token, user, account }: any) {
             // We always want to ensure token.id is the MongoDB ObjectId.
             // If it's missing or somehow set to an email, we fetch it.
-            if (token.email && (!token.id || token.id.includes('@'))) {
-                await dbConnect();
-                const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
-                if (dbUser) {
-                    token.id = dbUser._id.toString();
-                    token.role = dbUser.role;
-                    token.status = dbUser.status;
+            try {
+                if (token.email && (!token.id || token.id.includes('@'))) {
+                    await dbConnect();
+                    const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
+                    if (dbUser) {
+                        token.id = dbUser._id.toString();
+                        token.role = dbUser.role;
+                        token.status = dbUser.status;
+                    }
+                } else if (account?.provider === 'google' && token.email) {
+                    // First sign in fallback just in case
+                    await dbConnect();
+                    const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
+                    if (dbUser) {
+                        token.id = dbUser._id.toString();
+                        token.role = dbUser.role;
+                        token.status = dbUser.status;
+                    }
                 }
-            } else if (account?.provider === 'google' && token.email) {
-                // First sign in fallback just in case
-                await dbConnect();
-                const dbUser = await User.findOne({ email: token.email }).select('_id role status').lean() as any;
-                if (dbUser) {
-                    token.id = dbUser._id.toString();
-                    token.role = dbUser.role;
-                    token.status = dbUser.status;
-                }
+            } catch (err) {
+                console.error('Database connection error in jwt callback:', err);
             }
             return token;
         },
