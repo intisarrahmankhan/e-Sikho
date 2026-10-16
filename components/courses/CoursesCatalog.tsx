@@ -21,6 +21,7 @@ import { COURSES_DATA, Course } from "@/lib/courses-data";
 import { useLanguage, formatBilingualDuration } from "@/context/LanguageContext";
 import { PersonalizedRecommendations } from "@/components/dashboard/PersonalizedRecommendations";
 import { RecommendedCourseItem } from "@/actions/recommendations";
+import { WishlistButton } from "@/components/courses/WishlistButton";
 
 type SortOption = "popular" | "newest" | "price-low" | "price-high" | "rating";
 
@@ -34,12 +35,14 @@ interface CoursesCatalogProps {
     skills: string[];
     academicBackground?: string;
   };
+  userWishlistIds?: string[];
 }
 
 export function CoursesCatalog({
   additionalCourses = [],
   recommendations = [],
   studentProfile,
+  userWishlistIds = [],
 }: CoursesCatalogProps) {
   const { t, language } = useLanguage();
   const searchParams = useSearchParams();
@@ -287,10 +290,15 @@ export function CoursesCatalog({
                       {displayCategory}
                     </span>
                   </div>
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
                     <span className="text-xs font-bold bg-red-500 text-white px-2 py-1 rounded-md">
                       {discount}% OFF
                     </span>
+                    <WishlistButton
+                      courseId={course.id}
+                      initialWishlisted={userWishlistIds.includes(course.id)}
+                      size="sm"
+                    />
                   </div>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                     <span className="text-xs bg-gray-900/70 text-white px-2.5 py-1 rounded-md font-medium">

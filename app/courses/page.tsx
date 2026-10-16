@@ -7,19 +7,26 @@ import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import Instructor from '@/models/Instructor';
 import { getPersonalizedRecommendationsAction } from '@/actions/recommendations';
+import { getUserWishlistIdsAction } from '@/actions/wishlist';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CoursesPage() {
   let additionalCourses: CourseType[] = [];
   let recommendationsRes: any = { success: false, recommendations: [], studentProfile: null };
+  let userWishlistIds: string[] = [];
 
   try {
     // Try fetching from MongoDB
     await dbConnect();
 
-    // Fetch recommendations for current user
-    recommendationsRes = await getPersonalizedRecommendationsAction(4);
+    // Fetch recommendations and wishlist for current user
+    const [recRes, wishlistRes] = await Promise.all([
+      getPersonalizedRecommendationsAction(4),
+      getUserWishlistIdsAction(),
+    ]);
+    recommendationsRes = recRes;
+    userWishlistIds = wishlistRes.wishlistIds || [];
 
     const submittedCourses = await Course.find({ approvalStatus: 'APPROVED' })
       .populate('instructor')
@@ -91,6 +98,7 @@ export default async function CoursesPage() {
         additionalCourses={additionalCourses}
         recommendations={recommendationsRes.recommendations}
         studentProfile={recommendationsRes.studentProfile}
+        userWishlistIds={userWishlistIds}
       />
     </Suspense>
   );

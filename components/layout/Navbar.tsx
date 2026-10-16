@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target, Trophy, Award } from 'lucide-react';
+import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target, Trophy, Award, Heart } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { Input } from '@/components/ui/Input';
 import { useLanguage } from '@/context/LanguageContext';
@@ -133,6 +133,19 @@ export function Navbar() {
 
         {status === 'authenticated' && session?.user ? (
           <>
+            {/* Wishlist Link */}
+            <Link
+              href="/wishlist"
+              title={language === 'en' ? 'My Wishlist' : 'আমার উইশলিস্ট'}
+              className={`p-2 rounded-lg transition relative ${
+                pathname === '/wishlist'
+                  ? 'bg-rose-50 text-rose-600'
+                  : 'text-gray-600 hover:text-rose-600 hover:bg-rose-50'
+              }`}
+            >
+              <Heart className={`h-4 w-4 ${pathname === '/wishlist' ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </Link>
+
             {/* Real-time Prioritized Notification Bell */}
             <NotificationBell />
 

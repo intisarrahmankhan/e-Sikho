@@ -90,7 +90,7 @@ export async function getStudentProfileAction() {
  * Updates student general profile, learning goals, interests & skills
  */
 export async function updateStudentProfileAction(data: {
-  name: string;
+  name?: string;
   phone?: string;
   headline?: string;
   bio?: string;
@@ -105,7 +105,7 @@ export async function updateStudentProfileAction(data: {
     const sessionUserId = (session?.user as any)?.id;
     if (!sessionUserId) return { error: 'লগইন আবশ্যক।' };
 
-    if (!data.name || data.name.trim().length < 2) {
+    if (data.name !== undefined && data.name.trim().length < 2) {
       return { error: 'নামে কমপক্ষে ২টি অক্ষর থাকতে হবে।' };
     }
 
@@ -116,14 +116,13 @@ export async function updateStudentProfileAction(data: {
       query = { email: sessionUserId };
     }
 
-    const updateFields: any = {
-      name: data.name.trim(),
-      headline: data.headline?.trim() || '',
-      bio: data.bio?.trim() || '',
-      targetTrack: data.targetTrack || 'Fullstack Web Development',
-      academicBackground: data.academicBackground || 'Computer Science & Engineering (CSE)',
-      weeklyGoalHours: Number(data.weeklyGoalHours) || 10,
-    };
+    const updateFields: any = {};
+    if (data.name !== undefined) updateFields.name = data.name.trim();
+    if (data.headline !== undefined) updateFields.headline = data.headline?.trim() || '';
+    if (data.bio !== undefined) updateFields.bio = data.bio?.trim() || '';
+    if (data.targetTrack !== undefined) updateFields.targetTrack = data.targetTrack || 'Fullstack Web Development';
+    if (data.academicBackground !== undefined) updateFields.academicBackground = data.academicBackground || 'Computer Science & Engineering (CSE)';
+    if (data.weeklyGoalHours !== undefined) updateFields.weeklyGoalHours = Number(data.weeklyGoalHours) || 10;
 
     if (Array.isArray(data.interests)) {
       updateFields.interests = data.interests.map((s) => String(s).trim()).filter(Boolean);

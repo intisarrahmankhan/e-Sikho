@@ -43,6 +43,7 @@ import NotesAndResources from "@/components/courses/NotesAndResources";
 import SecureVideoPlayer from "@/components/video/SecureVideoPlayer";
 import { CourseCohortLeaderboard } from "@/components/course/CourseCohortLeaderboard";
 import { ProtectedPdfViewerModal } from "@/components/pdf/ProtectedPdfViewerModal";
+import { WishlistButton } from "@/components/courses/WishlistButton";
 import {
   getCourseAccessDetails,
   toggleLessonProgressAction,
@@ -462,23 +463,31 @@ export default function CourseDetailsPage() {
                 </Button>
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-primary-600 text-white font-medium text-xs px-3 py-1">
-                {language === 'en'
-                  ? (course.categoryEn || translateCategory(course.category || course.categoryBangla, 'en'))
-                  : (course.categoryBangla || course.category)}
-              </Badge>
-              <Badge variant="outline" className="text-slate-700 bg-white border-slate-200">
-                {language === 'en'
-                  ? `Level: ${course.levelEn || translateLevel(course.level, 'en')}`
-                  : `লেভেল: ${course.level}`}
-              </Badge>
-              {canAccessAll && (
-                <Badge className="bg-emerald-600 text-white font-semibold text-xs px-3 py-1 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>{language === 'en' ? 'Enrolled' : 'ভর্তি সম্পন্ন'}</span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-primary-600 text-white font-medium text-xs px-3 py-1">
+                  {language === 'en'
+                    ? (course.categoryEn || translateCategory(course.category || course.categoryBangla, 'en'))
+                    : (course.categoryBangla || course.category)}
                 </Badge>
-              )}
+                <Badge variant="outline" className="text-slate-700 bg-white border-slate-200">
+                  {language === 'en'
+                    ? `Level: ${course.levelEn || translateLevel(course.level, 'en')}`
+                    : `লেভেল: ${course.level}`}
+                </Badge>
+                {canAccessAll && (
+                  <Badge className="bg-emerald-600 text-white font-semibold text-xs px-3 py-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>{language === 'en' ? 'Enrolled' : 'ভর্তি সম্পন্ন'}</span>
+                  </Badge>
+                )}
+              </div>
+
+              <WishlistButton
+                courseId={course.id || courseId}
+                showLabel={true}
+                size="md"
+              />
             </div>
 
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">
