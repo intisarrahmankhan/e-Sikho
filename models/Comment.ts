@@ -7,6 +7,8 @@ export interface IComment extends Document {
   parentId?: mongoose.Types.ObjectId | string | null;
   isSolution: boolean;
   likes: mongoose.Types.ObjectId[] | string[];
+  isDeleted?: boolean;
+  isHidden?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +21,8 @@ const commentSchema = new Schema<IComment>(
     parentId: { type: Schema.Types.ObjectId, ref: 'Comment', default: null },
     isSolution: { type: Boolean, default: false },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    isDeleted: { type: Boolean, default: false },
+    isHidden: { type: Boolean, default: false },
   },
   {
     timestamps: true,

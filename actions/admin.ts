@@ -6,6 +6,9 @@ import User from '@/models/User';
 import Course from '@/models/Course';
 import InstructorRequest from '@/models/InstructorRequest';
 import InstructorProfile from '@/models/InstructorProfile';
+import Report from '@/models/Report';
+import ModeratorAction from '@/models/ModeratorAction';
+import Comment from '@/models/Comment';
 import Enrollment from '@/models/Enrollment';
 import Instructor from '@/models/Instructor';
 import Module from '@/models/Module';
@@ -32,6 +35,16 @@ async function checkAdminOrSuperadmin() {
   const role = (session?.user as any)?.role;
   if (!userId || (role !== 'ADMIN' && role !== 'SUPERADMIN')) {
     throw new Error('Unauthorized. Admin access required.');
+  }
+  return userId;
+}
+
+async function checkAdminOrModerator() {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const role = (session?.user as any)?.role;
+  if (!userId || (role !== 'ADMIN' && role !== 'SUPERADMIN' && role !== 'MODERATOR')) {
+    throw new Error('Unauthorized. Admin or Moderator access required.');
   }
   return userId;
 }
@@ -1435,5 +1448,376 @@ export async function seedDemoInstructorApplicationsAction() {
   } catch (error: any) {
     console.error('Failed to seed demo applications:', error);
     return { success: false, error: error?.message || 'Failed to seed demo applications.' };
+  }
+}
+
+/**
+ * Task T-018: Moderation Actions Execution (MODERATOR_ACTION)
+ * resolveModerationTicket(reportId, actionTaken, note)
+ *
+ * Supported actions: 'Warning', 'Remove', 'Ban', 'Other'
+ * - When 'Remove' is chosen: soft-delete or hide reported comment/resource/course/lesson
+ * - When 'Ban' is selected: invoke suspension state on target user (status: 'SUSPENDED')
+ * - Write audit entry into MODERATOR_ACTION
+ * - Update report status to 'Resolved'
+ */
+export async function resolveModerationTicket(
+  reportId: string,
+  actionTaken: 'Warning' | 'Remove' | 'Ban' | 'Other' | string,
+  note?: string
+) {
+  try {
+    const moderatorId = await checkAdminOrModerator();
+    await dbConnect();
+
+    const normalizedAction = (actionTaken.charAt(0).toUpperCase() +
+      actionTaken.slice(1).toLowerCase()) as 'Warning' | 'Remove' | 'Ban' | 'Other';
+
+    const report = await Report.findById(reportId);
+    if (!report) {
+      return { success: false, error: 'Moderation ticket / report not found.' };
+    }
+
+    const penaltyDetails: Record<string, any> = {
+      actionTaken: normalizedAction,
+      reportedType: report.reported_type,
+      targetId: String(report.targetId),
+      executedAt: new Date(),
+    };
+
+    // Execute penalty based on actionTaken
+    if (normalizedAction === 'Remove') {
+      const type = (report.reported_type || '').toLowerCase();
+      if (type === 'comment') {
+        await Comment.findByIdAndUpdate(report.targetId, {
+          isDeleted: true,
+          isHidden: true,
+        });
+        penaltyDetails.removedComment = true;
+      } else if (type === 'course') {
+        await Course.findByIdAndUpdate(report.targetId, {
+          status: 'DRAFT',
+          approvalStatus: 'REJECTED',
+        });
+        penaltyDetails.courseStatus = 'REJECTED';
+      } else if (type === 'lesson') {
+        await Lesson.findByIdAndUpdate(report.targetId, {
+          isFree: false,
+        });
+        penaltyDetails.lessonDisabled = true;
+      }
+    } else if (normalizedAction === 'Ban') {
+      // Find the user to suspend
+      const userToSuspend = report.targetUserId || report.targetId;
+      if (userToSuspend) {
+        await User.findByIdAndUpdate(userToSuspend, {
+          status: 'SUSPENDED',
+        });
+        penaltyDetails.suspendedUserId = String(userToSuspend);
+      }
+    } else if (normalizedAction === 'Warning') {
+      penaltyDetails.warningIssued = true;
+    } else {
+      penaltyDetails.otherAction = true;
+    }
+
+    // 1. Update Report status to 'Resolved'
+    report.status = 'Resolved';
+    report.actionTaken = normalizedAction;
+    report.resolutionNote = note || `Resolved with action: ${normalizedAction}`;
+    report.resolvedBy = moderatorId as any;
+    report.resolvedAt = new Date();
+    await report.save();
+
+    // 2. Create immutable record in MODERATOR_ACTION
+    const moderatorActionRecord = await ModeratorAction.create({
+      reportId: report._id,
+      moderatorId,
+      targetId: report.targetId,
+      targetType: report.reported_type,
+      targetUserId: report.targetUserId,
+      actionTaken: normalizedAction,
+      note: note || `Ticket resolved with action: ${normalizedAction}`,
+      penaltyDetails,
+    });
+
+    // 3. Log to system AuditLog
+    await AuditLog.create({
+      action: `MODERATION_${normalizedAction.toUpperCase()}`,
+      category: 'SECURITY',
+      actorId: moderatorId,
+      targetId: report.targetUserId || report.targetId,
+      details: {
+        reportId: report._id.toString(),
+        actionTaken: normalizedAction,
+        reportedType: report.reported_type,
+        note: note || '',
+      },
+    });
+
+    revalidatePath('/admin/moderation');
+    revalidatePath('/admin');
+
+    return {
+      success: true,
+      reportId: report._id.toString(),
+      status: 'Resolved',
+      actionTaken: normalizedAction,
+      actionId: moderatorActionRecord._id.toString(),
+      message: `Moderation ticket successfully resolved with action '${normalizedAction}'.`,
+    };
+  } catch (error: any) {
+    console.error('Failed to resolve moderation ticket:', error);
+    return { success: false, error: error?.message || 'Failed to resolve moderation ticket.' };
+  }
+}
+
+/**
+ * Update report status (e.g. Open -> In Review, Closed)
+ */
+export async function updateReportStatus(
+  reportId: string,
+  status: 'Open' | 'In Review' | 'Resolved' | 'Closed' | string
+) {
+  try {
+    const moderatorId = await checkAdminOrModerator();
+    await dbConnect();
+
+    const s = status.toLowerCase().trim();
+    let normalizedStatus: 'Open' | 'In Review' | 'Resolved' | 'Closed' = 'Open';
+    if (s === 'in review' || s === 'in_review') {
+      normalizedStatus = 'In Review';
+    } else if (s === 'resolved') {
+      normalizedStatus = 'Resolved';
+    } else if (s === 'closed') {
+      normalizedStatus = 'Closed';
+    } else {
+      normalizedStatus = 'Open';
+    }
+
+    const report = await Report.findByIdAndUpdate(
+      reportId,
+      { status: normalizedStatus },
+      { new: true }
+    );
+
+    if (!report) return { success: false, error: 'Report not found' };
+
+    revalidatePath('/admin/moderation');
+    return { success: true, report: JSON.parse(JSON.stringify(report)) };
+  } catch (error: any) {
+    console.error('Failed to update report status:', error);
+    return { success: false, error: error?.message || 'Failed to update report status.' };
+  }
+}
+
+/**
+ * Task T-017: Fetch flagged tickets mapping REPORT entity with filters
+ */
+export async function getModerationTicketsAction(filters?: {
+  type?: string; // 'Course' | 'Lesson' | 'Comment' | 'User' | 'all'
+  status?: string; // 'Open' | 'In Review' | 'Resolved' | 'Closed' | 'all'
+  search?: string;
+}) {
+  try {
+    await checkAdminOrModerator();
+    await dbConnect();
+
+    const query: any = {};
+
+    // 1. Filter by Entity Type
+    if (filters?.type && filters.type !== 'all' && filters.type !== 'ALL') {
+      const t = filters.type.toLowerCase();
+      if (t === 'course') query.reported_type = { $in: ['Course', 'COURSE'] };
+      else if (t === 'lesson') query.reported_type = { $in: ['Lesson', 'LESSON'] };
+      else if (t === 'comment') query.reported_type = { $in: ['Comment', 'COMMENT'] };
+      else if (t === 'user') query.reported_type = { $in: ['User', 'USER'] };
+    }
+
+    // 2. Filter by Status
+    if (filters?.status && filters.status !== 'all' && filters.status !== 'ALL') {
+      const s = filters.status.toLowerCase();
+      if (s === 'open') query.status = { $in: ['Open', 'OPEN'] };
+      else if (s === 'in review' || s === 'in_review')
+        query.status = { $in: ['In Review', 'IN_REVIEW'] };
+      else if (s === 'resolved') query.status = { $in: ['Resolved', 'RESOLVED'] };
+      else if (s === 'closed') query.status = { $in: ['Closed', 'CLOSED'] };
+    }
+
+    const rawReports = await Report.find(query)
+      .populate({ path: 'reporterId', select: 'name email role image' })
+      .populate({ path: 'targetUserId', select: 'name email role status image' })
+      .populate({ path: 'resolvedBy', select: 'name email' })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    let reports = JSON.parse(JSON.stringify(rawReports)).map((r: any) => ({
+      id: r._id,
+      reporterId: r.reporterId?._id || r.reporterId,
+      reporter: r.reporterId && typeof r.reporterId === 'object' ? r.reporterId : null,
+      reported_type: r.reported_type,
+      targetId: r.targetId,
+      targetUserId: r.targetUserId?._id || r.targetUserId,
+      targetUser: r.targetUserId && typeof r.targetUserId === 'object' ? r.targetUserId : null,
+      reason: r.reason,
+      rationale: r.rationale,
+      status: r.status,
+      flaggedContentPreview: r.flaggedContentPreview || '',
+      contextData: r.contextData || {},
+      actionTaken: r.actionTaken || '',
+      resolutionNote: r.resolutionNote || '',
+      resolvedBy: r.resolvedBy,
+      resolvedAt: r.resolvedAt,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+
+    if (filters?.search && filters.search.trim()) {
+      const term = filters.search.toLowerCase().trim();
+      reports = reports.filter((rep: any) => {
+        return (
+          rep.reason?.toLowerCase().includes(term) ||
+          rep.rationale?.toLowerCase().includes(term) ||
+          rep.flaggedContentPreview?.toLowerCase().includes(term) ||
+          rep.reporter?.name?.toLowerCase().includes(term) ||
+          rep.reporter?.email?.toLowerCase().includes(term) ||
+          rep.targetUser?.name?.toLowerCase().includes(term) ||
+          rep.targetUser?.email?.toLowerCase().includes(term) ||
+          rep.contextData?.title?.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    return { success: true, reports };
+  } catch (error: any) {
+    console.error('Failed to fetch moderation tickets:', error);
+    return { success: false, error: error?.message || 'Failed to fetch tickets.', reports: [] };
+  }
+}
+
+/**
+ * Seed realistic flagged moderation tickets for testing & verification
+ */
+export async function seedDemoModerationReportsAction() {
+  try {
+    await checkAdminOrModerator();
+    await dbConnect();
+
+    // Find or create reporter and offending users
+    let reporter = await User.findOne({ email: 'student.reporter@example.com' });
+    if (!reporter) {
+      reporter = await User.create({
+        name: 'Sadia Rahman',
+        email: 'student.reporter@example.com',
+        role: 'STUDENT',
+        status: 'APPROVED',
+      });
+    }
+
+    let badUser = await User.findOne({ email: 'spammer.user@example.com' });
+    if (!badUser) {
+      badUser = await User.create({
+        name: 'SpamBot99',
+        email: 'spammer.user@example.com',
+        role: 'STUDENT',
+        status: 'APPROVED',
+        bio: 'Visit free-crypto-tokens-now.xyz for 500% instant ROI!',
+      });
+    }
+
+    // Find sample course or lesson for context
+    const sampleCourse = await Course.findOne().lean();
+    const sampleLesson = await Lesson.findOne().lean();
+
+    // Create a flagged comment if needed
+    let sampleComment = await Comment.findOne().lean();
+    if (!sampleComment) {
+      sampleComment = (await Comment.create({
+        content: 'Check out cheap cracked exams and leaks here: http://fake-scam-link.ru/payload - Guaranteed 100%!',
+        lessonId: sampleLesson?._id || new mongoose.Types.ObjectId(),
+        userId: badUser._id,
+      })) as any;
+    }
+
+    const demoReports = [
+      {
+        reporterId: reporter._id,
+        reported_type: 'Comment',
+        targetId: sampleComment._id,
+        targetUserId: badUser._id,
+        reason: 'Spam & Malicious Link',
+        rationale: 'This user is spamming malicious external phishing links in the lecture discussion tab targeting first-year students.',
+        status: 'Open',
+        flaggedContentPreview: 'Check out cheap cracked exams and leaks here: http://fake-scam-link.ru/payload - Guaranteed 100%!',
+        contextData: {
+          lessonTitle: sampleLesson?.title || 'Lecture 03: Big-O Asymptotics',
+          courseTitle: sampleCourse?.title || 'Data Structures & Algorithms',
+          location: 'Discussion Board / Question Thread #104',
+        },
+      },
+      {
+        reporterId: reporter._id,
+        reported_type: 'User',
+        targetId: badUser._id,
+        targetUserId: badUser._id,
+        reason: 'Harassment & Impersonation',
+        rationale: 'User bio and profile picture is imitating platform staff and sending unsolicited DMs offering fake certificates for money.',
+        status: 'In Review',
+        flaggedContentPreview: 'Bio: "Official e-Shikho Certificate Verification Desk. Contact for instant certificate generation."',
+        contextData: {
+          username: badUser.name,
+          accountCreated: new Date().toLocaleDateString(),
+          flagCount: 3,
+        },
+      },
+      {
+        reporterId: reporter._id,
+        reported_type: 'Course',
+        targetId: sampleCourse?._id || new mongoose.Types.ObjectId(),
+        targetUserId: sampleCourse?.instructor || badUser._id,
+        reason: 'Copyright & Plagiarism',
+        rationale: 'The lecture slides and problem sets in Module 2 are verbatim copies of MIT 6.006 OpenCourseWare with commercial watermarks removed.',
+        status: 'Open',
+        flaggedContentPreview: 'Module 2 Slides: Exact verbatim transcript from MIT 6.006 without attribution or license.',
+        contextData: {
+          courseTitle: sampleCourse?.title || 'Competitive Programming Masterclass',
+          instructor: 'Dr. Unverified',
+          reportedModules: ['Module 2', 'Problem Set 3'],
+        },
+      },
+      {
+        reporterId: reporter._id,
+        reported_type: 'Lesson',
+        targetId: sampleLesson?._id || new mongoose.Types.ObjectId(),
+        targetUserId: badUser._id,
+        reason: 'Inappropriate Content & Broken Resource',
+        rationale: 'The attached video lecture contains inappropriate audio commentary and the PDF resource leads to a broken 404 dead link.',
+        status: 'Open',
+        flaggedContentPreview: 'Video URL: contains unmoderated offensive remarks between minute 12:40 and 14:15.',
+        contextData: {
+          lessonTitle: sampleLesson?.title || 'Introduction to Recursive Backtracking',
+          timestampRange: '12:40 - 14:15',
+        },
+      },
+    ];
+
+    let created = 0;
+    for (const r of demoReports) {
+      const existing = await Report.findOne({
+        reported_type: r.reported_type,
+        targetId: r.targetId,
+        reason: r.reason,
+      });
+      if (!existing) {
+        await Report.create(r);
+        created++;
+      }
+    }
+
+    revalidatePath('/admin/moderation');
+    return { success: true, message: `Created ${created} demo moderation reports across entity types.` };
+  } catch (error: any) {
+    console.error('Failed to seed demo moderation reports:', error);
+    return { success: false, error: error?.message || 'Failed to seed demo reports.' };
   }
 }
