@@ -21,6 +21,8 @@ export function Sidebar() {
       ? '/instructor'
       : '/student';
 
+  const userSettingsUrl = role === 'INSTRUCTOR' ? '/instructor/settings' : '/student/settings';
+
   const navItems = [
     { name: t('sidebar.home', 'হোম পেজ'), href: '/', icon: Home, matchExact: true },
     { name: t('sidebar.courses', 'কোর্সসমূহ'), href: '/courses', icon: BookOpen },
@@ -28,7 +30,7 @@ export function Sidebar() {
       ? [
           { name: t('sidebar.dashboard', 'ড্যাশবোর্ড'), href: userDashboardUrl, icon: LayoutDashboard },
           { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
-          { name: t('sidebar.settings', 'সেটিংস'), href: '/student/settings', icon: Settings },
+          { name: t('sidebar.settings', 'সেটিংস'), href: userSettingsUrl, icon: Settings },
         ]
       : []),
   ];

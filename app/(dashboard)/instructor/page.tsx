@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import {
   BookOpen, CheckCircle2, Clock, XCircle, Users, TrendingUp, Star,
   PlusCircle, BarChart2, ArrowUpRight, ArrowDownRight, Layers,
-  Award, Zap, Target, DollarSign, Eye, Activity, UserMinus
+  Award, Zap, Target, DollarSign, Eye, Activity, UserMinus, Settings, User
 } from 'lucide-react';
 import { BarChart, DonutChart, ProgressBar } from '@/components/instructor/Charts';
 import { MiniSparkline } from '@/components/instructor/MiniSparkline';
@@ -188,6 +188,12 @@ export default async function InstructorDashboardPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition"
             >
               <Eye className="h-4 w-4" /> View Exams
+            </Link>
+            <Link
+              href="/instructor/settings"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition"
+            >
+              <Settings className="h-4 w-4" /> Profile & Settings
             </Link>
           </div>
         </div>

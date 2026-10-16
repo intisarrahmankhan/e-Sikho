@@ -12,6 +12,7 @@ import { getCourseById } from '@/lib/courses-data';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
+import { hashPassword, verifyPassword, normalizePhone, isValidBDPhone } from '@/lib/auth-helpers';
 
 async function saveThumbnail(file: File | null, existingUrl = '') {
   if (existingUrl) return existingUrl;
@@ -782,6 +783,244 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
       totalWatchedHours: 0,
       error: error.message || 'ড্রপ-অফ অ্যানালিটিক্স লোড করা সম্ভব হয়নি।',
     };
+  }
+}
+
+/**
+ * Fetches current authenticated instructor profile, stats, expertise, and payout details
+ */
+export async function getInstructorProfileAction() {
+  try {
+    const session = await auth();
+    const sessionUser = session?.user as { id?: string; email?: string; role?: string } | undefined;
+    if (!sessionUser?.id && !sessionUser?.email) {
+      return { error: 'লগইন আবশ্যক।' };
+    }
+
+    await dbConnect();
+
+    let query: any = {};
+    if (sessionUser.id && sessionUser.id.length === 24) {
+      query._id = sessionUser.id;
+    } else if (sessionUser.email) {
+      query.email = sessionUser.email;
+    } else {
+      query._id = sessionUser.id;
+    }
+
+    const user = (await User.findOne(query).select('-password').lean()) as any;
+    if (!user) return { error: 'ইন্সট্রাক্টর প্রোফাইল পাওয়া যায়নি।' };
+
+    const instructorId = user._id.toString();
+
+    // Fetch instructor course metrics
+    const courses = (await Course.find({ createdById: instructorId })
+      .select('status studentsEnrolled rating')
+      .lean()) as any[];
+    const totalCourses = courses.length;
+    const publishedCourses = courses.filter((c) => c.status === 'PUBLISHED').length;
+    const totalStudents = courses.reduce((sum, c) => sum + (c.studentsEnrolled || 0), 0);
+    const validRatings = courses.filter((c) => c.rating && c.rating > 0);
+    const averageRating =
+      validRatings.length > 0
+        ? Number((validRatings.reduce((sum, c) => sum + c.rating, 0) / validRatings.length).toFixed(1))
+        : 4.9;
+
+    return {
+      success: true,
+      profile: {
+        id: instructorId,
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        headline: user.headline || user.instructorTitle || 'Senior Tech Instructor',
+        instructorTitle: user.instructorTitle || user.headline || 'Senior Tech Instructor',
+        bio: user.bio || '',
+        organization: user.organization || '',
+        experienceYears: user.experienceYears || 3,
+        academicBackground: user.academicBackground || 'Computer Science & Engineering (CSE)',
+        targetTrack: user.targetTrack || 'Fullstack Web Development',
+        expertise:
+          Array.isArray(user.expertise) && user.expertise.length > 0
+            ? user.expertise
+            : Array.isArray(user.interests) && user.interests.length > 0
+            ? user.interests
+            : ['Web Development', 'System Design', 'Data Structures & Algorithms', 'Cloud & DevOps'],
+        skills:
+          Array.isArray(user.skills) && user.skills.length > 0
+            ? user.skills
+            : ['JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js', 'Python'],
+        weeklyGoalHours: user.weeklyGoalHours || 12,
+        website: user.website || '',
+        github: user.github || '',
+        linkedin: user.linkedin || '',
+        twitter: user.twitter || '',
+        payoutMethod: user.payoutMethod || 'BKASH',
+        payoutNumber: user.payoutNumber || user.phone || '',
+        bankName: user.bankName || '',
+        bankBranch: user.bankBranch || '',
+        bankAccountName: user.bankAccountName || '',
+        availableBalance: user.availableBalance || 0,
+        totalEarnings: user.totalEarnings || 0,
+        role: user.role,
+        status: user.status,
+        image: user.image || '',
+        // Stats
+        totalCourses,
+        publishedCourses,
+        totalStudents,
+        averageRating,
+      },
+    };
+  } catch (err: any) {
+    console.error('Failed to get instructor profile:', err);
+    return { error: 'ইন্সট্রাক্টর প্রোফাইল লোড করতে ব্যর্থ হয়েছে।' };
+  }
+}
+
+/**
+ * Updates instructor personal details, professional profile, teaching expertise, social links, and payout info
+ */
+export async function updateInstructorProfileAction(data: {
+  name?: string;
+  phone?: string;
+  headline?: string;
+  instructorTitle?: string;
+  bio?: string;
+  organization?: string;
+  experienceYears?: number;
+  academicBackground?: string;
+  targetTrack?: string;
+  expertise?: string[];
+  skills?: string[];
+  weeklyGoalHours?: number;
+  website?: string;
+  github?: string;
+  linkedin?: string;
+  twitter?: string;
+  payoutMethod?: 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK';
+  payoutNumber?: string;
+  bankName?: string;
+  bankBranch?: string;
+  bankAccountName?: string;
+}) {
+  try {
+    const session = await auth();
+    const sessionUser = session?.user as { id?: string; email?: string } | undefined;
+    if (!sessionUser?.id && !sessionUser?.email) {
+      return { error: 'লগইন আবশ্যক।' };
+    }
+
+    if (data.name !== undefined && data.name.trim().length < 2) {
+      return { error: 'নামে কমপক্ষে ২টি অক্ষর থাকতে হবে।' };
+    }
+
+    await dbConnect();
+
+    let query: any = {};
+    if (sessionUser.id && sessionUser.id.length === 24) {
+      query._id = sessionUser.id;
+    } else if (sessionUser.email) {
+      query.email = sessionUser.email;
+    } else {
+      query._id = sessionUser.id;
+    }
+
+    const updateFields: any = {};
+    if (data.name !== undefined) updateFields.name = data.name.trim();
+    if (data.headline !== undefined) updateFields.headline = data.headline.trim();
+    if (data.instructorTitle !== undefined) updateFields.instructorTitle = data.instructorTitle.trim();
+    if (data.bio !== undefined) updateFields.bio = data.bio.trim();
+    if (data.organization !== undefined) updateFields.organization = data.organization.trim();
+    if (data.experienceYears !== undefined) updateFields.experienceYears = Number(data.experienceYears) || 0;
+    if (data.academicBackground !== undefined) updateFields.academicBackground = data.academicBackground.trim();
+    if (data.targetTrack !== undefined) updateFields.targetTrack = data.targetTrack.trim();
+    if (data.weeklyGoalHours !== undefined) updateFields.weeklyGoalHours = Number(data.weeklyGoalHours) || 10;
+    if (data.website !== undefined) updateFields.website = data.website.trim();
+    if (data.github !== undefined) updateFields.github = data.github.trim();
+    if (data.linkedin !== undefined) updateFields.linkedin = data.linkedin.trim();
+    if (data.twitter !== undefined) updateFields.twitter = data.twitter.trim();
+    if (data.payoutMethod !== undefined) updateFields.payoutMethod = data.payoutMethod;
+    if (data.payoutNumber !== undefined) updateFields.payoutNumber = data.payoutNumber.trim();
+    if (data.bankName !== undefined) updateFields.bankName = data.bankName.trim();
+    if (data.bankBranch !== undefined) updateFields.bankBranch = data.bankBranch.trim();
+    if (data.bankAccountName !== undefined) updateFields.bankAccountName = data.bankAccountName.trim();
+
+    if (Array.isArray(data.expertise)) {
+      updateFields.expertise = data.expertise.map((s) => String(s).trim()).filter(Boolean);
+      updateFields.interests = updateFields.expertise; // sync
+    }
+    if (Array.isArray(data.skills)) {
+      updateFields.skills = data.skills.map((s) => String(s).trim()).filter(Boolean);
+    }
+
+    if (data.phone) {
+      const cleanPhone = normalizePhone(data.phone);
+      if (!isValidBDPhone(cleanPhone)) {
+        return { error: 'সঠিক বাংলাদেশী মোবাইল নম্বর (যেমন: 017XXXXXXXX) দিন।' };
+      }
+      updateFields.phone = cleanPhone;
+    }
+
+    await User.findOneAndUpdate(query, { $set: updateFields });
+
+    revalidatePath('/instructor');
+    revalidatePath('/instructor/settings');
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Failed to update instructor profile:', err);
+    return { error: 'প্রোফাইল আপডেট ব্যর্থ হয়েছে।' };
+  }
+}
+
+/**
+ * Updates instructor password securely with scrypt validation
+ */
+export async function updateInstructorPasswordAction(data: {
+  currentPassword?: string;
+  newPassword: string;
+}) {
+  try {
+    const session = await auth();
+    const sessionUser = session?.user as { id?: string; email?: string } | undefined;
+    if (!sessionUser?.id && !sessionUser?.email) {
+      return { error: 'লগইন আবশ্যক।' };
+    }
+
+    if (!data.newPassword || data.newPassword.length < 6) {
+      return { error: 'নতুন পাসওয়ার্ডে কমপক্ষে ৬টি অক্ষর থাকতে হবে।' };
+    }
+
+    await dbConnect();
+
+    let query: any = {};
+    if (sessionUser.id && sessionUser.id.length === 24) {
+      query._id = sessionUser.id;
+    } else if (sessionUser.email) {
+      query.email = sessionUser.email;
+    } else {
+      query._id = sessionUser.id;
+    }
+
+    const user = await User.findOne(query);
+    if (!user) return { error: 'ইউজার খুঁজে পাওয়া যায়নি।' };
+
+    if (user.password && data.currentPassword) {
+      const isMatch = verifyPassword(data.currentPassword, user.password);
+      if (!isMatch) {
+        return { error: 'বর্তমান পাসওয়ার্ডটি ভুল দেওয়া হয়েছে।' };
+      }
+    }
+
+    user.password = hashPassword(data.newPassword);
+    await user.save();
+
+    revalidatePath('/instructor/settings');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Failed to update instructor password:', err);
+    return { error: 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।' };
   }
 }
 

@@ -24,6 +24,19 @@ export interface IUser extends Document {
   problemsSolved?: number;
   completedCoursesCount?: number;
   streak?: number;
+  instructorTitle?: string;
+  organization?: string;
+  experienceYears?: number;
+  website?: string;
+  github?: string;
+  linkedin?: string;
+  twitter?: string;
+  expertise?: string[];
+  payoutMethod?: 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK';
+  payoutNumber?: string;
+  bankName?: string;
+  bankBranch?: string;
+  bankAccountName?: string;
   eloHistory?: {
     date: Date;
     oldElo: number;
@@ -61,6 +74,19 @@ const userSchema = new Schema<IUser>(
     weeklyGoalHours: { type: Number, default: 10 },
     interests: { type: [String], default: [] },
     skills: { type: [String], default: [] },
+    instructorTitle: { type: String, default: '' },
+    organization: { type: String, default: '' },
+    experienceYears: { type: Number, default: 0 },
+    website: { type: String, default: '' },
+    github: { type: String, default: '' },
+    linkedin: { type: String, default: '' },
+    twitter: { type: String, default: '' },
+    expertise: { type: [String], default: [] },
+    payoutMethod: { type: String, default: 'BKASH' },
+    payoutNumber: { type: String, default: '' },
+    bankName: { type: String, default: '' },
+    bankBranch: { type: String, default: '' },
+    bankAccountName: { type: String, default: '' },
     elo: { type: Number, default: 1200 },
     competitiveElo: { type: Number, default: 1200 },
     problemsSolved: { type: Number, default: 0 },
