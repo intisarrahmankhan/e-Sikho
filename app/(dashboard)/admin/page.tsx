@@ -18,7 +18,7 @@ import CourseManagement from '@/components/admin/CourseManagement';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
   Users, BookOpen, GraduationCap, Clock, ShieldCheck,
-  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell
+  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell, ShieldAlert
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -147,12 +147,28 @@ export default async function AdminDashboardPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
-            {user?.role === 'SUPERADMIN' && (
-              <a href="/admin/audit" className="flex items-center gap-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/30 transition-colors">
-                <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>Audit Trail</span>
-              </a>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/admin/moderation"
+                className="flex items-center gap-1.5 rounded-xl bg-rose-500/20 border border-rose-500/30 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/30 transition-colors"
+              >
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                <span>Moderation Queue</span>
+              </Link>
+              <Link
+                href="/admin/instructors/pending"
+                className="flex items-center gap-1.5 rounded-xl bg-violet-500/20 border border-violet-500/30 px-3.5 py-2 text-xs font-semibold text-violet-300 hover:bg-violet-500/30 transition-colors"
+              >
+                <GraduationCap className="h-4 w-4 shrink-0" />
+                <span>Instructor Queue</span>
+              </Link>
+              {user?.role === 'SUPERADMIN' && (
+                <a href="/admin/audit" className="flex items-center gap-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-3.5 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/30 transition-colors">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span>Audit Trail</span>
+                </a>
+              )}
+            </div>
             {totalAlerts > 0 && (
               <div className="flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-500/30 px-4 py-2 text-sm font-semibold text-amber-300">
                 <Bell className="h-4 w-4 shrink-0" />
