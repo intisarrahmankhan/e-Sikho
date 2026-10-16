@@ -126,7 +126,7 @@ describe('Task T-017 & T-018: Content Moderation Queue & Action Execution', () =
   describe('resolveModerationTicket (Task T-018)', () => {
     it('executes "Warning" penalty: resolves ticket, writes audit into MODERATOR_ACTION', async () => {
       const mockSave = vi.fn().mockResolvedValue(true);
-      const mockReport = {
+      const mockReport: any = {
         _id: 'report-warning-01',
         reported_type: 'Comment',
         targetId: 'comment-123',
@@ -183,7 +183,7 @@ describe('Task T-017 & T-018: Content Moderation Queue & Action Execution', () =
 
     it('executes "Remove" penalty on Comment: soft-deletes/hides comment, updates report, and writes to MODERATOR_ACTION', async () => {
       const mockSave = vi.fn().mockResolvedValue(true);
-      const mockReport = {
+      const mockReport: any = {
         _id: 'report-remove-comment',
         reported_type: 'Comment',
         targetId: 'comment-spam-789',

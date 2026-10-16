@@ -18,7 +18,7 @@ import CourseManagement from '@/components/admin/CourseManagement';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
   Users, BookOpen, GraduationCap, Clock, ShieldCheck,
-  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell, ShieldAlert
+  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell, ShieldAlert, RotateCcw
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -148,6 +148,13 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/admin/refunds"
+                className="flex items-center gap-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4 shrink-0" />
+                <span>Refund Panel</span>
+              </Link>
               <Link
                 href="/admin/moderation"
                 className="flex items-center gap-1.5 rounded-xl bg-rose-500/20 border border-rose-500/30 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/30 transition-colors"

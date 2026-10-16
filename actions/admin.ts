@@ -1739,11 +1739,21 @@ export async function seedDemoModerationReportsAction() {
       })) as any;
     }
 
-    const demoReports = [
+    const demoReports: Array<{
+      reporterId: any;
+      reported_type: 'Comment' | 'User' | 'Course' | 'Lesson';
+      targetId: any;
+      targetUserId: any;
+      reason: string;
+      rationale: string;
+      status: 'Open' | 'In Review' | 'Resolved' | 'Closed';
+      flaggedContentPreview: string;
+      contextData: any;
+    }> = [
       {
         reporterId: reporter._id,
         reported_type: 'Comment',
-        targetId: sampleComment._id,
+        targetId: (sampleComment as any)?._id || new mongoose.Types.ObjectId(),
         targetUserId: badUser._id,
         reason: 'Spam & Malicious Link',
         rationale: 'This user is spamming malicious external phishing links in the lecture discussion tab targeting first-year students.',
@@ -1774,7 +1784,7 @@ export async function seedDemoModerationReportsAction() {
         reporterId: reporter._id,
         reported_type: 'Course',
         targetId: sampleCourse?._id || new mongoose.Types.ObjectId(),
-        targetUserId: sampleCourse?.instructor || badUser._id,
+        targetUserId: sampleCourse?.instructorId || badUser._id,
         reason: 'Copyright & Plagiarism',
         rationale: 'The lecture slides and problem sets in Module 2 are verbatim copies of MIT 6.006 OpenCourseWare with commercial watermarks removed.',
         status: 'Open',
