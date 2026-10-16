@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Course from '@/models/Course';
@@ -37,14 +38,14 @@ export default async function AdminDashboardPage() {
     .select('_id name email role createdAt')
     .sort({ createdAt: -1 })
     .lean();
-  const pendingUsers = rawPendingUsers.map((u: any) => ({ ...u, id: u._id.toString() }));
+  const pendingUsers = JSON.parse(JSON.stringify(rawPendingUsers)).map((u: any) => ({ ...u, id: u._id }));
 
   const rawPendingCourses = await Course.find({ status: 'PENDING_REVIEW' })
     .select('_id title category createdAt instructor')
     .populate({ path: 'instructor', select: 'name role' })
     .sort({ createdAt: -1 })
     .lean();
-  const pendingCourses = rawPendingCourses.map((c: any) => ({ ...c, id: c._id.toString() }));
+  const pendingCourses = JSON.parse(JSON.stringify(rawPendingCourses)).map((c: any) => ({ ...c, id: c._id }));
 
   const rawInstructorRequests = await InstructorRequest.find({
     status: { $in: ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED'] }
@@ -52,15 +53,15 @@ export default async function AdminDashboardPage() {
     .populate({ path: 'userId', select: 'name email' })
     .sort({ createdAt: 1 })
     .lean();
-  const instructorRequests = rawInstructorRequests.map((r: any) => ({
-    ...r, id: r._id.toString(), user: r.userId
+  const instructorRequests = JSON.parse(JSON.stringify(rawInstructorRequests)).map((r: any) => ({
+    ...r, id: r._id, user: r.userId
   }));
 
   const rawCourseReviews = await Course.find({ approvalStatus: 'PENDING_REVIEW' })
     .populate({ path: 'instructor', select: 'name' })
     .sort({ createdAt: 1 })
     .lean();
-  const courseReviews = rawCourseReviews.map((c: any) => ({ ...c, id: c._id.toString() }));
+  const courseReviews = JSON.parse(JSON.stringify(rawCourseReviews)).map((c: any) => ({ ...c, id: c._id }));
 
   const totalCourses   = await Course.countDocuments();
   const totalStudents  = await User.countDocuments({ role: 'STUDENT', status: 'APPROVED' });
@@ -81,7 +82,7 @@ export default async function AdminDashboardPage() {
   const finStats = commissionAgg[0] || { totalRevenue: 0, platformCommission: 0, instructorEarnings: 0 };
 
   const rawPayouts = await PayoutRequest.find().sort({ createdAt: -1 }).lean();
-  const payoutRequests = rawPayouts.map((r: any) => ({ ...r, id: r._id.toString(), userId: r.userId.toString() }));
+  const payoutRequests = JSON.parse(JSON.stringify(rawPayouts)).map((r: any) => ({ ...r, id: r._id, userId: String(r.userId) }));
 
   const totalAlerts = pendingUsers.length + pendingCourses.length + instructorRequests.length + payoutRequests.filter((p: any) => p.status === 'REQUESTED').length;
 
@@ -245,6 +246,12 @@ export default async function AdminDashboardPage() {
                 {instructorRequests.length} pending
               </span>
             )}
+            <Link
+              href="/admin/instructors/pending"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-all"
+            >
+              Full Verification Queue &rarr;
+            </Link>
           </div>
           <CardContent className="p-6">
             <InstructorRequests requests={instructorRequests} />

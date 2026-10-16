@@ -58,7 +58,10 @@ export default async function StudentDashboardPage() {
   const enrollments: any[] = enrollmentsList || [];
 
   // 2. Instructor request status
-  const instructorRequest = await InstructorRequest.findOne({ userId }).lean();
+  const rawInstructorRequest = await InstructorRequest.findOne({ userId }).lean();
+  const instructorRequest = rawInstructorRequest
+    ? JSON.parse(JSON.stringify(rawInstructorRequest))
+    : null;
 
   // 3. Real Quiz Submissions & Certificate Stats
   const completedQuizzesCount = await ExamSubmission.countDocuments({ studentId: userId });
