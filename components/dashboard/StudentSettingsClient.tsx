@@ -19,7 +19,8 @@ import {
   Save,
   Clock,
   Layers,
-  BookOpen
+  BookOpen,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -53,6 +54,33 @@ interface StudentProfile {
   status?: string;
 }
 
+const DEFAULT_INTERESTS = [
+  'Web Development',
+  'Machine Learning & AI',
+  'Data Science',
+  'Data Structures & Algorithms',
+  'Competitive Programming',
+  'System Design & Cloud',
+  'Cyber Security',
+  'Mobile App Development',
+  'DevOps & Docker',
+];
+
+const DEFAULT_SKILLS = [
+  'JavaScript',
+  'TypeScript',
+  'React',
+  'Next.js',
+  'Node.js',
+  'Python',
+  'C/C++',
+  'SQL / PostgreSQL',
+  'MongoDB',
+  'Docker',
+  'Git & GitHub',
+  'Tailwind CSS',
+];
+
 interface StudentSettingsClientProps {
   initialProfile: StudentProfile;
 }
@@ -78,8 +106,52 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(initialProfile.weeklyGoalHours || 10);
   const [interests, setInterests] = useState<string[]>(initialProfile.interests || ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms']);
   const [skills, setSkills] = useState<string[]>(initialProfile.skills || ['JavaScript', 'React', 'TypeScript']);
+  const [availableInterests, setAvailableInterests] = useState<string[]>(() => {
+    const initial = initialProfile.interests || [];
+    return Array.from(new Set([...DEFAULT_INTERESTS, ...initial]));
+  });
+  const [availableSkills, setAvailableSkills] = useState<string[]>(() => {
+    const initial = initialProfile.skills || [];
+    return Array.from(new Set([...DEFAULT_SKILLS, ...initial]));
+  });
   const [customInterest, setCustomInterest] = useState('');
   const [customSkill, setCustomSkill] = useState('');
+
+  const handleAddInterest = () => {
+    const trimmed = customInterest.trim();
+    if (!trimmed) return;
+
+    const existing = availableInterests.find((i) => i.toLowerCase() === trimmed.toLowerCase());
+    const interestToAdd = existing || trimmed;
+
+    setAvailableInterests((prev) => (prev.includes(interestToAdd) ? prev : [...prev, interestToAdd]));
+    setInterests((prev) => (prev.includes(interestToAdd) ? prev : [...prev, interestToAdd]));
+    setCustomInterest('');
+  };
+
+  const handleRemoveCustomInterest = (e: React.MouseEvent, item: string) => {
+    e.stopPropagation();
+    setInterests((prev) => prev.filter((i) => i !== item));
+    setAvailableInterests((prev) => prev.filter((i) => i !== item));
+  };
+
+  const handleAddSkill = () => {
+    const trimmed = customSkill.trim();
+    if (!trimmed) return;
+
+    const existing = availableSkills.find((s) => s.toLowerCase() === trimmed.toLowerCase());
+    const skillToAdd = existing || trimmed;
+
+    setAvailableSkills((prev) => (prev.includes(skillToAdd) ? prev : [...prev, skillToAdd]));
+    setSkills((prev) => (prev.includes(skillToAdd) ? prev : [...prev, skillToAdd]));
+    setCustomSkill('');
+  };
+
+  const handleRemoveCustomSkill = (e: React.MouseEvent, item: string) => {
+    e.stopPropagation();
+    setSkills((prev) => prev.filter((s) => s !== item));
+    setAvailableSkills((prev) => prev.filter((s) => s !== item));
+  };
 
   // Password States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -94,6 +166,9 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  const [goalsSuccess, setGoalsSuccess] = useState<string | null>(null);
+  const [goalsError, setGoalsError] = useState<string | null>(null);
+
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
@@ -107,11 +182,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
         phone,
         headline,
         bio,
-        targetTrack,
         academicBackground,
-        weeklyGoalHours,
-        interests,
-        skills,
       });
 
       if (res.error) {
@@ -125,6 +196,44 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
         setTimeout(() => setProfileSuccess(null), 4000);
       }
     });
+  };
+
+  const handleSaveGoals = () => {
+    setGoalsSuccess(null);
+    setGoalsError(null);
+
+    startTransition(async () => {
+      const res = await updateStudentProfileAction({
+        targetTrack,
+        weeklyGoalHours,
+        interests,
+        skills,
+      });
+
+      if (res.error) {
+        setGoalsError(res.error);
+      } else {
+        setGoalsSuccess(
+          language === 'en'
+            ? 'Learning goals, target track & skills updated successfully!'
+            : 'লার্নিং লক্ষ্য, ক্যারিয়ার ট্র্যাক ও স্কিল সফলভাবে সংরক্ষিত হয়েছে!'
+        );
+        setTimeout(() => setGoalsSuccess(null), 4000);
+      }
+    });
+  };
+
+  const handleResetGoals = () => {
+    setTargetTrack(initialProfile.targetTrack || 'Fullstack Web Development');
+    setWeeklyGoalHours(initialProfile.weeklyGoalHours || 10);
+    setInterests(initialProfile.interests || ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms']);
+    setSkills(initialProfile.skills || ['JavaScript', 'React', 'TypeScript']);
+    setAvailableInterests(Array.from(new Set([...DEFAULT_INTERESTS, ...(initialProfile.interests || [])])));
+    setAvailableSkills(Array.from(new Set([...DEFAULT_SKILLS, ...(initialProfile.skills || [])])));
+    setCustomInterest('');
+    setCustomSkill('');
+    setGoalsSuccess(null);
+    setGoalsError(null);
   };
 
   const handleUpdatePassword = () => {
@@ -398,6 +507,19 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
+                {goalsSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>{goalsSuccess}</span>
+                  </div>
+                )}
+                {goalsError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span>{goalsError}</span>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-700 block">
                     {language === 'en' ? 'Primary Focus Track' : 'মূল ফোকাস ক্যারিয়ার ট্র্যাক'}
@@ -478,38 +600,47 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {[
-                      'Web Development',
-                      'Machine Learning & AI',
-                      'Data Science',
-                      'Data Structures & Algorithms',
-                      'Competitive Programming',
-                      'System Design & Cloud',
-                      'Cyber Security',
-                      'Mobile App Development',
-                      'DevOps & Docker',
-                    ].map((item) => {
+                    {availableInterests.map((item) => {
                       const isSelected = interests.includes(item);
+                      const isCustom = !DEFAULT_INTERESTS.includes(item);
                       return (
-                        <button
+                        <div
                           key={item}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setInterests(interests.filter((i) => i !== item));
-                            } else {
-                              setInterests([...interests, item]);
-                            }
-                          }}
-                          className={`text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border ${
+                          className={`inline-flex items-center text-xs rounded-xl font-bold transition border ${
                             isSelected
                               ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
                               : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                           }`}
                         >
-                          <span>{item}</span>
-                          {isSelected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setInterests(interests.filter((i) => i !== item));
+                              } else {
+                                setInterests([...interests, item]);
+                              }
+                            }}
+                            className="px-3 py-1.5 flex items-center gap-1.5 focus:outline-none"
+                          >
+                            <span>{item}</span>
+                            {isSelected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                          </button>
+                          {isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleRemoveCustomInterest(e, item)}
+                              title={language === 'en' ? 'Remove custom interest' : 'কাস্টম আগ্রহ মুছে ফেলুন'}
+                              className={`pr-2.5 pl-0.5 py-1.5 transition rounded-r-xl focus:outline-none ${
+                                isSelected
+                                  ? 'text-amber-100 hover:text-white'
+                                  : 'text-slate-400 hover:text-rose-600'
+                              }`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -522,12 +653,9 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       value={customInterest}
                       onChange={(e) => setCustomInterest(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && customInterest.trim()) {
+                        if (e.key === 'Enter') {
                           e.preventDefault();
-                          if (!interests.includes(customInterest.trim())) {
-                            setInterests([...interests, customInterest.trim()]);
-                          }
-                          setCustomInterest('');
+                          handleAddInterest();
                         }
                       }}
                       className="text-xs rounded-xl border border-slate-200 px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
@@ -536,12 +664,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        if (customInterest.trim() && !interests.includes(customInterest.trim())) {
-                          setInterests([...interests, customInterest.trim()]);
-                          setCustomInterest('');
-                        }
-                      }}
+                      onClick={handleAddInterest}
                       className="text-xs font-bold rounded-xl px-3 py-1.5"
                     >
                       + {language === 'en' ? 'Add' : 'যুক্ত করুন'}
@@ -569,41 +692,47 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {[
-                      'JavaScript',
-                      'TypeScript',
-                      'React',
-                      'Next.js',
-                      'Node.js',
-                      'Python',
-                      'C/C++',
-                      'SQL / PostgreSQL',
-                      'MongoDB',
-                      'Docker',
-                      'Git & GitHub',
-                      'Tailwind CSS',
-                    ].map((item) => {
+                    {availableSkills.map((item) => {
                       const isSelected = skills.includes(item);
+                      const isCustom = !DEFAULT_SKILLS.includes(item);
                       return (
-                        <button
+                        <div
                           key={item}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setSkills(skills.filter((s) => s !== item));
-                            } else {
-                              setSkills([...skills, item]);
-                            }
-                          }}
-                          className={`text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border ${
+                          className={`inline-flex items-center text-xs rounded-xl font-bold transition border ${
                             isSelected
                               ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                               : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                           }`}
                         >
-                          <span>{item}</span>
-                          {isSelected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSkills(skills.filter((s) => s !== item));
+                              } else {
+                                setSkills([...skills, item]);
+                              }
+                            }}
+                            className="px-3 py-1.5 flex items-center gap-1.5 focus:outline-none"
+                          >
+                            <span>{item}</span>
+                            {isSelected && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                          </button>
+                          {isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleRemoveCustomSkill(e, item)}
+                              title={language === 'en' ? 'Remove custom skill' : 'কাস্টম স্কিল মুছে ফেলুন'}
+                              className={`pr-2.5 pl-0.5 py-1.5 transition rounded-r-xl focus:outline-none ${
+                                isSelected
+                                  ? 'text-indigo-200 hover:text-white'
+                                  : 'text-slate-400 hover:text-rose-600'
+                              }`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -616,12 +745,9 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       value={customSkill}
                       onChange={(e) => setCustomSkill(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && customSkill.trim()) {
+                        if (e.key === 'Enter') {
                           e.preventDefault();
-                          if (!skills.includes(customSkill.trim())) {
-                            setSkills([...skills, customSkill.trim()]);
-                          }
-                          setCustomSkill('');
+                          handleAddSkill();
                         }
                       }}
                       className="text-xs rounded-xl border border-slate-200 px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
@@ -630,12 +756,7 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        if (customSkill.trim() && !skills.includes(customSkill.trim())) {
-                          setSkills([...skills, customSkill.trim()]);
-                          setCustomSkill('');
-                        }
-                      }}
+                      onClick={handleAddSkill}
                       className="text-xs font-bold rounded-xl px-3 py-1.5"
                     >
                       + {language === 'en' ? 'Add' : 'যুক্ত করুন'}
@@ -643,9 +764,18 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                   </div>
                 </div>
 
-                <div className="pt-2 flex justify-end">
+                <div className="pt-2 flex items-center justify-end gap-3">
                   <Button
-                    onClick={handleSaveProfile}
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetGoals}
+                    disabled={isPending}
+                    className="text-xs font-semibold rounded-xl px-4 py-2.5 text-slate-600 hover:text-slate-900 border-slate-200"
+                  >
+                    <span>{language === 'en' ? 'Discard Unsaved Changes' : 'পরিবর্তন বাতিল করুন'}</span>
+                  </Button>
+                  <Button
+                    onClick={handleSaveGoals}
                     disabled={isPending}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl px-5 py-2.5 flex items-center gap-2"
                   >

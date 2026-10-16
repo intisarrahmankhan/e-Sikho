@@ -9,7 +9,7 @@ export interface IWishlist extends Document {
 const wishlistSchema = new Schema<IWishlist>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+    courseId: { type: Schema.Types.Mixed, ref: 'Course', required: true },
     addedAt: { type: Date, default: Date.now },
   },
   {
