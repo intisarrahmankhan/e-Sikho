@@ -76,7 +76,7 @@ describe('Wishlist Server Actions', () => {
       _id: 'wish_999',
       userId: 'user_123',
       courseId: 'fullstack-nextjs',
-    });
+    } as any);
     vi.mocked(Wishlist.deleteOne).mockResolvedValueOnce({ acknowledged: true, deletedCount: 1 } as any);
 
     const res = await toggleWishlistAction('fullstack-nextjs');
