@@ -8,6 +8,8 @@ export interface IPlatformCommission extends Document {
   commissionPercentage: number;
   commissionAmount: number;
   instructorEarnings: number;
+  isRefunded?: boolean;
+  refundedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +23,8 @@ const platformCommissionSchema = new Schema<IPlatformCommission>(
     commissionPercentage: { type: Number, required: true },
     commissionAmount: { type: Number, required: true },
     instructorEarnings: { type: Number, required: true },
+    isRefunded: { type: Boolean, default: false },
+    refundedAt: { type: Date },
   },
   { timestamps: true }
 );
