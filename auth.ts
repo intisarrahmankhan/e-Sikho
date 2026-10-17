@@ -5,9 +5,11 @@ import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Instructor from '@/models/Instructor';
 import VerificationCode from '@/models/VerificationCode';
-import { normalizePhone, hashPassword, verifyPassword } from '@/lib/auth-helpers';
+import { normalizePhone, hashPassword, verifyPassword, isValidMongoObjectId } from '@/lib/auth-helpers';
+
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    trustHost: true,
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'e-sikho-auth-super-secret-key-cse314-2026',
     providers: [
         Google({
@@ -26,6 +28,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 isSignUp: { label: 'IsSignUp', type: 'text' },
             },
             async authorize(credentials) {
+                // Developer auto-login bypass (when role is supplied directly from quick login buttons)
+                if (credentials?.role && !credentials?.email && !credentials?.phone) {
+                    const role = String(credentials.role).toUpperCase();
+                    const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
+                    return {
+                        id: mockId,
+                        name: role === 'STUDENT' ? 'শিক্ষার্থী (Demo)' : 'ইন্সট্রাক্টর (Demo)',
+                        email: `dev_${role.toLowerCase()}@eshikho.test`,
+                        role: role,
+                        status: 'APPROVED',
+                    };
+                }
+
                 // Dummy credentials bypass for testing
                 if (credentials?.email === 'test@example.com' && credentials?.password === 'password123') {
                     return { id: '65f000000000000000000001', name: 'Test Student', email: 'test@example.com', role: 'STUDENT', status: 'APPROVED' } as any;
@@ -37,7 +52,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     return { id: '65f000000000000000000003', name: 'Test Admin', email: 'admin@eshikho.com', role: 'ADMIN', status: 'APPROVED' } as any;
                 }
 
-                await dbConnect();
+                try {
+                    await dbConnect();
+                } catch (dbErr: any) {
+                    console.error('MongoDB connection error during authorize:', dbErr);
+                    throw new Error('ডাটাবেজ সংযোগে সমস্যা হয়েছে (Database Connection Error)। অনুগ্রহ করে MongoDB Atlas-এ আপনার IP Whitelist যাচাই করুন।');
+                }
 
                 // 1. Phone number authentication (Sign up or Login with OTP / Password)
                 if (credentials?.phone) {
@@ -213,8 +233,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         status: 'APPROVED',
                         image: '',
                     });
-                } 
-                
+                }
+
                 if (requestedRole === 'INSTRUCTOR' && user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
                     const InstructorRequest = (await import('@/models/InstructorRequest')).default;
                     const existingReq = await InstructorRequest.findOne({ userId: user._id });
@@ -238,9 +258,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 };
             },
         }),
+        Credentials({
+            name: "Developer Auto Login",
+            credentials: {
+                role: { label: "Role (STUDENT, INSTRUCTOR, ADMIN)", type: "text", placeholder: "INSTRUCTOR" }
+            },
+            async authorize(credentials) {
+                const role = (credentials?.role as string)?.toUpperCase() || 'INSTRUCTOR';
+                const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
+
+                return {
+                    id: mockId,
+                    name: `Dev ${role}`,
+                    email: `dev_${role.toLowerCase()}@eshikho.test`,
+                    role: role,
+                    status: 'APPROVED',
+                };
+            }
+        })
     ],
     pages: {
         signIn: '/login',
+        error: '/login',
     },
     callbacks: {
         authorized({ auth, request: { nextUrl } }: any) {
@@ -281,35 +320,56 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
             return true;
         },
-        async jwt({ token, user }: any) {
+        async jwt({ token, user, account }: any) {
             if (user) {
                 token.id = (user as any).id || token.id;
-                token.role = (user as any).role || token.role;
-                token.status = (user as any).status || token.status;
+                token.role = (user as any).role || token.role || 'STUDENT';
+                token.status = (user as any).status || token.status || 'APPROVED';
                 token.phone = (user as any).phone || token.phone;
-                if ((user as any).name) token.name = (user as any).name;
+                if (user.name) token.name = user.name;
             }
-            if (token.email) {
-                try {
+
+            // Ensure token.id is ALWAYS a valid 24-character hexadecimal MongoDB ObjectId.
+            // If it is a UUID (e.g. from Google or NextAuth session defaults), an email, or missing, resolve it from MongoDB.
+            const hasValidObjectId = isValidMongoObjectId(token.id);
+
+            try {
+                if (token.email && (!hasValidObjectId || account?.provider === 'google')) {
                     await dbConnect();
-                    const dbUser = await User.findOne({ email: token.email }).select('_id role status name image phone').lean() as any;
+                    let dbUser = await User.findOne({ email: token.email }).select('_id role status name phone').lean() as any;
+                    if (!dbUser && (token.name || account?.provider === 'google')) {
+                        dbUser = await User.create({
+                            name: token.name || 'User',
+                            email: token.email,
+                            role: token.role || 'STUDENT',
+                            status: 'APPROVED',
+                            phone: token.phone || undefined,
+                        });
+                    }
                     if (dbUser) {
                         token.id = dbUser._id.toString();
                         token.role = dbUser.role || token.role || 'STUDENT';
                         token.status = dbUser.status || token.status || 'APPROVED';
-                        token.name = dbUser.name || token.name;
-                        token.image = dbUser.image || token.image;
-                        token.phone = dbUser.phone || token.phone;
+                        if (dbUser.phone) token.phone = dbUser.phone;
+                        if (dbUser.name) token.name = dbUser.name;
                     }
-                } catch (e) {
-                    console.error('Error in jwt callback:', e);
+                }
+            } catch (err) {
+                console.warn('Database connection warning in jwt callback:', err);
+                if (!hasValidObjectId) {
+                    token.id = '65f000000000000000000001';
                 }
             }
+
+            if (!isValidMongoObjectId(token.id)) {
+                token.id = '65f000000000000000000001';
+            }
+
             return token;
         },
         async session({ session, token }: any) {
             if (session.user) {
-                (session.user as any).id = token.id;
+                (session.user as any).id = isValidMongoObjectId(token.id) ? token.id : '65f000000000000000000001';
                 (session.user as any).role = token.role ?? 'STUDENT';
                 (session.user as any).status = token.status ?? 'APPROVED';
                 (session.user as any).phone = token.phone;

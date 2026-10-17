@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (status === 'success') {
-      const course = await Course.findById(courseId).select('price');
+      const course = await Course.findById(courseId).select('price originalPrice studentsEnrolled isEarlyBird earlyBirdUntil createdAt');
       if (course && course.price > 0) {
         await processEnrollmentCommission(enrollment._id.toString(), courseId, course.price);
       }

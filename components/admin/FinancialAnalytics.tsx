@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DollarSign, TrendingUp, CheckCircle, Clock, ArrowUpRight } from 'lucide-react';
@@ -65,13 +66,19 @@ export default function FinancialAnalytics({
         </Card>
         
         <Card className="bg-indigo-50 border-indigo-100">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 bg-indigo-100 rounded-lg text-indigo-700">
-              <TrendingUp className="w-6 h-6" />
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-indigo-100 rounded-lg text-indigo-700">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-indigo-800">Platform Commission</p>
+                <h3 className="text-2xl font-bold text-indigo-900">৳{platformCommission.toLocaleString()}</h3>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-indigo-800">Platform Commission</p>
-              <h3 className="text-2xl font-bold text-indigo-900">৳{platformCommission.toLocaleString()}</h3>
+            <div className="text-right hidden sm:block">
+              <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-indigo-200 text-indigo-800 block">Rules Active</span>
+              <span className="text-[11px] text-indigo-700">10% Default | 5% Early Bird</span>
             </div>
           </CardContent>
         </Card>
@@ -90,11 +97,17 @@ export default function FinancialAnalytics({
       </div>
 
       <div className="mt-6 border rounded-xl overflow-hidden bg-white">
-        <div className="bg-slate-50 px-4 py-3 border-b">
+        <div className="bg-slate-50 px-4 py-3 border-b flex items-center justify-between">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
             <Clock className="w-4 h-4 text-slate-500" />
             Instructor Payout Requests
           </h3>
+          <Link
+            href="/admin/payouts"
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 hover:underline"
+          >
+            Manage Payout Workflows & Ledger &rarr;
+          </Link>
         </div>
         {requests.length === 0 ? (
           <div className="p-8 text-center text-slate-500">No payout requests pending.</div>

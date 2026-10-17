@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import dbConnect from '@/lib/mongoose';
 import Notification from '@/models/Notification';
 import User from '@/models/User';
+import { isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -17,15 +18,24 @@ export async function getUserNotificationsAction() {
   try {
     const session = await auth();
     const sessionUserId = (session?.user as any)?.id;
-    if (!sessionUserId) {
+    const sessionUserEmail = (session?.user as any)?.email;
+    if (!sessionUserId && !sessionUserEmail) {
       return { success: true, notifications: [], unreadCount: 0 };
     }
 
     await dbConnect();
 
-    let userQuery: any = { _id: sessionUserId };
-    if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
+    let userQuery: any = null;
+    if (isValidMongoObjectId(sessionUserId)) {
+      userQuery = { _id: sessionUserId };
+    } else if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
       userQuery = { email: sessionUserId };
+    } else if (sessionUserEmail) {
+      userQuery = { email: sessionUserEmail };
+    }
+
+    if (!userQuery) {
+      return { success: true, notifications: [], unreadCount: 0 };
     }
     const user = await User.findOne(userQuery).select('_id').lean() as any;
     if (!user) {
@@ -98,14 +108,21 @@ export async function markAllNotificationsAsReadAction() {
   try {
     const session = await auth();
     const sessionUserId = (session?.user as any)?.id;
-    if (!sessionUserId) return { error: 'লগইন আবশ্যক।' };
+    const sessionUserEmail = (session?.user as any)?.email;
+    if (!sessionUserId && !sessionUserEmail) return { error: 'লগইন আবশ্যক।' };
 
     await dbConnect();
 
-    let userQuery: any = { _id: sessionUserId };
-    if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
+    let userQuery: any = null;
+    if (isValidMongoObjectId(sessionUserId)) {
+      userQuery = { _id: sessionUserId };
+    } else if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
       userQuery = { email: sessionUserId };
+    } else if (sessionUserEmail) {
+      userQuery = { email: sessionUserEmail };
     }
+
+    if (!userQuery) return { error: 'ইউজার পাওয়া যায়নি।' };
     const user = await User.findOne(userQuery).select('_id').lean() as any;
     if (!user) return { error: 'ইউজার পাওয়া যায়নি।' };
 

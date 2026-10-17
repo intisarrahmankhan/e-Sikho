@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 // Mock server actions and next/navigation
 vi.mock('@/actions/auth', () => ({
   loginWithGoogle: vi.fn(),
+  loginAsDeveloper: vi.fn(),
   signUpWithPhone: vi.fn(),
   loginWithPhone: vi.fn(),
 }));

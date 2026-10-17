@@ -34,6 +34,8 @@ export interface ICourse extends Document {
   courseEndDate?: Date;
   allowRevisionAccess?: boolean;
   revisionAccessDays?: number;
+  isEarlyBird?: boolean;
+  earlyBirdUntil?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,6 +78,8 @@ const courseSchema = new Schema<ICourse>(
     courseEndDate: { type: Date },
     allowRevisionAccess: { type: Boolean, default: true },
     revisionAccessDays: { type: Number, default: 14 },
+    isEarlyBird: { type: Boolean, default: false },
+    earlyBirdUntil: { type: Date },
   },
   {
     timestamps: true,

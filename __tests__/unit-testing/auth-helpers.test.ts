@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePhone, isValidBDPhone, hashPassword, verifyPassword } from '@/lib/auth-helpers';
+import { normalizePhone, isValidBDPhone, hashPassword, verifyPassword, isValidMongoObjectId } from '@/lib/auth-helpers';
 
 describe('auth-helpers', () => {
   describe('normalizePhone', () => {
@@ -40,4 +40,21 @@ describe('auth-helpers', () => {
       expect(verifyPassword('WrongPassword', hash)).toBe(false);
     });
   });
+
+  describe('isValidMongoObjectId', () => {
+    it('accepts valid 24-character hexadecimal MongoDB ObjectIds', () => {
+      expect(isValidMongoObjectId('65f000000000000000000001')).toBe(true);
+      expect(isValidMongoObjectId('507f1f77bcf86cd799439011')).toBe(true);
+    });
+
+    it('rejects UUID strings and prevents Mongoose CastError', () => {
+      expect(isValidMongoObjectId('89ec140b-e56a-4cd9-a75b-ddf7cb80b754')).toBe(false);
+      expect(isValidMongoObjectId('student@example.com')).toBe(false);
+      expect(isValidMongoObjectId('student-1')).toBe(false);
+      expect(isValidMongoObjectId(null)).toBe(false);
+      expect(isValidMongoObjectId(undefined)).toBe(false);
+      expect(isValidMongoObjectId('')).toBe(false);
+    });
+  });
 });
+

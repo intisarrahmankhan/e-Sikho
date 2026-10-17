@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import InstructorRequest from '@/models/InstructorRequest';
-import { hashPassword, verifyPassword, normalizePhone, isValidBDPhone } from '@/lib/auth-helpers';
+import { hashPassword, verifyPassword, normalizePhone, isValidBDPhone, isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -13,6 +13,7 @@ import { revalidatePath } from 'next/cache';
 export async function requestInstructorRole(formData: FormData) {
   const session = await auth();
   const userId = (session?.user as { id?: string; role?: string } | undefined)?.id;
+  const userEmail = (session?.user as { email?: string } | undefined)?.email;
   const role = (session?.user as { role?: string } | undefined)?.role;
   const reason = String(formData.get('reason') || '').trim();
 
@@ -21,13 +22,22 @@ export async function requestInstructorRole(formData: FormData) {
 
   await dbConnect();
 
-  const existing = await InstructorRequest.findOne({ userId });
+  let safeUserId = userId;
+  if (!isValidMongoObjectId(safeUserId) && userEmail) {
+    const u = (await User.findOne({ email: userEmail }).select('_id').lean()) as any;
+    if (u) safeUserId = u._id.toString();
+  }
+  if (!isValidMongoObjectId(safeUserId)) {
+    return { error: 'ইউজার অ্যাকাউন্ট যাচাই করা যায়নি।' };
+  }
+
+  const existing = await InstructorRequest.findOne({ userId: safeUserId });
   if (existing && ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED', 'APPROVED'].includes(existing.status)) {
     return { error: 'আপনার একটি সক্রিয় ইন্সট্রাক্টর রিকোয়েস্ট ইতিমধ্যে প্রক্রিয়াধীন রয়েছে।' };
   }
 
   await InstructorRequest.findOneAndUpdate(
-    { userId },
+    { userId: safeUserId },
     { reason, status: 'PENDING', adminApprovedAt: null, superadminApprovedAt: null, reviewedAt: null },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
@@ -44,14 +54,21 @@ export async function getStudentProfileAction() {
   try {
     const session = await auth();
     const sessionUserId = (session?.user as any)?.id;
-    if (!sessionUserId) return { error: 'লগইন আবশ্যক।' };
+    const sessionUserEmail = (session?.user as any)?.email;
+    if (!sessionUserId && !sessionUserEmail) return { error: 'লগইন আবশ্যক।' };
 
     await dbConnect();
 
-    let query: any = { _id: sessionUserId };
-    if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
+    let query: any = null;
+    if (isValidMongoObjectId(sessionUserId)) {
+      query = { _id: sessionUserId };
+    } else if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
       query = { email: sessionUserId };
+    } else if (sessionUserEmail) {
+      query = { email: sessionUserEmail };
     }
+
+    if (!query) return { error: 'ইউজার প্রোফাইল পাওয়া যায়নি।' };
 
     const user = await User.findOne(query).select('-password').lean() as any;
     if (!user) return { error: 'ইউজার প্রোফাইল পাওয়া যায়নি।' };
@@ -111,10 +128,17 @@ export async function updateStudentProfileAction(data: {
 
     await dbConnect();
 
-    let query: any = { _id: sessionUserId };
-    if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
+    let query: any = null;
+    const sessionUserEmail = (session?.user as any)?.email;
+    if (isValidMongoObjectId(sessionUserId)) {
+      query = { _id: sessionUserId };
+    } else if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
       query = { email: sessionUserId };
+    } else if (sessionUserEmail) {
+      query = { email: sessionUserEmail };
     }
+
+    if (!query) return { error: 'ইউজার খুঁজে পাওয়া যায়নি।' };
 
     const updateFields: any = {};
     if (data.name !== undefined) updateFields.name = data.name.trim();
@@ -169,10 +193,17 @@ export async function updateStudentPasswordAction(data: {
 
     await dbConnect();
 
-    let query: any = { _id: sessionUserId };
-    if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
+    let query: any = null;
+    const sessionUserEmail = (session?.user as any)?.email;
+    if (isValidMongoObjectId(sessionUserId)) {
+      query = { _id: sessionUserId };
+    } else if (typeof sessionUserId === 'string' && sessionUserId.includes('@')) {
       query = { email: sessionUserId };
+    } else if (sessionUserEmail) {
+      query = { email: sessionUserEmail };
     }
+
+    if (!query) return { error: 'ইউজার খুঁজে পাওয়া যায়নি।' };
 
     const user = await User.findOne(query);
     if (!user) return { error: 'ইউজার খুঁজে পাওয়া যায়নি।' };

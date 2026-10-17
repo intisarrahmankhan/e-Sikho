@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import {
   loginWithGoogle,
+  loginAsDeveloper,
   signUpWithPhone,
   signUpWithPhoneOtp,
   loginWithPhone,
@@ -125,7 +126,7 @@ function LoginForm() {
       if (err?.message !== 'NEXT_REDIRECT' && !err?.digest?.startsWith('NEXT_REDIRECT')) {
         setError(
           err?.message ||
-            (language === 'en' ? 'Error signing in with Google.' : 'Google সাইন ইন করতে সমস্যা হয়েছে।')
+          (language === 'en' ? 'Error signing in with Google.' : 'Google সাইন ইন করতে সমস্যা হয়েছে।')
         );
         setIsGoogleLoading(false);
       }
@@ -437,6 +438,7 @@ function LoginForm() {
           </button>
         </div>
 
+
         {/* Divider */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex-1 h-px bg-slate-200" />
@@ -456,11 +458,10 @@ function LoginForm() {
               setError(null);
               setSuccess(null);
             }}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'signup'
-                ? 'bg-white text-primary-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'signup'
+              ? 'bg-white text-primary-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-900'
+              }`}
           >
             {t('auth.tabSignUp', 'মোবাইল দিয়ে সাইন আপ')}
           </button>
@@ -472,11 +473,10 @@ function LoginForm() {
               setError(null);
               setSuccess(null);
             }}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'login'
-                ? 'bg-white text-primary-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'login'
+              ? 'bg-white text-primary-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-900'
+              }`}
           >
             {t('auth.tabLogin', 'মোবাইল দিয়ে লগইন')}
           </button>
@@ -531,11 +531,10 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setRole('STUDENT')}
-                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                        role === 'STUDENT'
-                          ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${role === 'STUDENT'
+                        ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
                     >
                       <GraduationCap className="h-4 w-4 text-primary-600" />
                       <span>{t('auth.roleStudent', 'শিক্ষার্থী')}</span>
@@ -543,11 +542,10 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setRole('INSTRUCTOR')}
-                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                        role === 'INSTRUCTOR'
-                          ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${role === 'INSTRUCTOR'
+                        ? 'border-primary-600 bg-primary-50 text-primary-900 shadow-sm'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
                     >
                       <Briefcase className="h-4 w-4 text-primary-600" />
                       <span>{t('auth.roleInstructor', 'ইন্সট্রাক্টর')}</span>
@@ -932,7 +930,27 @@ function LoginForm() {
         )}
 
 
-        {/* Info & Terms */}
+        {/* Developer Auto Login */}
+        <div className="mt-6 pt-4 border-t border-slate-100">
+          <p className="text-xs text-center text-slate-400 mb-3 font-medium">Developer Auto-Login</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => loginAsDeveloper?.('INSTRUCTOR', '/instructor')}
+              type="button"
+              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl transition-colors"
+            >
+              Test as Instructor
+            </button>
+            <button
+              onClick={() => loginAsDeveloper?.('STUDENT', '/student')}
+              type="button"
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl transition-colors"
+            >
+              Test as Student
+            </button>
+          </div>
+        </div>
+
         <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">
           {t('auth.termsPrefix', 'সাইন ইন করার মাধ্যমে আপনি আমাদের ')}
           <Link href="/terms" className="text-primary-600 hover:underline">

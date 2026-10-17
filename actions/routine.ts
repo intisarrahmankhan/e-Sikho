@@ -19,18 +19,24 @@ import mongoose from 'mongoose';
 
 async function getAuthenticatedUserId(): Promise<string | null> {
   const session = await auth();
-  let userId = (session?.user as { id?: string } | undefined)?.id;
-  if (!userId) return null;
+  let userId = (session?.user as { id?: string; email?: string } | undefined)?.id;
+  const userEmail = (session?.user as { email?: string } | undefined)?.email;
+  if (!userId && !userEmail) return null;
 
-  if (typeof userId === 'string' && userId.includes('@')) {
-    await dbConnect();
-    const userDoc = (await User.findOne({ email: userId }).select('_id').lean()) as any;
-    if (userDoc) {
-      userId = userDoc._id.toString();
-    }
+  await dbConnect();
+  if (typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId)) {
+    return userId;
   }
 
-  return userId || null;
+  if (typeof userId === 'string' && userId.includes('@')) {
+    const userDoc = (await User.findOne({ email: userId }).select('_id').lean()) as any;
+    if (userDoc) return userDoc._id.toString();
+  } else if (userEmail) {
+    const userDoc = (await User.findOne({ email: userEmail }).select('_id').lean()) as any;
+    if (userDoc) return userDoc._id.toString();
+  }
+
+  return typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId) ? userId : null;
 }
 
 async function resolveCourseData(courseId: string): Promise<SchedulerCourse> {

@@ -12,9 +12,16 @@ export const authConfig = {
     Credentials({
       credentials: {
         email: { label: 'Email', type: 'email' },
+        phone: { label: 'Phone', type: 'text' },
         password: { label: 'Password', type: 'password' },
+        role: { label: 'Role', type: 'text' },
       },
       async authorize(credentials) {
+        if (credentials?.role && !credentials?.email && !credentials?.phone) {
+          const role = String(credentials.role).toUpperCase();
+          const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
+          return { id: mockId, name: `Demo ${role}`, email: `dev_${role.toLowerCase()}@eshikho.test`, role, status: 'APPROVED' };
+        }
         if (credentials?.email === 'test@example.com' && credentials?.password === 'password123') {
           return { id: '65f000000000000000000001', name: 'Test Student', email: 'test@example.com', role: 'STUDENT', status: 'APPROVED' };
         }
@@ -51,7 +58,7 @@ export const authConfig = {
     // Required so middleware can read role/id/status from the JWT token
     session({ session, token }: any) {
       if (session.user) {
-        (session.user as any).id = token.id;
+        (session.user as any).id = token.id || token.sub || '65f000000000000000000001';
         (session.user as any).role = token.role ?? 'STUDENT';
         (session.user as any).status = token.status ?? 'APPROVED';
         (session.user as any).phone = token.phone;

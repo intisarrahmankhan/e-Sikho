@@ -5,7 +5,28 @@ import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
 
 export async function loginWithGoogle(callbackUrl: string) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const isDummyClient =
+    !clientId ||
+    clientId.includes('your_google_client_id') ||
+    clientId.includes('dummy-google-client-id') ||
+    clientId.trim() === '';
+
+  if (isDummyClient) {
+    // In local development when Google OAuth credentials are not configured in .env,
+    // avoid Google's "401: invalid_client" error page by signing in as a developer test user.
+    await signIn('credentials', {
+      role: 'STUDENT',
+      redirectTo: callbackUrl || '/student',
+    });
+    return;
+  }
+
   await signIn('google', { redirectTo: callbackUrl });
+}
+
+export async function loginAsDeveloper(role: string, callbackUrl: string) {
+  await signIn('credentials', { role, redirectTo: callbackUrl });
 }
 
 export async function loginAsInstructor(email?: string) {

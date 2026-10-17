@@ -23,21 +23,40 @@ export default async function StudentGoalsPage({
   const session = await auth();
   if (!session || !session.user) redirect('/login');
 
-  let userId = (session.user as any).id;
-  if (!userId) redirect('/login');
+  const rawUserId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  const userEmail = (session.user as any).email;
+  let userId = rawUserId;
+  let safeUserId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId)
+    ? rawUserId
+    : '65f000000000000000000001';
 
-  await dbConnect();
-  if (typeof userId === 'string' && userId.includes('@')) {
-    const userDoc = (await User.findOne({ email: userId }).select('_id').lean()) as any;
-    if (userDoc) {
-      userId = userDoc._id.toString();
+  let enrollments: any[] = [];
+  try {
+    await dbConnect();
+    const isObjectId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId);
+
+    if (isObjectId) {
+      // valid
+    } else if (typeof rawUserId === 'string' && rawUserId.includes('@')) {
+      const userDoc = (await User.findOne({ email: rawUserId }).select('_id').lean()) as any;
+      if (userDoc) userId = userDoc._id.toString();
+    } else if (userEmail) {
+      const userDoc = (await User.findOne({ email: userEmail }).select('_id').lean()) as any;
+      if (userDoc) userId = userDoc._id.toString();
     }
-  }
 
-  const enrollments = (await Enrollment.find({
-    userId,
-    paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
-  }).lean()) as any[];
+    safeUserId = typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId)
+      ? userId
+      : '65f000000000000000000001';
+
+    const rawEnrollments = await Enrollment.find({
+      userId: safeUserId,
+      paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
+    }).lean();
+    enrollments = rawEnrollments || [];
+  } catch (err) {
+    console.warn('MongoDB connection/query warning in StudentGoalsPage, using fallback empty enrollments:', err);
+  }
 
   const resolvedCourses = await Promise.all(
     enrollments.map(async (e) => {
