@@ -1,5 +1,7 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
+export type PlatformCommissionRule = 'DEFAULT' | 'EARLY_BIRD';
+
 export interface IPlatformCommission extends Document {
   courseId: mongoose.Types.ObjectId | string;
   enrollmentId: mongoose.Types.ObjectId | string;
@@ -8,8 +10,11 @@ export interface IPlatformCommission extends Document {
   commissionPercentage: number;
   commissionAmount: number;
   instructorEarnings: number;
+  commissionRule: PlatformCommissionRule | string;
+  ruleApplied: PlatformCommissionRule | string;
   isRefunded?: boolean;
   refundedAt?: Date;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +28,18 @@ const platformCommissionSchema = new Schema<IPlatformCommission>(
     commissionPercentage: { type: Number, required: true },
     commissionAmount: { type: Number, required: true },
     instructorEarnings: { type: Number, required: true },
+    commissionRule: {
+      type: String,
+      enum: ['DEFAULT', 'EARLY_BIRD'],
+      default: 'DEFAULT',
+      index: true,
+    },
+    ruleApplied: {
+      type: String,
+      enum: ['DEFAULT', 'EARLY_BIRD'],
+      default: 'DEFAULT',
+    },
+    notes: { type: String, default: '' },
     isRefunded: { type: Boolean, default: false },
     refundedAt: { type: Date },
   },

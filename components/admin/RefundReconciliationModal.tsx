@@ -84,8 +84,10 @@ export default function RefundReconciliationModal({
 
   if (!isOpen) return null;
 
-  const commissionFee = Math.round((payment.amount * 20) / 100);
+  const commissionPercentage = (payment as any).commissionPercentage || 10;
+  const commissionFee = Math.round((payment.amount * commissionPercentage) / 100);
   const instructorFee = payment.amount - commissionFee;
+  const instructorPercentage = 100 - commissionPercentage;
 
   const handleProcessRefund = async () => {
     setIsSubmitting(true);
@@ -283,14 +285,14 @@ export default function RefundReconciliationModal({
                 <span className="text-base font-bold text-amber-600 dark:text-amber-400">
                   -৳{commissionFee.toLocaleString()}
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">20% fee reversal</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">{commissionPercentage}% fee reversal</span>
               </div>
               <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2.5">
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Instructor Earnings</span>
                 <span className="text-base font-bold text-indigo-600 dark:text-indigo-400">
                   -৳{instructorFee.toLocaleString()}
                 </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">80% wallet clawback</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">{instructorPercentage}% wallet clawback</span>
               </div>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2.5 flex items-center gap-1.5">

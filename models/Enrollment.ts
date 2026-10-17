@@ -14,6 +14,8 @@ export interface IEnrollment extends Document {
   revisionRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
   revisionReason?: string;
   revisionExamDate?: string;
+  isEarlyBird?: boolean;
+  commissionRule?: string;
 }
 
 const enrollmentSchema = new Schema<IEnrollment>(
@@ -35,6 +37,8 @@ const enrollmentSchema = new Schema<IEnrollment>(
     },
     revisionReason: { type: String, default: '' },
     revisionExamDate: { type: String, default: '' },
+    isEarlyBird: { type: Boolean, default: false },
+    commissionRule: { type: String, default: 'DEFAULT' },
   },
   {
     timestamps: false,

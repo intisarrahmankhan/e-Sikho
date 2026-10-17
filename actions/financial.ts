@@ -12,18 +12,28 @@ import Payment from '@/models/Payment';
 import { auth } from '@/auth';
 import { isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
+import {
+  calculatePlatformCommission,
+  COMMISSION_RULES,
+  PlatformCommissionRuleType,
+} from '@/lib/commission';
 
 /**
  * Calculates platform commission and updates instructor balance.
+ * Implements configurable commission rules:
+ * - Default rule: 10% platform commission
+ * - Early Bird rule: 5% platform commission
  * Runs atomically using a Mongoose transaction.
  */
 export async function processEnrollmentCommission(
   enrollmentId: string,
   courseId: string,
-  price: number
+  price: number,
+  options?: {
+    isEarlyBird?: boolean;
+    rule?: PlatformCommissionRuleType | string;
+  }
 ) {
-  const PLATFORM_COMMISSION_PERCENTAGE = 20; // e.g., 20% platform fee
-
   // Use a mongoose session for transaction
   await dbConnect();
   const dbSession = await mongoose.startSession();
@@ -34,24 +44,38 @@ export async function processEnrollmentCommission(
     const course = await Course.findById(courseId).session(dbSession);
     if (!course) throw new Error('Course not found');
 
-    const commissionAmount = (price * PLATFORM_COMMISSION_PERCENTAGE) / 100;
-    const instructorEarnings = price - commissionAmount;
+    // Calculate commission using configured business rules (10% Default, 5% Early Bird)
+    const calc = calculatePlatformCommission(price, options, course);
 
-    // Create the commission record
+    // Create the commission record with rule tracking
     await PlatformCommission.create(
       [
         {
           courseId,
           enrollmentId,
           instructorUserId: course.createdById,
-          totalAmount: price,
-          commissionPercentage: PLATFORM_COMMISSION_PERCENTAGE,
-          commissionAmount,
-          instructorEarnings,
+          totalAmount: calc.totalAmount,
+          commissionPercentage: calc.commissionPercentage,
+          commissionAmount: calc.commissionAmount,
+          instructorEarnings: calc.instructorEarnings,
+          commissionRule: calc.rule,
+          ruleApplied: calc.ruleApplied,
         },
       ],
       { session: dbSession }
     );
+
+    // Update enrollment with early bird / rule information if present
+    if (isValidMongoObjectId(enrollmentId)) {
+      await Enrollment.findByIdAndUpdate(
+        enrollmentId,
+        {
+          isEarlyBird: calc.isEarlyBird,
+          commissionRule: calc.rule,
+        },
+        { session: dbSession }
+      );
+    }
 
     // Update the instructor's balance
     if (course.createdById && isValidMongoObjectId(course.createdById)) {
@@ -59,8 +83,8 @@ export async function processEnrollmentCommission(
         course.createdById,
         {
           $inc: {
-            availableBalance: instructorEarnings,
-            totalEarnings: instructorEarnings,
+            availableBalance: calc.instructorEarnings,
+            totalEarnings: calc.instructorEarnings,
           },
         },
         { session: dbSession }
@@ -68,7 +92,7 @@ export async function processEnrollmentCommission(
     }
 
     await dbSession.commitTransaction();
-    return { success: true };
+    return { success: true, commission: calc };
   } catch (error) {
     await dbSession.abortTransaction();
     console.error('Error processing commission:', error);
@@ -631,9 +655,11 @@ export async function seedDemoRefundRequestsAction() {
           enrollmentId: enr._id,
           instructorUserId: instructor._id,
           totalAmount: d.amount,
-          commissionPercentage: 20,
-          commissionAmount: (d.amount * 20) / 100,
-          instructorEarnings: (d.amount * 80) / 100,
+          commissionPercentage: 10,
+          commissionAmount: (d.amount * 10) / 100,
+          instructorEarnings: (d.amount * 90) / 100,
+          commissionRule: 'DEFAULT',
+          ruleApplied: 'DEFAULT',
           isRefunded: !!d.refunded,
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -663,5 +689,52 @@ export async function seedDemoRefundRequestsAction() {
   } catch (error: any) {
     console.error('Failed to seed demo refunds:', error);
     return { success: false, error: error?.message || 'Failed to seed demo refunds.' };
+  }
+}
+
+/**
+ * Returns platform commission ledger records and breakdown by applied rule (DEFAULT vs EARLY_BIRD).
+ */
+export async function getPlatformCommissionReportAction() {
+  try {
+    await dbConnect();
+
+    const commissions = await PlatformCommission.find()
+      .sort({ createdAt: -1 })
+      .populate('courseId', 'title price')
+      .populate('instructorUserId', 'name email')
+      .lean();
+
+    const defaultRuleCount = commissions.filter(
+      (c: any) => c.commissionRule === 'DEFAULT' || c.ruleApplied === 'DEFAULT'
+    ).length;
+    const earlyBirdRuleCount = commissions.filter(
+      (c: any) => c.commissionRule === 'EARLY_BIRD' || c.ruleApplied === 'EARLY_BIRD'
+    ).length;
+
+    const totalCommissionAmount = commissions.reduce(
+      (sum: number, c: any) => sum + (c.commissionAmount || 0),
+      0
+    );
+    const totalInstructorEarnings = commissions.reduce(
+      (sum: number, c: any) => sum + (c.instructorEarnings || 0),
+      0
+    );
+
+    return {
+      success: true,
+      commissions: JSON.parse(JSON.stringify(commissions)),
+      stats: {
+        totalRecords: commissions.length,
+        defaultRuleCount,
+        earlyBirdRuleCount,
+        totalCommissionAmount,
+        totalInstructorEarnings,
+        rules: COMMISSION_RULES,
+      },
+    };
+  } catch (err: any) {
+    console.error('Failed to get platform commission report:', err);
+    return { success: false, error: err.message || 'Failed to fetch commissions', commissions: [] };
   }
 }
