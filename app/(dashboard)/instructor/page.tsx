@@ -67,6 +67,7 @@ export default async function InstructorDashboardPage() {
   let availableBalance = 0;
   let totalEarnings = 0;
   let courses: any[] = [];
+  let payoutRequests: any[] = [];
 
   try {
     await dbConnect();
@@ -92,6 +93,15 @@ export default async function InstructorDashboardPage() {
       .lean();
 
     courses = (rawCourses || []).map((c: any) => ({ ...c, id: c._id.toString() }));
+
+    const { default: PayoutRequest } = await import('@/models/PayoutRequest');
+    const rawPayoutRequests = await PayoutRequest.find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    payoutRequests = JSON.parse(JSON.stringify(rawPayoutRequests || [])).map((r: any) => ({
+      id: r._id.toString(),
+      ...r,
+    }));
   } catch (err) {
     console.warn('MongoDB connection/query warning in InstructorDashboardPage, using fallback defaults:', err);
   }
@@ -209,6 +219,7 @@ export default async function InstructorDashboardPage() {
         userId={userId} 
         availableBalance={availableBalance} 
         totalEarnings={totalEarnings} 
+        initialRequests={payoutRequests}
       />
 
       {/* ── Alert Strips ── */}

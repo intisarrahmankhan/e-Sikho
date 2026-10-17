@@ -1,14 +1,28 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
+export type PayoutStatus = 'PENDING' | 'REQUESTED' | 'APPROVED' | 'DISBURSED' | 'REJECTED';
+export type PayoutProvider = 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK';
+
 export interface IPayoutRequest extends Document {
-  instructorId: mongoose.Types.ObjectId | string;
+  instructorId?: mongoose.Types.ObjectId | string;
   userId: mongoose.Types.ObjectId | string;
   amount: number;
-  status: 'REQUESTED' | 'APPROVED' | 'DISBURSED' | 'REJECTED';
-  mfsProvider: 'BKASH' | 'NAGAD' | 'ROCKET' | 'BANK';
+  status: PayoutStatus;
+  mfsProvider: PayoutProvider;
   mfsNumber: string;
+  bankName?: string;
+  bankBranch?: string;
+  bankAccountName?: string;
   transactionId?: string;
   rejectionReason?: string;
+  adminNotes?: string;
+  approvedBy?: mongoose.Types.ObjectId | string;
+  approvedAt?: Date;
+  disbursedBy?: mongoose.Types.ObjectId | string;
+  disbursedAt?: Date;
+  rejectedBy?: mongoose.Types.ObjectId | string;
+  rejectedAt?: Date;
+  ledgerTransactionId?: string;
   requestedAt: Date;
   processedAt?: Date;
   createdAt: Date;
@@ -18,12 +32,13 @@ export interface IPayoutRequest extends Document {
 const payoutRequestSchema = new Schema<IPayoutRequest>(
   {
     instructorId: { type: Schema.Types.ObjectId, ref: 'Instructor' },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    amount: { type: Number, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    amount: { type: Number, required: true, min: 1 },
     status: {
       type: String,
-      enum: ['REQUESTED', 'APPROVED', 'DISBURSED', 'REJECTED'],
-      default: 'REQUESTED',
+      enum: ['PENDING', 'REQUESTED', 'APPROVED', 'DISBURSED', 'REJECTED'],
+      default: 'PENDING',
+      index: true,
     },
     mfsProvider: {
       type: String,
@@ -31,8 +46,19 @@ const payoutRequestSchema = new Schema<IPayoutRequest>(
       required: true,
     },
     mfsNumber: { type: String, required: true },
-    transactionId: { type: String },
+    bankName: { type: String, default: '' },
+    bankBranch: { type: String, default: '' },
+    bankAccountName: { type: String, default: '' },
+    transactionId: { type: String, index: true },
     rejectionReason: { type: String },
+    adminNotes: { type: String },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    approvedAt: { type: Date },
+    disbursedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    disbursedAt: { type: Date },
+    rejectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    rejectedAt: { type: Date },
+    ledgerTransactionId: { type: String },
     requestedAt: { type: Date, default: Date.now },
     processedAt: { type: Date },
   },

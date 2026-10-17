@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DollarSign, TrendingUp, CheckCircle, Clock, ArrowUpRight } from 'lucide-react';
@@ -96,11 +97,17 @@ export default function FinancialAnalytics({
       </div>
 
       <div className="mt-6 border rounded-xl overflow-hidden bg-white">
-        <div className="bg-slate-50 px-4 py-3 border-b">
+        <div className="bg-slate-50 px-4 py-3 border-b flex items-center justify-between">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
             <Clock className="w-4 h-4 text-slate-500" />
             Instructor Payout Requests
           </h3>
+          <Link
+            href="/admin/payouts"
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 hover:underline"
+          >
+            Manage Payout Workflows & Ledger &rarr;
+          </Link>
         </div>
         {requests.length === 0 ? (
           <div className="p-8 text-center text-slate-500">No payout requests pending.</div>
