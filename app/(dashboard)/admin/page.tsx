@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Course from '@/models/Course';
@@ -17,7 +18,7 @@ import CourseManagement from '@/components/admin/CourseManagement';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
   Users, BookOpen, GraduationCap, Clock, ShieldCheck,
-  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell
+  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell, ShieldAlert, RotateCcw
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -48,14 +49,14 @@ export default async function AdminDashboardPage() {
       .select('_id name email role createdAt')
       .sort({ createdAt: -1 })
       .lean();
-    pendingUsers = (rawPendingUsers || []).map((u: any) => ({ ...u, id: u._id.toString() }));
+    pendingUsers = JSON.parse(JSON.stringify(rawPendingUsers || [])).map((u: any) => ({ ...u, id: u._id }));
 
     const rawPendingCourses = await Course.find({ status: 'PENDING_REVIEW' })
       .select('_id title category createdAt instructor')
       .populate({ path: 'instructor', select: 'name role' })
       .sort({ createdAt: -1 })
       .lean();
-    pendingCourses = (rawPendingCourses || []).map((c: any) => ({ ...c, id: c._id.toString() }));
+    pendingCourses = JSON.parse(JSON.stringify(rawPendingCourses || [])).map((c: any) => ({ ...c, id: c._id }));
 
     const rawInstructorRequests = await InstructorRequest.find({
       status: { $in: ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED'] }
@@ -63,15 +64,15 @@ export default async function AdminDashboardPage() {
       .populate({ path: 'userId', select: 'name email' })
       .sort({ createdAt: 1 })
       .lean();
-    instructorRequests = (rawInstructorRequests || []).map((r: any) => ({
-      ...r, id: r._id.toString(), user: r.userId
+    instructorRequests = JSON.parse(JSON.stringify(rawInstructorRequests || [])).map((r: any) => ({
+      ...r, id: r._id, user: r.userId
     }));
 
     const rawCourseReviews = await Course.find({ approvalStatus: 'PENDING_REVIEW' })
       .populate({ path: 'instructor', select: 'name' })
       .sort({ createdAt: 1 })
       .lean();
-    courseReviews = (rawCourseReviews || []).map((c: any) => ({ ...c, id: c._id.toString() }));
+    courseReviews = JSON.parse(JSON.stringify(rawCourseReviews || [])).map((c: any) => ({ ...c, id: c._id }));
 
     totalCourses = await Course.countDocuments();
     totalStudents = await User.countDocuments({ role: 'STUDENT', status: 'APPROVED' });
@@ -93,7 +94,7 @@ export default async function AdminDashboardPage() {
     }
 
     const rawPayouts = await PayoutRequest.find().sort({ createdAt: -1 }).lean();
-    payoutRequests = (rawPayouts || []).map((r: any) => ({ ...r, id: r._id.toString(), userId: r.userId?.toString() }));
+    payoutRequests = JSON.parse(JSON.stringify(rawPayouts || [])).map((r: any) => ({ ...r, id: r._id, userId: String(r.userId) }));
   } catch (err) {
     console.warn('MongoDB connection/query warning in AdminDashboardPage, using fallback defaults:', err);
   }
@@ -162,12 +163,35 @@ export default async function AdminDashboardPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
-            {user?.role === 'SUPERADMIN' && (
-              <a href="/admin/audit" className="flex items-center gap-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 text-sm font-semibold text-indigo-300 hover:bg-indigo-500/30 transition-colors">
-                <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>Audit Trail</span>
-              </a>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/admin/refunds"
+                className="flex items-center gap-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4 shrink-0" />
+                <span>Refund Panel</span>
+              </Link>
+              <Link
+                href="/admin/moderation"
+                className="flex items-center gap-1.5 rounded-xl bg-rose-500/20 border border-rose-500/30 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/30 transition-colors"
+              >
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                <span>Moderation Queue</span>
+              </Link>
+              <Link
+                href="/admin/instructors/pending"
+                className="flex items-center gap-1.5 rounded-xl bg-violet-500/20 border border-violet-500/30 px-3.5 py-2 text-xs font-semibold text-violet-300 hover:bg-violet-500/30 transition-colors"
+              >
+                <GraduationCap className="h-4 w-4 shrink-0" />
+                <span>Instructor Queue</span>
+              </Link>
+              {user?.role === 'SUPERADMIN' && (
+                <a href="/admin/audit" className="flex items-center gap-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/30 px-3.5 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/30 transition-colors">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span>Audit Trail</span>
+                </a>
+              )}
+            </div>
             {totalAlerts > 0 && (
               <div className="flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-500/30 px-4 py-2 text-sm font-semibold text-amber-300">
                 <Bell className="h-4 w-4 shrink-0" />
@@ -261,6 +285,12 @@ export default async function AdminDashboardPage() {
                 {instructorRequests.length} pending
               </span>
             )}
+            <Link
+              href="/admin/instructors/pending"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-all"
+            >
+              Full Verification Queue &rarr;
+            </Link>
           </div>
           <CardContent className="p-6">
             <InstructorRequests requests={instructorRequests} />

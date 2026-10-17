@@ -13,6 +13,7 @@ export interface ILesson extends Document {
   pdfName?: string;
   quizId?: mongoose.Types.ObjectId | string;
   type?: 'VIDEO' | 'PDF' | 'QUIZ';
+  isDownloadable?: boolean; // false = View-Only by default to protect intellectual property
   bunnyVideoId?: string;
   bunnyLibraryId?: string;
 }
@@ -31,6 +32,7 @@ const lessonSchema = new Schema<ILesson>(
     pdfName: { type: String, default: '' },
     quizId: { type: Schema.Types.ObjectId, ref: 'Exam' },
     type: { type: String, enum: ['VIDEO', 'PDF', 'QUIZ'], default: 'VIDEO' },
+    isDownloadable: { type: Boolean, default: false }, // Default view-only
     bunnyVideoId: { type: String, default: '' },
     bunnyLibraryId: { type: String, default: '' },
   },

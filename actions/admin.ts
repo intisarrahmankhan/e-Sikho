@@ -1,9 +1,14 @@
 'use server';
 
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Course from '@/models/Course';
 import InstructorRequest from '@/models/InstructorRequest';
+import InstructorProfile from '@/models/InstructorProfile';
+import Report from '@/models/Report';
+import ModeratorAction from '@/models/ModeratorAction';
+import Comment from '@/models/Comment';
 import Enrollment from '@/models/Enrollment';
 import Instructor from '@/models/Instructor';
 import Module from '@/models/Module';
@@ -30,6 +35,16 @@ async function checkAdminOrSuperadmin() {
   const role = (session?.user as any)?.role;
   if (!userId || (role !== 'ADMIN' && role !== 'SUPERADMIN')) {
     throw new Error('Unauthorized. Admin access required.');
+  }
+  return userId;
+}
+
+async function checkAdminOrModerator() {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const role = (session?.user as any)?.role;
+  if (!userId || (role !== 'ADMIN' && role !== 'SUPERADMIN' && role !== 'MODERATOR')) {
+    throw new Error('Unauthorized. Admin or Moderator access required.');
   }
   return userId;
 }
@@ -1013,5 +1028,806 @@ export async function syncCatalogCoursesToDb() {
   } catch (error: any) {
     console.error('Failed to sync catalog courses:', error);
     return { success: false, error: error?.message || 'Failed to sync courses.' };
+  }
+}
+
+/**
+ * Task T-016: Instructor Approval/Rejection Server Actions with Role Transition
+ * reviewInstructorApplication(profileId, decision, remarks)
+ *
+ * If approved:
+ *   - update INSTRUCTOR_PROFILE.approval_status to 'Approved'
+ *   - atomically promote the user's role to 'INSTRUCTOR'
+ *   - ensure instructor entity exists
+ * If rejected:
+ *   - record the remarks
+ *   - set approval_status to 'Rejected'
+ *   - retain student status
+ */
+export async function reviewInstructorApplication(
+  profileId: string,
+  decision: 'Approved' | 'Rejected' | 'APPROVE' | 'REJECT',
+  remarks?: string
+) {
+  try {
+    const adminId = await checkAdminOrSuperadmin();
+    await dbConnect();
+
+    const normalizedDecision =
+      decision.toUpperCase() === 'APPROVE' || decision.toLowerCase() === 'approved'
+        ? 'Approved'
+        : 'Rejected';
+
+    // 1. Locate the InstructorProfile (or fallback to linked InstructorRequest)
+    let profile = await InstructorProfile.findById(profileId);
+    let userId: any = profile?.userId;
+
+    if (!profile) {
+      // Check if profileId was an InstructorRequest ID
+      const req = await InstructorRequest.findById(profileId);
+      if (req) {
+        userId = req.userId;
+        const user = await User.findById(userId);
+        profile = await InstructorProfile.create({
+          userId: req.userId,
+          institution: 'Institutional Applicant',
+          qualifications: ['Bachelor / Master Degree'],
+          experienceYears: 3,
+          subjectSpecialization: 'Software Engineering & IT',
+          bio: req.reason,
+          approval_status: 'Pending',
+          submissionDate: req.createdAt || new Date(),
+        });
+      } else {
+        return { success: false, error: 'Instructor application profile not found.' };
+      }
+    }
+
+    if (!userId) {
+      userId = profile.userId;
+    }
+
+    // Attempt Mongoose session/transaction (safe fallback if MongoDB is not a replica set or in test environment)
+    let session: mongoose.ClientSession | null = null;
+    if (mongoose.connection?.readyState === 1) {
+      try {
+        session = await mongoose.startSession();
+        session.startTransaction();
+      } catch {
+        session = null;
+      }
+    }
+
+    try {
+      if (normalizedDecision === 'Approved') {
+        // Update profile
+        profile.approval_status = 'Approved';
+        profile.remarks = remarks || 'Approved by administrator. Welcome to the instruction team!';
+        profile.reviewedAt = new Date();
+        profile.reviewedBy = adminId as any;
+        await profile.save(session ? { session } : undefined);
+
+        // Atomically promote user role to INSTRUCTOR
+        await User.findByIdAndUpdate(
+          userId,
+          { role: 'INSTRUCTOR' },
+          session ? { session } : undefined
+        );
+
+        // Create or update Instructor entity for courses catalog
+        const userDoc = await User.findById(userId).session(session || null);
+        if (userDoc) {
+          await Instructor.findOneAndUpdate(
+            { name: userDoc.name },
+            {
+              name: userDoc.name,
+              role: profile.subjectSpecialization || 'Course Instructor',
+              avatar:
+                userDoc.image ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userDoc.name)}`,
+              bio:
+                profile.bio ||
+                userDoc.bio ||
+                `${profile.institution} | ${profile.qualifications?.join(', ')}`,
+            },
+            { upsert: true, new: true, ...(session ? { session } : {}) }
+          );
+        }
+
+        // Also update InstructorRequest if present
+        await InstructorRequest.findOneAndUpdate(
+          { userId },
+          { status: 'APPROVED', adminApprovedAt: new Date(), reviewedAt: new Date() },
+          session ? { session } : undefined
+        );
+
+        // Log audit trail
+        await AuditLog.create(
+          [
+            {
+              action: 'APPROVE_INSTRUCTOR_APPLICATION',
+              category: 'USER_MANAGEMENT',
+              actorId: adminId,
+              targetId: userId,
+              details: {
+                profileId: profile._id.toString(),
+                decision: 'Approved',
+                institution: profile.institution,
+                remarks: remarks || '',
+              },
+            },
+          ],
+          session ? { session } : undefined
+        );
+      } else {
+        // Rejected
+        profile.approval_status = 'Rejected';
+        profile.remarks = remarks || 'Application does not meet instructional verification criteria.';
+        profile.reviewedAt = new Date();
+        profile.reviewedBy = adminId as any;
+        await profile.save(session ? { session } : undefined);
+
+        // Retain user's student role (do not change role)
+        // Update InstructorRequest if present
+        await InstructorRequest.findOneAndUpdate(
+          { userId },
+          { status: 'REJECTED', reviewedAt: new Date() },
+          session ? { session } : undefined
+        );
+
+        // Log audit trail
+        await AuditLog.create(
+          [
+            {
+              action: 'REJECT_INSTRUCTOR_APPLICATION',
+              category: 'USER_MANAGEMENT',
+              actorId: adminId,
+              targetId: userId,
+              details: {
+                profileId: profile._id.toString(),
+                decision: 'Rejected',
+                remarks: remarks || '',
+              },
+            },
+          ],
+          session ? { session } : undefined
+        );
+      }
+
+      if (session) {
+        await session.commitTransaction();
+      }
+    } catch (opErr) {
+      if (session) {
+        await session.abortTransaction();
+      }
+      throw opErr;
+    } finally {
+      if (session) {
+        await session.endSession();
+      }
+    }
+
+    revalidatePath('/admin/instructors/pending');
+    revalidatePath('/admin');
+    revalidatePath('/admin/dashboard');
+
+    return {
+      success: true,
+      decision: normalizedDecision,
+      profileId: profile._id.toString(),
+      message:
+        normalizedDecision === 'Approved'
+          ? 'Instructor application approved and role successfully promoted to INSTRUCTOR.'
+          : 'Instructor application rejected and feedback remarks saved.',
+    };
+  } catch (error: any) {
+    console.error('Failed to review instructor application:', error);
+    return { success: false, error: error?.message || 'Failed to review application.' };
+  }
+}
+
+/**
+ * Task T-015: Fetch instructor applications with filters by status, date range, and search
+ */
+export async function getInstructorApplicationsAction(filters?: {
+  status?: string;
+  dateRange?: string; // 'all' | 'today' | '7days' | '30days'
+  search?: string;
+}) {
+  try {
+    await checkAdminOrSuperadmin();
+    await dbConnect();
+
+    const query: any = {};
+
+    // 1. Filter by Status (Pending, Approved, Rejected, All)
+    if (filters?.status && filters.status !== 'all' && filters.status !== 'ALL') {
+      const s = filters.status.toLowerCase();
+      if (s === 'pending') {
+        query.approval_status = { $in: ['Pending', 'PENDING'] };
+      } else if (s === 'approved') {
+        query.approval_status = { $in: ['Approved', 'APPROVED'] };
+      } else if (s === 'rejected') {
+        query.approval_status = { $in: ['Rejected', 'REJECTED'] };
+      }
+    }
+
+    // 2. Filter by Date range
+    if (filters?.dateRange && filters.dateRange !== 'all') {
+      const now = new Date();
+      if (filters.dateRange === 'today') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        query.submissionDate = { $gte: startOfToday };
+      } else if (filters.dateRange === '7days') {
+        const past7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        query.submissionDate = { $gte: past7Days };
+      } else if (filters.dateRange === '30days') {
+        const past30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        query.submissionDate = { $gte: past30Days };
+      }
+    }
+
+    const rawProfiles = await InstructorProfile.find(query)
+      .populate({
+        path: 'userId',
+        select: 'name email phone role image academicBackground elo createdAt',
+      })
+      .populate({
+        path: 'reviewedBy',
+        select: 'name email',
+      })
+      .sort({ submissionDate: -1, createdAt: -1 })
+      .lean();
+
+    // Plain JSON serialization to avoid RSC warnings
+    let applications = JSON.parse(JSON.stringify(rawProfiles)).map((p: any) => ({
+      id: p._id,
+      userId: p.userId?._id || p.userId,
+      user: p.userId && typeof p.userId === 'object' ? p.userId : null,
+      institution: p.institution,
+      qualifications: Array.isArray(p.qualifications)
+        ? p.qualifications
+        : [p.qualifications].filter(Boolean),
+      experienceYears: p.experienceYears || 0,
+      subjectSpecialization: p.subjectSpecialization,
+      bio: p.bio,
+      credentials: p.credentials || '',
+      cvUrl: p.cvUrl || '',
+      portfolioUrl: p.portfolioUrl || '',
+      linkedinUrl: p.linkedinUrl || '',
+      sampleLectureUrl: p.sampleLectureUrl || '',
+      idVerificationUrl: p.idVerificationUrl || '',
+      approval_status: p.approval_status,
+      remarks: p.remarks || '',
+      reviewedBy: p.reviewedBy,
+      reviewedAt: p.reviewedAt,
+      submissionDate: p.submissionDate || p.createdAt,
+      createdAt: p.createdAt,
+    }));
+
+    // Post-populate search if search filter provided
+    if (filters?.search && filters.search.trim()) {
+      const term = filters.search.toLowerCase().trim();
+      applications = applications.filter((app: any) => {
+        return (
+          app.user?.name?.toLowerCase().includes(term) ||
+          app.user?.email?.toLowerCase().includes(term) ||
+          app.institution?.toLowerCase().includes(term) ||
+          app.subjectSpecialization?.toLowerCase().includes(term) ||
+          app.qualifications?.some((q: string) => q.toLowerCase().includes(term))
+        );
+      });
+    }
+
+    return { success: true, applications };
+  } catch (error: any) {
+    console.error('Failed to fetch instructor applications:', error);
+    return { success: false, error: error?.message || 'Failed to fetch applications.', applications: [] };
+  }
+}
+
+/**
+ * Helper to seed high-quality realistic instructor applications for review & verification testing
+ */
+export async function seedDemoInstructorApplicationsAction() {
+  try {
+    await checkAdminOrSuperadmin();
+    await dbConnect();
+
+    const demoCandidates = [
+      {
+        name: 'Dr. Tanvir Hasan',
+        email: 'tanvir.hasan@buet.ac.bd',
+        phone: '+8801711223344',
+        academicBackground: 'Ph.D. in Computer Science',
+        institution: 'Bangladesh University of Engineering and Technology (BUET)',
+        qualifications: [
+          'Ph.D. in Distributed Systems & Cloud Computing, NUS',
+          'B.Sc. in CSE, BUET (First Class First)',
+          '10+ Years University Teaching Experience',
+          'Published 14 IEEE / ACM Research Papers',
+        ],
+        experienceYears: 10,
+        subjectSpecialization: 'Distributed Systems & High-Performance Computing',
+        bio: 'Associate Professor at BUET with extensive teaching and industry consulting background in distributed microservices, database internals, and algorithms.',
+        credentials: 'BUET Faculty ID: #CSE-FAC-2016-89; Certified Kubernetes Administrator (CKA)',
+        cvUrl: 'https://example.com/docs/tanvir-hasan-cv.pdf',
+        portfolioUrl: 'https://tanvirhasan.dev',
+        linkedinUrl: 'https://linkedin.com/in/tanvirhasan-buet',
+        sampleLectureUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        idVerificationUrl: 'https://example.com/docs/buet-faculty-card.pdf',
+      },
+      {
+        name: 'Farhana Sultana',
+        email: 'farhana.sultana@techcorp.io',
+        phone: '+8801819988776',
+        academicBackground: 'M.Sc. in Software Engineering, DU',
+        institution: 'University of Dhaka & Lead Architect at FinTech Global',
+        qualifications: [
+          'M.Sc. in Computer Science & Engineering, University of Dhaka',
+          'Ex-Senior Staff Engineer at Grab / Shopee',
+          '8+ Years Production Next.js, Node.js & React Native',
+          'Instructor of 5,000+ engineers across corporate workshops',
+        ],
+        experienceYears: 8,
+        subjectSpecialization: 'Fullstack Next.js, React & Scalable Cloud Architecture',
+        bio: 'Principal Software Architect passionate about mentoring aspiring software engineers in Bangladesh. Specialize in production-grade TypeScript, resilient system design, and clean architecture.',
+        credentials: 'AWS Certified Solutions Architect - Professional (#AWS-PSA-991204)',
+        cvUrl: 'https://example.com/docs/farhana-sultana-resume.pdf',
+        portfolioUrl: 'https://farhana-sultana.io',
+        linkedinUrl: 'https://linkedin.com/in/farhanasultana-dev',
+        sampleLectureUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        idVerificationUrl: 'https://example.com/docs/nid-verification-scan.pdf',
+      },
+      {
+        name: 'Mahmudur Rahman',
+        email: 'mahmudur.ai@sust.edu',
+        phone: '+8801912345678',
+        academicBackground: 'B.Sc. in CSE, SUST',
+        institution: 'Shahjalal University of Science and Technology (SUST)',
+        qualifications: [
+          'B.Sc. in CSE from SUST',
+          'Kaggle Grandmaster (Top 0.1% Globally)',
+          '5+ Years Senior Machine Learning Engineer at AI Labs',
+          'Author of "Deep Learning in Bengali NLP"',
+        ],
+        experienceYears: 5,
+        subjectSpecialization: 'Machine Learning, PyTorch & LLM Engineering',
+        bio: 'AI researcher and NLP practitioner dedicated to building state-of-the-art Bangla NLP and LLM fine-tuning pipelines. Experienced in teaching complex mathematical concepts with intuitive code examples.',
+        credentials: 'NVIDIA Certified Deep Learning Institute (DLI) Instructor',
+        cvUrl: 'https://example.com/docs/mahmud-ai-cv.pdf',
+        portfolioUrl: 'https://mahmudur.ai',
+        linkedinUrl: 'https://linkedin.com/in/mahmudur-rahman-ai',
+        sampleLectureUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        idVerificationUrl: 'https://example.com/docs/sust-alumni-verification.pdf',
+      },
+    ];
+
+    let createdCount = 0;
+
+    for (const c of demoCandidates) {
+      let user = await User.findOne({ email: c.email });
+      if (!user) {
+        user = await User.create({
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          role: 'STUDENT',
+          status: 'APPROVED',
+          academicBackground: c.academicBackground,
+          bio: c.bio,
+          image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}`,
+        });
+      }
+
+      const existingProfile = await InstructorProfile.findOne({ userId: user._id });
+      if (!existingProfile) {
+        await InstructorProfile.create({
+          userId: user._id,
+          institution: c.institution,
+          qualifications: c.qualifications,
+          experienceYears: c.experienceYears,
+          subjectSpecialization: c.subjectSpecialization,
+          bio: c.bio,
+          credentials: c.credentials,
+          cvUrl: c.cvUrl,
+          portfolioUrl: c.portfolioUrl,
+          linkedinUrl: c.linkedinUrl,
+          sampleLectureUrl: c.sampleLectureUrl,
+          idVerificationUrl: c.idVerificationUrl,
+          approval_status: 'Pending',
+          submissionDate: new Date(Date.now() - Math.floor(Math.random() * 5 * 86400000)),
+        });
+        createdCount++;
+      }
+    }
+
+    revalidatePath('/admin/instructors/pending');
+    return { success: true, message: `Created ${createdCount} realistic demo instructor applications.` };
+  } catch (error: any) {
+    console.error('Failed to seed demo applications:', error);
+    return { success: false, error: error?.message || 'Failed to seed demo applications.' };
+  }
+}
+
+/**
+ * Task T-018: Moderation Actions Execution (MODERATOR_ACTION)
+ * resolveModerationTicket(reportId, actionTaken, note)
+ *
+ * Supported actions: 'Warning', 'Remove', 'Ban', 'Other'
+ * - When 'Remove' is chosen: soft-delete or hide reported comment/resource/course/lesson
+ * - When 'Ban' is selected: invoke suspension state on target user (status: 'SUSPENDED')
+ * - Write audit entry into MODERATOR_ACTION
+ * - Update report status to 'Resolved'
+ */
+export async function resolveModerationTicket(
+  reportId: string,
+  actionTaken: 'Warning' | 'Remove' | 'Ban' | 'Other' | string,
+  note?: string
+) {
+  try {
+    const moderatorId = await checkAdminOrModerator();
+    await dbConnect();
+
+    const normalizedAction = (actionTaken.charAt(0).toUpperCase() +
+      actionTaken.slice(1).toLowerCase()) as 'Warning' | 'Remove' | 'Ban' | 'Other';
+
+    const report = await Report.findById(reportId);
+    if (!report) {
+      return { success: false, error: 'Moderation ticket / report not found.' };
+    }
+
+    const penaltyDetails: Record<string, any> = {
+      actionTaken: normalizedAction,
+      reportedType: report.reported_type,
+      targetId: String(report.targetId),
+      executedAt: new Date(),
+    };
+
+    // Execute penalty based on actionTaken
+    if (normalizedAction === 'Remove') {
+      const type = (report.reported_type || '').toLowerCase();
+      if (type === 'comment') {
+        await Comment.findByIdAndUpdate(report.targetId, {
+          isDeleted: true,
+          isHidden: true,
+        });
+        penaltyDetails.removedComment = true;
+      } else if (type === 'course') {
+        await Course.findByIdAndUpdate(report.targetId, {
+          status: 'DRAFT',
+          approvalStatus: 'REJECTED',
+        });
+        penaltyDetails.courseStatus = 'REJECTED';
+      } else if (type === 'lesson') {
+        await Lesson.findByIdAndUpdate(report.targetId, {
+          isFree: false,
+        });
+        penaltyDetails.lessonDisabled = true;
+      }
+    } else if (normalizedAction === 'Ban') {
+      // Find the user to suspend
+      const userToSuspend = report.targetUserId || report.targetId;
+      if (userToSuspend) {
+        await User.findByIdAndUpdate(userToSuspend, {
+          status: 'SUSPENDED',
+        });
+        penaltyDetails.suspendedUserId = String(userToSuspend);
+      }
+    } else if (normalizedAction === 'Warning') {
+      penaltyDetails.warningIssued = true;
+    } else {
+      penaltyDetails.otherAction = true;
+    }
+
+    // 1. Update Report status to 'Resolved'
+    report.status = 'Resolved';
+    report.actionTaken = normalizedAction;
+    report.resolutionNote = note || `Resolved with action: ${normalizedAction}`;
+    report.resolvedBy = moderatorId as any;
+    report.resolvedAt = new Date();
+    await report.save();
+
+    // 2. Create immutable record in MODERATOR_ACTION
+    const moderatorActionRecord = await ModeratorAction.create({
+      reportId: report._id,
+      moderatorId,
+      targetId: report.targetId,
+      targetType: report.reported_type,
+      targetUserId: report.targetUserId,
+      actionTaken: normalizedAction,
+      note: note || `Ticket resolved with action: ${normalizedAction}`,
+      penaltyDetails,
+    });
+
+    // 3. Log to system AuditLog
+    await AuditLog.create({
+      action: `MODERATION_${normalizedAction.toUpperCase()}`,
+      category: 'SECURITY',
+      actorId: moderatorId,
+      targetId: report.targetUserId || report.targetId,
+      details: {
+        reportId: report._id.toString(),
+        actionTaken: normalizedAction,
+        reportedType: report.reported_type,
+        note: note || '',
+      },
+    });
+
+    revalidatePath('/admin/moderation');
+    revalidatePath('/admin');
+
+    return {
+      success: true,
+      reportId: report._id.toString(),
+      status: 'Resolved',
+      actionTaken: normalizedAction,
+      actionId: moderatorActionRecord._id.toString(),
+      message: `Moderation ticket successfully resolved with action '${normalizedAction}'.`,
+    };
+  } catch (error: any) {
+    console.error('Failed to resolve moderation ticket:', error);
+    return { success: false, error: error?.message || 'Failed to resolve moderation ticket.' };
+  }
+}
+
+/**
+ * Update report status (e.g. Open -> In Review, Closed)
+ */
+export async function updateReportStatus(
+  reportId: string,
+  status: 'Open' | 'In Review' | 'Resolved' | 'Closed' | string
+) {
+  try {
+    const moderatorId = await checkAdminOrModerator();
+    await dbConnect();
+
+    const s = status.toLowerCase().trim();
+    let normalizedStatus: 'Open' | 'In Review' | 'Resolved' | 'Closed' = 'Open';
+    if (s === 'in review' || s === 'in_review') {
+      normalizedStatus = 'In Review';
+    } else if (s === 'resolved') {
+      normalizedStatus = 'Resolved';
+    } else if (s === 'closed') {
+      normalizedStatus = 'Closed';
+    } else {
+      normalizedStatus = 'Open';
+    }
+
+    const report = await Report.findByIdAndUpdate(
+      reportId,
+      { status: normalizedStatus },
+      { new: true }
+    );
+
+    if (!report) return { success: false, error: 'Report not found' };
+
+    revalidatePath('/admin/moderation');
+    return { success: true, report: JSON.parse(JSON.stringify(report)) };
+  } catch (error: any) {
+    console.error('Failed to update report status:', error);
+    return { success: false, error: error?.message || 'Failed to update report status.' };
+  }
+}
+
+/**
+ * Task T-017: Fetch flagged tickets mapping REPORT entity with filters
+ */
+export async function getModerationTicketsAction(filters?: {
+  type?: string; // 'Course' | 'Lesson' | 'Comment' | 'User' | 'all'
+  status?: string; // 'Open' | 'In Review' | 'Resolved' | 'Closed' | 'all'
+  search?: string;
+}) {
+  try {
+    await checkAdminOrModerator();
+    await dbConnect();
+
+    const query: any = {};
+
+    // 1. Filter by Entity Type
+    if (filters?.type && filters.type !== 'all' && filters.type !== 'ALL') {
+      const t = filters.type.toLowerCase();
+      if (t === 'course') query.reported_type = { $in: ['Course', 'COURSE'] };
+      else if (t === 'lesson') query.reported_type = { $in: ['Lesson', 'LESSON'] };
+      else if (t === 'comment') query.reported_type = { $in: ['Comment', 'COMMENT'] };
+      else if (t === 'user') query.reported_type = { $in: ['User', 'USER'] };
+    }
+
+    // 2. Filter by Status
+    if (filters?.status && filters.status !== 'all' && filters.status !== 'ALL') {
+      const s = filters.status.toLowerCase();
+      if (s === 'open') query.status = { $in: ['Open', 'OPEN'] };
+      else if (s === 'in review' || s === 'in_review')
+        query.status = { $in: ['In Review', 'IN_REVIEW'] };
+      else if (s === 'resolved') query.status = { $in: ['Resolved', 'RESOLVED'] };
+      else if (s === 'closed') query.status = { $in: ['Closed', 'CLOSED'] };
+    }
+
+    const rawReports = await Report.find(query)
+      .populate({ path: 'reporterId', select: 'name email role image' })
+      .populate({ path: 'targetUserId', select: 'name email role status image' })
+      .populate({ path: 'resolvedBy', select: 'name email' })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    let reports = JSON.parse(JSON.stringify(rawReports)).map((r: any) => ({
+      id: r._id,
+      reporterId: r.reporterId?._id || r.reporterId,
+      reporter: r.reporterId && typeof r.reporterId === 'object' ? r.reporterId : null,
+      reported_type: r.reported_type,
+      targetId: r.targetId,
+      targetUserId: r.targetUserId?._id || r.targetUserId,
+      targetUser: r.targetUserId && typeof r.targetUserId === 'object' ? r.targetUserId : null,
+      reason: r.reason,
+      rationale: r.rationale,
+      status: r.status,
+      flaggedContentPreview: r.flaggedContentPreview || '',
+      contextData: r.contextData || {},
+      actionTaken: r.actionTaken || '',
+      resolutionNote: r.resolutionNote || '',
+      resolvedBy: r.resolvedBy,
+      resolvedAt: r.resolvedAt,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+
+    if (filters?.search && filters.search.trim()) {
+      const term = filters.search.toLowerCase().trim();
+      reports = reports.filter((rep: any) => {
+        return (
+          rep.reason?.toLowerCase().includes(term) ||
+          rep.rationale?.toLowerCase().includes(term) ||
+          rep.flaggedContentPreview?.toLowerCase().includes(term) ||
+          rep.reporter?.name?.toLowerCase().includes(term) ||
+          rep.reporter?.email?.toLowerCase().includes(term) ||
+          rep.targetUser?.name?.toLowerCase().includes(term) ||
+          rep.targetUser?.email?.toLowerCase().includes(term) ||
+          rep.contextData?.title?.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    return { success: true, reports };
+  } catch (error: any) {
+    console.error('Failed to fetch moderation tickets:', error);
+    return { success: false, error: error?.message || 'Failed to fetch tickets.', reports: [] };
+  }
+}
+
+/**
+ * Seed realistic flagged moderation tickets for testing & verification
+ */
+export async function seedDemoModerationReportsAction() {
+  try {
+    await checkAdminOrModerator();
+    await dbConnect();
+
+    // Find or create reporter and offending users
+    let reporter = await User.findOne({ email: 'student.reporter@example.com' });
+    if (!reporter) {
+      reporter = await User.create({
+        name: 'Sadia Rahman',
+        email: 'student.reporter@example.com',
+        role: 'STUDENT',
+        status: 'APPROVED',
+      });
+    }
+
+    let badUser = await User.findOne({ email: 'spammer.user@example.com' });
+    if (!badUser) {
+      badUser = await User.create({
+        name: 'SpamBot99',
+        email: 'spammer.user@example.com',
+        role: 'STUDENT',
+        status: 'APPROVED',
+        bio: 'Visit free-crypto-tokens-now.xyz for 500% instant ROI!',
+      });
+    }
+
+    // Find sample course or lesson for context
+    const sampleCourse = await Course.findOne().lean();
+    const sampleLesson = await Lesson.findOne().lean();
+
+    // Create a flagged comment if needed
+    let sampleComment = await Comment.findOne().lean();
+    if (!sampleComment) {
+      sampleComment = (await Comment.create({
+        content: 'Check out cheap cracked exams and leaks here: http://fake-scam-link.ru/payload - Guaranteed 100%!',
+        lessonId: sampleLesson?._id || new mongoose.Types.ObjectId(),
+        userId: badUser._id,
+      })) as any;
+    }
+
+    const demoReports: Array<{
+      reporterId: any;
+      reported_type: 'Comment' | 'User' | 'Course' | 'Lesson';
+      targetId: any;
+      targetUserId: any;
+      reason: string;
+      rationale: string;
+      status: 'Open' | 'In Review' | 'Resolved' | 'Closed';
+      flaggedContentPreview: string;
+      contextData: any;
+    }> = [
+      {
+        reporterId: reporter._id,
+        reported_type: 'Comment',
+        targetId: (sampleComment as any)?._id || new mongoose.Types.ObjectId(),
+        targetUserId: badUser._id,
+        reason: 'Spam & Malicious Link',
+        rationale: 'This user is spamming malicious external phishing links in the lecture discussion tab targeting first-year students.',
+        status: 'Open',
+        flaggedContentPreview: 'Check out cheap cracked exams and leaks here: http://fake-scam-link.ru/payload - Guaranteed 100%!',
+        contextData: {
+          lessonTitle: sampleLesson?.title || 'Lecture 03: Big-O Asymptotics',
+          courseTitle: sampleCourse?.title || 'Data Structures & Algorithms',
+          location: 'Discussion Board / Question Thread #104',
+        },
+      },
+      {
+        reporterId: reporter._id,
+        reported_type: 'User',
+        targetId: badUser._id,
+        targetUserId: badUser._id,
+        reason: 'Harassment & Impersonation',
+        rationale: 'User bio and profile picture is imitating platform staff and sending unsolicited DMs offering fake certificates for money.',
+        status: 'In Review',
+        flaggedContentPreview: 'Bio: "Official e-Shikho Certificate Verification Desk. Contact for instant certificate generation."',
+        contextData: {
+          username: badUser.name,
+          accountCreated: new Date().toLocaleDateString(),
+          flagCount: 3,
+        },
+      },
+      {
+        reporterId: reporter._id,
+        reported_type: 'Course',
+        targetId: sampleCourse?._id || new mongoose.Types.ObjectId(),
+        targetUserId: sampleCourse?.instructorId || badUser._id,
+        reason: 'Copyright & Plagiarism',
+        rationale: 'The lecture slides and problem sets in Module 2 are verbatim copies of MIT 6.006 OpenCourseWare with commercial watermarks removed.',
+        status: 'Open',
+        flaggedContentPreview: 'Module 2 Slides: Exact verbatim transcript from MIT 6.006 without attribution or license.',
+        contextData: {
+          courseTitle: sampleCourse?.title || 'Competitive Programming Masterclass',
+          instructor: 'Dr. Unverified',
+          reportedModules: ['Module 2', 'Problem Set 3'],
+        },
+      },
+      {
+        reporterId: reporter._id,
+        reported_type: 'Lesson',
+        targetId: sampleLesson?._id || new mongoose.Types.ObjectId(),
+        targetUserId: badUser._id,
+        reason: 'Inappropriate Content & Broken Resource',
+        rationale: 'The attached video lecture contains inappropriate audio commentary and the PDF resource leads to a broken 404 dead link.',
+        status: 'Open',
+        flaggedContentPreview: 'Video URL: contains unmoderated offensive remarks between minute 12:40 and 14:15.',
+        contextData: {
+          lessonTitle: sampleLesson?.title || 'Introduction to Recursive Backtracking',
+          timestampRange: '12:40 - 14:15',
+        },
+      },
+    ];
+
+    let created = 0;
+    for (const r of demoReports) {
+      const existing = await Report.findOne({
+        reported_type: r.reported_type,
+        targetId: r.targetId,
+        reason: r.reason,
+      });
+      if (!existing) {
+        await Report.create(r);
+        created++;
+      }
+    }
+
+    revalidatePath('/admin/moderation');
+    return { success: true, message: `Created ${created} demo moderation reports across entity types.` };
+  } catch (error: any) {
+    console.error('Failed to seed demo moderation reports:', error);
+    return { success: false, error: error?.message || 'Failed to seed demo reports.' };
   }
 }

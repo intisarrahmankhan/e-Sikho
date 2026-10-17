@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 import { LatexRenderer, LatexFormulaToolbar } from './LatexRenderer';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -47,6 +48,7 @@ interface QuestionDraft {
 
 export function ExamCreateForm({ courses }: { courses?: { id: string; title: string }[] }) {
   const router = useRouter();
+  const { language } = useLanguage();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -71,18 +73,6 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
       codeLanguage: 'javascript',
       testCases: [],
       explanation: 'ক্যালকুলাসের মৌলিক উপপাদ্য (FTC) অনুযায়ী: $\\frac{d}{dx} \\int_{0}^{x} f(t) dt = f(x)$। সুতরাং $f\'(x) = x^2$ এবং $f\'(2) = 2^2 = 4$।',
-      marks: 1,
-    },
-    {
-      type: 'TRUE_FALSE',
-      question: 'অ্যালগরিদমের ক্ষেত্রে সব সময় কুইক সর্টের (QuickSort) সবচেয়ে খারাপ কেস সময় জটিলতা $O(n^2)$।',
-      options: ['সত্য (True)', 'মিথ্যা (False)'],
-      correctAnswer: 0,
-      acceptedAnswers: [],
-      codeTemplate: '',
-      codeLanguage: 'javascript',
-      testCases: [],
-      explanation: 'সত্য। খারাপ পিভট নির্বাচনের ক্ষেত্রে কুইক সর্টের জটিলতা $O(n^2)$ হতে পারে, তবে গড়ে এটি $O(n \\log n)$।',
       marks: 1,
     },
     {
@@ -116,6 +106,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
   ]);
 
   const handleAddQuestion = () => {
+    const newIdx = questions.length;
     setQuestions((prev) => [
       ...prev,
       {
@@ -131,6 +122,13 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
         marks: 1,
       },
     ]);
+
+    setTimeout(() => {
+      const el = document.getElementById(`question-card-${newIdx}`) || document.getElementById('questions-bottom');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 80);
   };
 
   const handleRemoveQuestion = (idx: number) => {
@@ -153,18 +151,6 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
         codeLanguage: 'javascript',
         testCases: [],
         explanation: 'ধরি $u = 1 - x^2$, সুতরাং $du = -2x dx$। মান $\\frac{1}{3}$।',
-        marks: 1,
-      },
-      {
-        type: 'TRUE_FALSE',
-        question: 'বাইনারি সার্চ ট্রিতে (BST) সার্চ অপারেশনের সময় জটিলতা সবসময় $O(\\log n)$ হয়।',
-        options: ['সত্য (True)', 'মিথ্যা (False)'],
-        correctAnswer: 1,
-        acceptedAnswers: [],
-        codeTemplate: '',
-        codeLanguage: 'javascript',
-        testCases: [],
-        explanation: 'মিথ্যা। ট্রি স্কিউড (Skewed) বা ভারসাম্যহীন হলে সার্চের সময় জটিলতা $O(n)$ হয়ে যায়।',
         marks: 1,
       },
       {
@@ -248,10 +234,16 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
         <CardHeader className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
           <CardTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
             <FileQuestion className="w-5 h-5 text-primary-600" />
-            <span>মাল্টি-ফরম্যাট পরীক্ষা ও কুইজ বিল্ডার (MCQ, True/False, Short-Answer & Code)</span>
+            <span>
+              {language === 'en'
+                ? 'Multi-Format Exam & Quiz Builder (MCQ, Short-Answer & Code)'
+                : 'মাল্টি-ফরম্যাট পরীক্ষা ও কুইজ বিল্ডার (MCQ, Short-Answer & Code)'}
+            </span>
           </CardTitle>
           <p className="text-xs text-slate-500 mt-1">
-            বহুনির্বাচনী, সত্য/মিথ্যা, সংক্ষিপ্ত উত্তর, ফ্র্যাকশনাল নেগেটিভ মার্কিং এবং কোডিং টেস্ট কেস সম্বলিত পরীক্ষা তৈরি করুন।
+            {language === 'en'
+              ? 'Create exams with multiple choice (MCQ), short answer, and automated coding test cases.'
+              : 'বহুনির্বাচনী (MCQ), সংক্ষিপ্ত উত্তর এবং কোডিং টেস্ট কেস সম্বলিত পরীক্ষা তৈরি করুন।'}
           </p>
         </CardHeader>
 
@@ -474,21 +466,23 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
             <span>প্রশ্নাবলি ({questions.length} টি)</span>
           </h3>
 
-          <Button
+          <button
             type="button"
+            id="add-new-question-btn"
+            data-testid="add-new-question-btn"
             onClick={handleAddQuestion}
-            variant="outline"
-            className="text-xs border-primary-200 text-primary-700 bg-primary-50/50 hover:bg-primary-50 gap-1.5 rounded-xl font-semibold"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-primary-300 text-primary-700 bg-primary-50/70 hover:bg-primary-100 text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>নতুন প্রশ্ন যোগ করুন</span>
-          </Button>
+            <span>{language === 'en' ? 'Add New Question' : 'নতুন প্রশ্ন যোগ করুন'}</span>
+          </button>
         </div>
 
         {questions.map((q, qIdx) => (
           <Card
             key={qIdx}
-            className="border border-slate-200 rounded-2xl bg-white shadow-2xs overflow-hidden"
+            id={`question-card-${qIdx}`}
+            className="border border-slate-200 rounded-2xl bg-white shadow-2xs overflow-hidden scroll-mt-24 transition-all"
           >
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -518,27 +512,6 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
                   >
                     <CheckSquare className="w-3 h-3" />
                     <span>MCQ</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuestions((prev) => {
-                        const copy = [...prev];
-                        copy[qIdx].type = 'TRUE_FALSE';
-                        copy[qIdx].options = ['সত্য (True)', 'মিথ্যা (False)'];
-                        copy[qIdx].correctAnswer = 0;
-                        return copy;
-                      });
-                    }}
-                    className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 ${
-                      q.type === 'TRUE_FALSE'
-                        ? 'bg-primary-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <ToggleLeft className="w-3 h-3" />
-                    <span>সত্য/মিথ্যা</span>
                   </button>
 
                   <button
@@ -746,58 +719,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
                 </div>
               )}
 
-              {/* FORMAT 2: TRUE_FALSE */}
-              {q.type === 'TRUE_FALSE' && (
-                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <span className="text-xs font-bold text-slate-700 block">
-                    সঠিক উত্তরটি নির্বাচন করুন (True/False Auto-Grading):
-                  </span>
-                  <div className="grid grid-cols-2 gap-3 max-w-sm">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuestions((prev) => {
-                          const copy = [...prev];
-                          copy[qIdx].correctAnswer = 0;
-                          return copy;
-                        });
-                      }}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition ${
-                        q.correctAnswer === 0
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>সত্য (True)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuestions((prev) => {
-                          const copy = [...prev];
-                          copy[qIdx].correctAnswer = 1;
-                          return copy;
-                        });
-                      }}
-                      className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition ${
-                        q.correctAnswer === 1
-                          ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>মিথ্যা (False)</span>
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    শিক্ষার্থী সত্য বা মিথ্যার মধ্যে একটি সিলেক্ট করবে এবং স্বয়ংক্রিয়ভাবে গ্রেডিং সম্পন্ন হবে।
-                  </p>
-                </div>
-              )}
-
-              {/* FORMAT 3: SHORT_ANSWER */}
+              {/* FORMAT 2: SHORT_ANSWER */}
               {q.type === 'SHORT_ANSWER' && (
                 <div className="space-y-3 bg-amber-50/40 p-4 rounded-xl border border-amber-200">
                   <span className="text-xs font-bold text-amber-900 block">
@@ -1008,6 +930,22 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
             </CardContent>
           </Card>
         ))}
+
+        {/* Bottom Add Question Button */}
+        <div id="questions-bottom" className="pt-2">
+          <button
+            type="button"
+            id="add-question-bottom-btn"
+            data-testid="add-question-bottom-btn"
+            onClick={handleAddQuestion}
+            className="w-full py-3.5 px-4 rounded-2xl border-2 border-dashed border-primary-300 hover:border-primary-500 bg-primary-50/40 hover:bg-primary-50/80 text-primary-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-2xs group cursor-pointer active:scale-[0.99]"
+          >
+            <div className="w-6 h-6 rounded-lg bg-primary-600 text-white flex items-center justify-center group-hover:scale-110 transition shrink-0">
+              <Plus className="w-4 h-4" />
+            </div>
+            <span>{language === 'en' ? 'Add Another Question' : 'আরেকটি নতুন প্রশ্ন যোগ করুন'}</span>
+          </button>
+        </div>
       </div>
 
       <div className="pt-4 flex items-center justify-end gap-3">
@@ -1017,7 +955,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
           variant="outline"
           className="rounded-xl text-xs font-semibold"
         >
-          বাতিল করুন
+          {language === 'en' ? 'Cancel' : 'বাতিল করুন'}
         </Button>
 
         <Button
@@ -1026,7 +964,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
           className="rounded-xl text-xs font-bold px-6 bg-primary-600 hover:bg-primary-700 text-white gap-2"
         >
           {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          <span>মাল্টি-ফরম্যাট পরীক্ষা প্রকাশ করুন</span>
+          <span>{language === 'en' ? 'Publish Multi-Format Exam' : 'মাল্টি-ফরম্যাট পরীক্ষা প্রকাশ করুন'}</span>
         </Button>
       </div>
     </form>

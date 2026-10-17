@@ -7,13 +7,14 @@ import { redirect } from 'next/navigation';
 import {
   BookOpen, CheckCircle2, Clock, XCircle, Users, TrendingUp, Star,
   PlusCircle, BarChart2, ArrowUpRight, ArrowDownRight, Layers,
-  Award, Zap, Target, DollarSign, Eye, Activity, UserMinus
+  Award, Zap, Target, DollarSign, Eye, Activity, UserMinus, Settings, User
 } from 'lucide-react';
 import { BarChart, DonutChart, ProgressBar } from '@/components/instructor/Charts';
 import { MiniSparkline } from '@/components/instructor/MiniSparkline';
 import InstructorPayout from '@/components/instructor/InstructorPayout';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { VideoDropOffAnalytics } from '@/components/instructor/VideoDropOffAnalytics';
 
 export const dynamic = 'force-dynamic';
 
@@ -194,6 +195,12 @@ export default async function InstructorDashboardPage() {
             >
               <Eye className="h-4 w-4" /> View Exams
             </Link>
+            <Link
+              href="/instructor/settings"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition"
+            >
+              <Settings className="h-4 w-4" /> Profile & Settings
+            </Link>
           </div>
         </div>
       </div>
@@ -334,6 +341,9 @@ export default async function InstructorDashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* ── Video Lesson Drop-Off Analytics & Retention ── */}
+      <VideoDropOffAnalytics courses={courses.map((c: any) => ({ id: c.id, title: c.title }))} />
 
       {/* ── Engagement & Drop-off Row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -31,6 +31,9 @@ export interface ICourse extends Document {
   learningOutcomes: string;
   prerequisites: string;
   hasCertificate: boolean;
+  courseEndDate?: Date;
+  allowRevisionAccess?: boolean;
+  revisionAccessDays?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +73,9 @@ const courseSchema = new Schema<ICourse>(
     learningOutcomes: { type: String, required: true },
     prerequisites: { type: String, required: true },
     hasCertificate: { type: Boolean, default: false },
+    courseEndDate: { type: Date },
+    allowRevisionAccess: { type: Boolean, default: true },
+    revisionAccessDays: { type: Number, default: 14 },
   },
   {
     timestamps: true,

@@ -29,6 +29,7 @@ import {
   RotateCcw,
   GraduationCap,
   Trophy,
+  Eye,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
@@ -41,11 +42,14 @@ import DiscussionBoard from "@/components/courses/DiscussionBoard";
 import NotesAndResources from "@/components/courses/NotesAndResources";
 import SecureVideoPlayer from "@/components/video/SecureVideoPlayer";
 import { CourseCohortLeaderboard } from "@/components/course/CourseCohortLeaderboard";
+import { ProtectedPdfViewerModal } from "@/components/pdf/ProtectedPdfViewerModal";
+import { WishlistButton } from "@/components/courses/WishlistButton";
 import {
   getCourseAccessDetails,
   toggleLessonProgressAction,
   getCourseResourcesAction,
   getCourseLiveSessionsAction,
+  requestRevisionAccessAction,
   CourseAccessResult,
   CourseResourceItem,
   LiveSessionItem,
@@ -98,6 +102,55 @@ export default function CourseDetailsPage() {
   const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
   const [lockedLessonTitle, setLockedLessonTitle] = useState('');
   const [togglingLessonId, setTogglingLessonId] = useState<string | null>(null);
+
+  // PDF Viewer Modal State (Protected View-Only by default)
+  const [pdfModalState, setPdfModalState] = useState<{
+    isOpen: boolean;
+    pdfUrl: string;
+    title: string;
+    isDownloadable?: boolean;
+  }>({
+    isOpen: false,
+    pdfUrl: '',
+    title: '',
+    isDownloadable: false,
+  });
+
+  // Temporary Revision Access Request Modal State
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [revisionExamDate, setRevisionExamDate] = useState('');
+  const [revisionReason, setRevisionReason] = useState('');
+  const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
+  const [revisionSuccessMsg, setRevisionSuccessMsg] = useState<string | null>(null);
+
+  const handleRequestRevisionAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingRevision(true);
+    setRevisionSuccessMsg(null);
+    try {
+      const res = await requestRevisionAccessAction({
+        courseId,
+        examDate: revisionExamDate,
+        reason: revisionReason,
+      });
+      if (res.error) {
+        alert(res.error);
+      } else {
+        setRevisionSuccessMsg(res.message || 'রিভিশন এক্সেস অনুমোদিত হয়েছে!');
+        setAccessDetails((prev) => ({
+          ...prev,
+          canAccessAll: true,
+          isRevisionAccessActive: true,
+          revisionAccessExpiresAt: res.revisionAccessExpiresAt,
+        }));
+        setTimeout(() => setIsRevisionModalOpen(false), 2200);
+      }
+    } catch (err: any) {
+      alert(err.message || 'রিভিশন এক্সেস অনুরোধ করতে ব্যর্থ হয়েছে।');
+    } finally {
+      setIsSubmittingRevision(false);
+    }
+  };
 
   const getEmbedUrl = (url?: string) => {
     if (!url) return '';
@@ -277,7 +330,12 @@ export default function CourseDetailsPage() {
 
     if ((lesson.type === 'PDF' || lesson.pdfUrl) && !lesson.videoUrl) {
       if (lesson.pdfUrl) {
-        window.open(lesson.pdfUrl, '_blank');
+        setPdfModalState({
+          isOpen: true,
+          pdfUrl: lesson.pdfUrl,
+          title: lesson.title,
+          isDownloadable: !!(lesson as any).isDownloadable,
+        });
         return;
       }
     }
@@ -353,23 +411,83 @@ export default function CourseDetailsPage() {
         <div className="lg:col-span-2 space-y-8">
           {/* Header Banner */}
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-primary-600 text-white font-medium text-xs px-3 py-1">
-                {language === 'en'
-                  ? (course.categoryEn || translateCategory(course.category || course.categoryBangla, 'en'))
-                  : (course.categoryBangla || course.category)}
-              </Badge>
-              <Badge variant="outline" className="text-slate-700 bg-white border-slate-200">
-                {language === 'en'
-                  ? `Level: ${course.levelEn || translateLevel(course.level, 'en')}`
-                  : `লেভেল: ${course.level}`}
-              </Badge>
-              {canAccessAll && (
-                <Badge className="bg-emerald-600 text-white font-semibold text-xs px-3 py-1 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>{language === 'en' ? 'Enrolled' : 'ভর্তি সম্পন্ন'}</span>
+            {/* Revision Access Active Banner */}
+            {accessDetails.isRevisionAccessActive && (
+              <div className="bg-gradient-to-r from-purple-500/10 via-primary-500/10 to-amber-500/10 border border-purple-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-purple-900">
+                      {language === 'en' ? 'Exam Revision Access Active' : 'পরীক্ষার রিভিশন এক্সেস সক্রিয় রয়েছে'}
+                    </h4>
+                    <p className="text-xs text-purple-700">
+                      {language === 'en'
+                        ? `You have temporary access to review all lecture videos and slides before your final exam. Valid until: ${new Date(accessDetails.revisionAccessExpiresAt!).toLocaleDateString()}`
+                        : `আপনার ফাইনাল পরীক্ষার পূর্ব প্রস্তুতি হিসেবে ভিডিও ও স্লাইড রিভিশনের অস্থায়ী এক্সেস দেওয়া হয়েছে। মেয়াদ: ${new Date(accessDetails.revisionAccessExpiresAt!).toLocaleDateString('bn-BD')}`}
+                    </p>
+                  </div>
+                </div>
+                <Badge className="bg-purple-600 text-white font-bold text-xs shrink-0">
+                  {language === 'en' ? 'Revision Window' : 'রিভিশন মেয়াদ'}
                 </Badge>
-              )}
+              </div>
+            )}
+
+            {/* Course Ended / Revision Request Banner */}
+            {accessDetails.isEnrolled && (accessDetails.isCourseEnded || accessDetails.isEnrollmentExpired) && !accessDetails.isRevisionAccessActive && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-amber-900">
+                      {language === 'en' ? 'Course Term Ended' : 'কোর্স সমাপ্ত হয়েছে'}
+                    </h4>
+                    <p className="text-xs text-amber-800">
+                      {language === 'en'
+                        ? 'Need to review lectures for your upcoming final exams? You can request a 14-day temporary revision extension.'
+                        : 'সামনে ফাইনাল পরীক্ষা? লেকচার ভিডিও ও স্লাইডগুলো রিভিশন দেওয়ার জন্য ১৪ দিনের অস্থায়ী এক্সেস নিতে পারেন।'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setIsRevisionModalOpen(true)}
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 rounded-xl shadow-xs gap-1.5"
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  <span>{language === 'en' ? 'Request Exam Revision Access' : 'পরীক্ষার রিভিশন এক্সেস অনুরোধ করুন'}</span>
+                </Button>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-primary-600 text-white font-medium text-xs px-3 py-1">
+                  {language === 'en'
+                    ? (course.categoryEn || translateCategory(course.category || course.categoryBangla, 'en'))
+                    : (course.categoryBangla || course.category)}
+                </Badge>
+                <Badge variant="outline" className="text-slate-700 bg-white border-slate-200">
+                  {language === 'en'
+                    ? `Level: ${course.levelEn || translateLevel(course.level, 'en')}`
+                    : `লেভেল: ${course.level}`}
+                </Badge>
+                {canAccessAll && (
+                  <Badge className="bg-emerald-600 text-white font-semibold text-xs px-3 py-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>{language === 'en' ? 'Enrolled' : 'ভর্তি সম্পন্ন'}</span>
+                  </Badge>
+                )}
+              </div>
+
+              <WishlistButton
+                courseId={course.id || courseId}
+                showLabel={true}
+                size="md"
+              />
             </div>
 
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">
@@ -885,6 +1003,11 @@ export default function CourseDetailsPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200 uppercase tracking-wider">
                             {resItem.fileType.toUpperCase()} • {resItem.fileSize}
+                            {resItem.fileType === 'pdf' && (
+                              <span className="ml-1.5 text-[10px] font-semibold text-slate-500">
+                                {resItem.isDownloadable ? '• Downloadable' : '• View-Only'}
+                              </span>
+                            )}
                           </span>
                           {resItem.isFreePreview && (
                             <Badge className="bg-emerald-50 text-emerald-700 text-[10px] font-semibold border-emerald-200">
@@ -899,21 +1022,39 @@ export default function CourseDetailsPage() {
 
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                         {isAvailable ? (
-                          <a
-                            href={resItem.downloadUrl}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full"
-                          >
+                          resItem.isDownloadable ? (
+                            <a
+                              href={resItem.downloadUrl}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full"
+                            >
+                              <Button
+                                size="sm"
+                                className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs gap-1.5 rounded-xl shadow-xs"
+                              >
+                                <Download className="h-4 w-4" />
+                                <span>{language === 'en' ? 'Download PDF File' : 'পিডিএফ ডাউনলোড করুন'}</span>
+                              </Button>
+                            </a>
+                          ) : (
                             <Button
                               size="sm"
+                              onClick={() => {
+                                setPdfModalState({
+                                  isOpen: true,
+                                  pdfUrl: resItem.downloadUrl,
+                                  title: language === 'en' && resItem.titleEn ? resItem.titleEn : resItem.title,
+                                  isDownloadable: false,
+                                });
+                              }}
                               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs gap-1.5 rounded-xl"
                             >
-                              <Download className="h-4 w-4" />
-                              <span>{language === 'en' ? 'Download PDF Document' : 'পিডিএফ ডাউনলোড করুন'}</span>
+                              <Eye className="h-4 w-4 text-amber-400" />
+                              <span>{language === 'en' ? 'View Protected PDF (View-Only)' : 'সুরক্ষিত পিডিএফ দেখুন (ভিউ-অনলি)'}</span>
                             </Button>
-                          </a>
+                          )
                         ) : (
                           <Button
                             onClick={() => {
@@ -1328,6 +1469,109 @@ export default function CourseDetailsPage() {
                 {language === 'en' ? 'Close' : 'বন্ধ করুন'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Protected PDF Viewer Modal (View-Only by default) */}
+      <ProtectedPdfViewerModal
+        isOpen={pdfModalState.isOpen}
+        onClose={() => setPdfModalState((p) => ({ ...p, isOpen: false }))}
+        pdfUrl={pdfModalState.pdfUrl}
+        title={pdfModalState.title}
+        watermark={{
+          studentName: session?.user?.name || undefined,
+          studentEmail: session?.user?.email || undefined,
+        }}
+        isDownloadable={pdfModalState.isDownloadable}
+      />
+
+      {/* Exam Revision Access Request Modal */}
+      {isRevisionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                  <GraduationCap className="h-4 w-4" />
+                </div>
+                <h3 className="font-bold text-base text-slate-900">
+                  {language === 'en' ? 'Request Exam Revision Access' : 'পরীক্ষার রিভিশন এক্সেস আবেদন'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsRevisionModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {revisionSuccessMsg ? (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-2">
+                <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
+                <p className="font-bold text-sm text-emerald-900">{revisionSuccessMsg}</p>
+                <p className="text-xs text-emerald-700">
+                  {language === 'en' ? 'Your temporary revision access is now activated!' : 'আপনার রিভিশন এক্সেস সফলভাবে সক্রিয় করা হয়েছে!'}
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleRequestRevisionAccess} className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {language === 'en'
+                    ? 'Get 14-day temporary access to all course videos, slides, and learning materials to prepare for your upcoming semester/final exams.'
+                    : 'আপনার আসন্ন ফাইনাল পরীক্ষার প্রস্তুতির জন্য কোর্সের সমস্ত ভিডিও এবং স্লাইড দেখতে ১৪ দিনের অস্থায়ী রিভিশন অনুমোদনের জন্য নিচের তথ্য পূরণ করুন।'}
+                </p>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {language === 'en' ? 'Target Exam Date' : 'পরীক্ষার সম্ভাব্য তারিখ'}
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={revisionExamDate}
+                    onChange={(e) => setRevisionExamDate(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {language === 'en' ? 'Reason / Subject Notes' : 'কারণ / পরীক্ষার বিবরণ'}
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder={language === 'en' ? 'e.g. Final exam revision for CSE 314...' : 'যেমন: ফাইনাল সেমিস্টার পরীক্ষার প্রস্তুতি...'}
+                    value={revisionReason}
+                    onChange={(e) => setRevisionReason(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsRevisionModalOpen(false)}
+                    className="flex-1 text-xs border-slate-200 rounded-xl"
+                  >
+                    {language === 'en' ? 'Cancel' : 'বাতিল'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingRevision}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                  >
+                    {isSubmittingRevision ? (
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    ) : (
+                      <span>{language === 'en' ? 'Grant Access' : 'এক্সেস অনুমোদন করুন'}</span>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

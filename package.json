@@ -5,9 +5,12 @@
   "scripts": {
     "predev": "node -e \"if(require('fs').existsSync('.next/BUILD_ID')) try{require('fs').rmSync('.next', {recursive:true, force:true})}catch(e){}\"",
     "dev": "next dev",
+    "server": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:unit": "vitest run",
+    "test:unit:ui": "vitest --ui --open --watch",
     "test:e2e": "playwright test",
     "postinstall": ""
   },

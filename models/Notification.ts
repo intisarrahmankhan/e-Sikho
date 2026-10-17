@@ -4,7 +4,16 @@ export interface INotification extends Document {
   recipientId: mongoose.Types.ObjectId | string;
   title: string;
   message: string;
-  type: 'CONTEST_ANNOUNCEMENT' | 'CONTEST_REMINDER' | 'ELO_UPDATE' | 'COURSE_COMPLETION' | 'SYSTEM';
+  type:
+    | 'CONTEST_ANNOUNCEMENT'
+    | 'CONTEST_REMINDER'
+    | 'ELO_UPDATE'
+    | 'COURSE_COMPLETION'
+    | 'LIVE_CLASS_STARTING'
+    | 'LIVE_CLASS_RECORDING_READY'
+    | 'REVISION_ACCESS_UPDATE'
+    | 'EXAM_REMINDER'
+    | 'SYSTEM';
   priority: 'HIGH' | 'NORMAL' | 'LOW';
   priorityWeight: number; // 3 for HIGH, 2 for NORMAL, 1 for LOW for fast sorting
   targetBackgrounds: string[];
@@ -23,7 +32,17 @@ const notificationSchema = new Schema<INotification>(
     message: { type: String, required: true },
     type: {
       type: String,
-      enum: ['CONTEST_ANNOUNCEMENT', 'CONTEST_REMINDER', 'ELO_UPDATE', 'COURSE_COMPLETION', 'SYSTEM'],
+      enum: [
+        'CONTEST_ANNOUNCEMENT',
+        'CONTEST_REMINDER',
+        'ELO_UPDATE',
+        'COURSE_COMPLETION',
+        'LIVE_CLASS_STARTING',
+        'LIVE_CLASS_RECORDING_READY',
+        'REVISION_ACCESS_UPDATE',
+        'EXAM_REMINDER',
+        'SYSTEM',
+      ],
       default: 'CONTEST_ANNOUNCEMENT',
     },
     priority: {

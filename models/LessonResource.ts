@@ -6,6 +6,7 @@ export interface ILessonResource extends Document {
   moduleId: mongoose.Types.ObjectId | string;
   userId: mongoose.Types.ObjectId | string;
   isPublic: boolean;
+  isDownloadable?: boolean; // false = View-Only by default
   attachments: string[]; // URLs or file paths
   createdAt: Date;
   updatedAt: Date;
@@ -18,6 +19,7 @@ const lessonResourceSchema = new Schema<ILessonResource>(
     moduleId: { type: Schema.Types.ObjectId, ref: 'Module', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isPublic: { type: Boolean, default: false },
+    isDownloadable: { type: Boolean, default: false }, // Default view-only
     attachments: [{ type: String }],
   },
   {
