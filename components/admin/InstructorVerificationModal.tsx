@@ -427,7 +427,7 @@ export default function InstructorVerificationModal({
                     </span>
                   </div>
                   <p className="text-xs text-gray-500">
-                    Applicant's public professional record and code/research portfolio.
+                    Applicant&apos;s public professional record and code/research portfolio.
                   </p>
                   <div className="flex flex-wrap gap-3 pt-1">
                     {application.linkedinUrl && (
@@ -491,7 +491,7 @@ export default function InstructorVerificationModal({
               {application.remarks && (
                 <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 space-y-1">
                   <span className="text-xs font-bold text-amber-900">Recorded Administrator Remarks:</span>
-                  <p className="text-xs text-amber-800 italic">"{application.remarks}"</p>
+                  <p className="text-xs text-amber-800 italic">&ldquo;{application.remarks}&rdquo;</p>
                   {application.reviewedBy && (
                     <p className="text-[11px] text-amber-700 mt-1">
                       Reviewed by: {application.reviewedBy.name || application.reviewedBy.email} on{' '}

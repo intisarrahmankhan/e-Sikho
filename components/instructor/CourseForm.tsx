@@ -27,12 +27,7 @@ const textareaClassName =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
 
 export default function CourseForm({ onSuccess }: CourseFormProps) {
-  let router: any = null;
-  try {
-    router = useRouter();
-  } catch {
-    router = null;
-  }
+  const router = useRouter();
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [pending, setPending] = useState(false);

@@ -166,7 +166,7 @@ export default function ModerationResolutionModal({
                 Reporter Rationale:
               </span>
               <p className="text-xs text-gray-700 bg-white p-2.5 rounded-lg border border-gray-200 leading-relaxed italic">
-                "{ticket.rationale}"
+                &ldquo;{ticket.rationale}&rdquo;
               </p>
               <p className="text-[10px] text-gray-400">
                 Reported by: <span className="font-medium text-gray-600">{ticket.reporter?.name || 'Anonymous User'}</span> ({ticket.reporter?.email || 'N/A'})
@@ -364,7 +364,7 @@ export default function ModerationResolutionModal({
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
-            Confirm & Execute '{actionTaken}'
+            Confirm &amp; Execute &apos;{actionTaken}&apos;
           </Button>
         </div>
       </div>

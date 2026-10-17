@@ -554,7 +554,7 @@ export default function ModerationQueue({ initialReports }: ModerationQueueProps
                       <span>By: {ticket.reporter?.name || 'Student'} ({ticket.reporter?.email || 'N/A'})</span>
                     </div>
                     <p className="text-xs text-gray-800 leading-relaxed italic bg-white p-2.5 rounded-lg border border-gray-200">
-                      "{ticket.rationale}"
+                      &ldquo;{ticket.rationale}&rdquo;
                     </p>
                   </div>
 
@@ -615,7 +615,7 @@ export default function ModerationQueue({ initialReports }: ModerationQueueProps
                     </div>
                     {ticket.resolutionNote && (
                       <p className="text-[11px] text-emerald-800 italic">
-                        "{ticket.resolutionNote}"
+                        &ldquo;{ticket.resolutionNote}&rdquo;
                       </p>
                     )}
                   </div>

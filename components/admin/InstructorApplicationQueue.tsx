@@ -597,7 +597,7 @@ export default function InstructorApplicationQueue({
                 {/* Bio Snippet */}
                 {app.bio && (
                   <p className="text-xs text-gray-600 line-clamp-2 bg-gray-50/70 p-2.5 rounded-lg border border-gray-100 italic">
-                    "{app.bio}"
+                    &ldquo;{app.bio}&rdquo;
                   </p>
                 )}
 
