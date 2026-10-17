@@ -7,7 +7,8 @@ import { redirect } from 'next/navigation';
 import {
   BookOpen, CheckCircle2, Clock, XCircle, Users, TrendingUp, Star,
   PlusCircle, BarChart2, ArrowUpRight, ArrowDownRight, Layers,
-  Award, Zap, Target, DollarSign, Eye, Activity, UserMinus, Settings, User
+  Award, Zap, Target, DollarSign, Eye, Activity, UserMinus, Settings, User,
+  GraduationCap
 } from 'lucide-react';
 import { BarChart, DonutChart, ProgressBar } from '@/components/instructor/Charts';
 import { MiniSparkline } from '@/components/instructor/MiniSparkline';
@@ -177,7 +178,7 @@ export default async function InstructorDashboardPage() {
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold mb-3">
-              <Activity className="h-3 w-3" /> Instructor Portal
+              <Activity className="h-3 w-3" /> Instructor Portal · Dual Student Access
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">
               Welcome back, {firstName}! 👋
@@ -187,6 +188,21 @@ export default async function InstructorDashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
+            {/* Dashboard Switcher: Switch to Student View / My Learning */}
+            <Link
+              href="/student"
+              id="btn-switch-to-student"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 py-2.5 text-sm font-bold shadow-md transition"
+              title="Switch to Student Dashboard to view enrolled courses, routines, and exams"
+            >
+              <GraduationCap className="h-4 w-4" /> Switch to Student View
+            </Link>
+            <Link
+              href="/courses"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/15 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/25 transition"
+            >
+              <BookOpen className="h-4 w-4" /> Browse Courses
+            </Link>
             <Link
               href="/instructor/create-course"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 shadow-md hover:bg-indigo-50 transition"

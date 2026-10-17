@@ -76,7 +76,7 @@ export default auth((req) => {
       const target = getRoleDashboard(role) || '/student';
       return NextResponse.redirect(new URL(target, req.url));
     }
-    if (pathname.startsWith('/student') && role !== 'STUDENT') {
+    if (pathname.startsWith('/student') && role !== 'STUDENT' && role !== 'INSTRUCTOR') {
       const target = getRoleDashboard(role);
       if (target && target !== '/student') {
         return NextResponse.redirect(new URL(target, req.url));

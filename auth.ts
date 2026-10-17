@@ -320,7 +320,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
             return true;
         },
-        async jwt({ token, user, account }: any) {
+        async jwt({ token, user, account, trigger }: any) {
             if (user) {
                 token.id = (user as any).id || token.id;
                 token.role = (user as any).role || token.role || 'STUDENT';
@@ -334,7 +334,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const hasValidObjectId = isValidMongoObjectId(token.id);
 
             try {
-                if (token.email && (!hasValidObjectId || account?.provider === 'google')) {
+                if (token.email && (!hasValidObjectId || account?.provider === 'google' || trigger === 'update')) {
                     await dbConnect();
                     let dbUser = await User.findOne({ email: token.email }).select('_id role status name phone').lean() as any;
                     if (!dbUser && (token.name || account?.provider === 'google')) {

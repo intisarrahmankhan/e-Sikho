@@ -5,7 +5,9 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import dbConnect from '@/lib/mongoose';
 import Enrollment from '@/models/Enrollment';
 import Course from '@/models/Course';
+import User from '@/models/User';
 import { processEnrollmentCommission } from '@/actions/financial';
+import { isValidMongoObjectId } from '@/lib/auth-helpers';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,8 +24,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = (session.user as any).id;
-    if (!userId) {
+    const rawUserId = (session.user as any).id;
+    const userEmail = (session.user as any).email;
+    if (!rawUserId && !userEmail) {
       return NextResponse.json(
         { message: 'ইউজার আইডি পাওয়া যায়নি।' },
         { status: 401 }
@@ -59,13 +62,55 @@ export async function POST(req: NextRequest) {
       pending: 'পেমেন্ট যাচাই প্রক্রিয়াধীন। নিশ্চিত হলে ইমেইলে জানানো হবে।',
     };
 
+    await dbConnect();
+
+    // Resolve safe userId
+    let userId = rawUserId;
+    if (!isValidMongoObjectId(userId) && userEmail) {
+      const u = (await User.findOne({ email: userEmail }).select('_id').lean()) as any;
+      if (u) userId = u._id.toString();
+    }
+    if (!userId) {
+      return NextResponse.json(
+        { message: 'ইউজার অ্যাকাউন্ট যাচাই করা যায়নি।' },
+        { status: 401 }
+      );
+    }
+
+    // Check course existence
+    let course: any = null;
+    if (isValidMongoObjectId(courseId)) {
+      course = await Course.findById(courseId).select('price originalPrice createdById studentsEnrolled isEarlyBird earlyBirdUntil createdAt');
+    }
+
+    // 1. Prevent self-enrollment (instructors cannot enroll in their own course)
+    if (course && course.createdById && course.createdById.toString() === userId.toString()) {
+      return NextResponse.json(
+        { message: 'ইন্সট্রাক্টরগণ তাদের নিজস্ব কোর্সে শিক্ষার্থী হিসেবে এনরোল করতে পারবেন না।' },
+        { status: 400 }
+      );
+    }
+
+    // 2. Prevent duplicate enrollment
+    const existingEnrollment = await Enrollment.findOne({
+      userId,
+      courseId,
+      paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
+    });
+
+    if (existingEnrollment) {
+      return NextResponse.json(
+        { message: 'আপনি ইতিমধ্যে এই কোর্সে এনরোল করেছেন।' },
+        { status: 400 }
+      );
+    }
+
     const transactionId = `TXN-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)
       .toUpperCase()}`;
 
     // Save enrollment to DB
-    await dbConnect();
     const enrollment = await Enrollment.findOneAndUpdate(
       {
         userId,
@@ -78,9 +123,9 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    if (status === 'success') {
-      const course = await Course.findById(courseId).select('price originalPrice studentsEnrolled isEarlyBird earlyBirdUntil createdAt');
-      if (course && course.price > 0) {
+    if (status === 'success' && course) {
+      await Course.findByIdAndUpdate(courseId, { $inc: { studentsEnrolled: 1 } });
+      if (course.price > 0) {
         await processEnrollmentCommission(enrollment._id.toString(), courseId, course.price);
       }
     }

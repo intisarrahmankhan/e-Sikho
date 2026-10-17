@@ -329,12 +329,12 @@ export default function PaginatedUsersList({ isSuperadmin: isSuperadminProp }: P
 
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* 1. Assign Course Button (for Student role) */}
-                        {user.role === 'STUDENT' && (
+                        {/* 1. Assign Course Button (for Student or Instructor learner) */}
+                        {(user.role === 'STUDENT' || user.role === 'INSTRUCTOR') && (
                           <button
                             onClick={() => setAssignModalUser(user)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg transition bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200"
-                            title="Assign Course directly to student"
+                            title="Assign Course directly to learner"
                           >
                             <BookPlus className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">Assign Course</span>

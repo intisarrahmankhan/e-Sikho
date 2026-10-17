@@ -40,7 +40,7 @@ export default async function StudentDashboardPage() {
     await dbConnect();
 
     // Resolve user document for accurate stats, elo, and streak
-    const userSelect = '_id name elo competitiveElo problemsSolved completedCoursesCount streak academicBackground eloHistory';
+    const userSelect = '_id name role elo competitiveElo problemsSolved completedCoursesCount streak academicBackground eloHistory';
     const isObjectId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId);
 
     if (isObjectId) {
@@ -267,9 +267,12 @@ export default async function StudentDashboardPage() {
     console.warn('Error loading recommendations in StudentDashboardPage:', e);
   }
 
+  const isInstructor = userDoc?.role === 'INSTRUCTOR' || (session?.user as any)?.role === 'INSTRUCTOR';
+
   return (
     <StudentDashboardClient
       userName={name}
+      isInstructor={isInstructor}
       enrolledCourses={enrolledCourses}
       upcomingExams={upcomingExams}
       topStudents={topStudents}

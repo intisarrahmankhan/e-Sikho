@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { BookOpen, Home, Settings, Target, LogIn, LayoutDashboard } from 'lucide-react';
+import { BookOpen, Home, Settings, Target, LogIn, LayoutDashboard, GraduationCap } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export function Sidebar() {
@@ -27,11 +27,18 @@ export function Sidebar() {
     { name: t('sidebar.home', 'হোম পেজ'), href: '/', icon: Home, matchExact: true },
     { name: t('sidebar.courses', 'কোর্সসমূহ'), href: '/courses', icon: BookOpen },
     ...(isLoggedIn
-      ? [
-          { name: t('sidebar.dashboard', 'ড্যাশবোর্ড'), href: userDashboardUrl, icon: LayoutDashboard },
-          { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
-          { name: t('sidebar.settings', 'সেটিংস'), href: userSettingsUrl, icon: Settings },
-        ]
+      ? role === 'INSTRUCTOR'
+        ? [
+            { name: 'ইন্সট্রাক্টর স্টুডিও', href: '/instructor', icon: LayoutDashboard },
+            { name: 'আমার কোর্স ও শিক্ষা', href: '/student', icon: GraduationCap },
+            { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
+            { name: t('sidebar.settings', 'সেটিংস'), href: userSettingsUrl, icon: Settings },
+          ]
+        : [
+            { name: t('sidebar.dashboard', 'ড্যাশবোর্ড'), href: userDashboardUrl, icon: LayoutDashboard },
+            { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
+            { name: t('sidebar.settings', 'সেটিংস'), href: userSettingsUrl, icon: Settings },
+          ]
       : []),
   ];
 
