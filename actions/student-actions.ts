@@ -4,6 +4,10 @@ import { auth } from '@/auth';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import InstructorRequest from '@/models/InstructorRequest';
+import InstructorProfile from '@/models/InstructorProfile';
+import Course from '@/models/Course';
+import Enrollment from '@/models/Enrollment';
+import { getCourseById } from '@/lib/courses-data';
 import { hashPassword, verifyPassword, normalizePhone, isValidBDPhone, isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
 
@@ -17,6 +21,9 @@ export async function requestInstructorRole(formData: FormData) {
   const role = (session?.user as { role?: string } | undefined)?.role;
   const reason = String(formData.get('reason') || '').trim();
 
+  if (role === 'INSTRUCTOR') {
+    return { error: 'আপনি ইতিমধ্যে একজন অনুমোদিত ইন্সট্রাক্টর।' };
+  }
   if (!userId || role !== 'STUDENT') return { error: 'শুধুমাত্র শিক্ষার্থীরা এই আবেদন জমা দিতে পারেন।' };
   if (reason.length < 20) return { error: 'অনুগ্রহ করে আপনার অভিজ্ঞতা ব্যাখ্যা করে কমপক্ষে ২০টি অক্ষর লিখুন।' };
 
@@ -24,8 +31,13 @@ export async function requestInstructorRole(formData: FormData) {
 
   let safeUserId = userId;
   if (!isValidMongoObjectId(safeUserId) && userEmail) {
-    const u = (await User.findOne({ email: userEmail }).select('_id').lean()) as any;
-    if (u) safeUserId = u._id.toString();
+    const u = (await User.findOne({ email: userEmail }).select('_id role').lean()) as any;
+    if (u) {
+      safeUserId = u._id.toString();
+      if (u.role === 'INSTRUCTOR') {
+        return { error: 'আপনি ইতিমধ্যে একজন অনুমোদিত ইন্সট্রাক্টর।' };
+      }
+    }
   }
   if (!isValidMongoObjectId(safeUserId)) {
     return { error: 'ইউজার অ্যাকাউন্ট যাচাই করা যায়নি।' };
@@ -42,8 +54,32 @@ export async function requestInstructorRole(formData: FormData) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
+  const institution = String(formData.get('institution') || 'Independent / Institutional Educator');
+  const subjectSpecialization = String(formData.get('subjectSpecialization') || 'Computer Science & Software Development');
+  const experienceYears = Number(formData.get('experienceYears')) || 2;
+  const rawQualifications = formData.get('qualifications');
+  const qualifications = rawQualifications
+    ? String(rawQualifications).split(',').map((s) => s.trim()).filter(Boolean)
+    : ['Bachelor Degree / Specialized Professional'];
+
+  await InstructorProfile.findOneAndUpdate(
+    { userId: safeUserId },
+    {
+      institution,
+      qualifications,
+      experienceYears,
+      subjectSpecialization,
+      bio: reason,
+      approval_status: 'Pending',
+      submissionDate: new Date(),
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
   revalidatePath('/student');
+  revalidatePath('/admin');
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/instructors/pending');
   return { success: true };
 }
 
@@ -226,3 +262,116 @@ export async function updateStudentPasswordAction(data: {
     return { error: 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।' };
   }
 }
+
+/**
+ * Enrolls a user (Student or Instructor) in an eligible course.
+ * Ensures:
+ * 1. Instructors can enroll in courses created by other instructors.
+ * 2. Self-enrollment prevention (instructors cannot enroll in their own course).
+ * 3. Duplicate enrollment prevention (cannot double enroll in the same course).
+ * 4. Free courses (price === 0) are directly activated.
+ * 5. Paid courses return checkout / payment URL.
+ */
+export async function enrollInCourseAction(courseId: string) {
+  try {
+    const session = await auth();
+    const sessionUser = session?.user as { id?: string; email?: string; role?: string } | undefined;
+    if (!sessionUser?.id && !sessionUser?.email) {
+      return { success: false, error: 'কোর্সে ভর্তি হতে অনুগ্রহ করে প্রথমে লগইন করুন।' };
+    }
+
+    await dbConnect();
+
+    // Resolve safe userId
+    let safeUserId = sessionUser.id;
+    if (!isValidMongoObjectId(safeUserId) && sessionUser.email) {
+      const u = (await User.findOne({ email: sessionUser.email }).select('_id role').lean()) as any;
+      if (u) safeUserId = u._id.toString();
+    }
+    if (!isValidMongoObjectId(safeUserId)) {
+      return { success: false, error: 'ইউজার অ্যাকাউন্ট যাচাই করা যায়নি।' };
+    }
+
+    // 1. Locate course (check DB first, then static fallback)
+    let course: any = null;
+    let isDbCourse = false;
+    if (isValidMongoObjectId(courseId)) {
+      course = await Course.findById(courseId);
+      if (course) isDbCourse = true;
+    }
+    if (!course) {
+      const staticCourse = getCourseById(courseId);
+      if (staticCourse) {
+        course = staticCourse;
+      }
+    }
+
+    if (!course) {
+      return { success: false, error: 'নির্বাচিত কোর্সটি খুঁজে পাওয়া যায়নি।' };
+    }
+
+    // 2. Prevent self-enrollment (instructors cannot enroll in their own course)
+    if (course.createdById && safeUserId && course.createdById.toString() === safeUserId.toString()) {
+      return {
+        success: false,
+        error: 'ইন্সট্রাক্টরগণ তাদের নিজস্ব কোর্সে শিক্ষার্থী হিসেবে এনরোল করতে পারবেন না।',
+      };
+    }
+
+    // 3. Prevent duplicate enrollment
+    const existingEnrollment = await Enrollment.findOne({
+      userId: safeUserId,
+      courseId,
+      paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
+    });
+
+    if (existingEnrollment) {
+      return {
+        success: false,
+        error: 'আপনি ইতিমধ্যে এই কোর্সে এনরোল করেছেন।',
+        alreadyEnrolled: true,
+      };
+    }
+
+    const price = Number(course.price ?? 0);
+
+    // 4. Handle free course enrollment directly
+    if (price === 0) {
+      const transactionId = `FREE-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      await Enrollment.findOneAndUpdate(
+        { userId: safeUserId, courseId },
+        {
+          paymentStatus: 'success',
+          transactionId,
+          amountPaid: 0,
+          enrolledAt: new Date(),
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+      // Increment student count if db course
+      if (isDbCourse) {
+        await Course.findByIdAndUpdate(courseId, { $inc: { studentsEnrolled: 1 } });
+      }
+
+      revalidatePath('/student');
+      revalidatePath(`/courses/${courseId}`);
+      return {
+        success: true,
+        enrolled: true,
+        message: 'ফ্রি কোর্সে আপনার ভর্তি সফল হয়েছে!',
+      };
+    }
+
+    // 5. Paid course: return checkout url
+    return {
+      success: true,
+      requiresPayment: true,
+      checkoutUrl: `/payment/${courseId}`,
+    };
+  } catch (error: any) {
+    console.error('Failed to enroll in course:', error);
+    return { success: false, error: 'কোর্স এনরোলমেন্ট প্রক্রিয়াকরণ ব্যর্থ হয়েছে।' };
+  }
+}
+

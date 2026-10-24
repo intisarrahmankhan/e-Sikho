@@ -35,6 +35,7 @@ import { getRatingTier } from '@/lib/elo';
 
 interface StudentDashboardClientProps {
   userName: string;
+  isInstructor?: boolean;
   enrolledCourses: any[];
   upcomingExams: any[];
   topStudents: any[];
@@ -62,6 +63,7 @@ interface StudentDashboardClientProps {
 
 export function StudentDashboardClient({
   userName,
+  isInstructor = false,
   enrolledCourses,
   upcomingExams,
   topStudents,
@@ -154,6 +156,26 @@ export function StudentDashboardClient({
                 day: 'numeric',
               })}
             </p>
+
+            {/* Dashboard Switcher: If user is an approved Instructor */}
+            {isInstructor && (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/instructor"
+                  id="btn-switch-to-instructor"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white px-4 py-2 text-xs sm:text-sm font-bold shadow-lg shadow-indigo-600/30 transition transform active:scale-95 border border-indigo-400/30"
+                  title="Switch to Instructor Dashboard"
+                >
+                  <Layers className="h-4 w-4" />
+                  <span>{language === 'en' ? 'Switch to Instructor Studio' : 'ইন্সট্রাক্টর স্টুডিওতে যান'}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                <div className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>{language === 'en' ? 'Dual Access: Instructor & Student' : 'দ্বৈত ভূমিকা: শিক্ষক ও শিক্ষার্থী সক্রিয়'}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ELO + Streak badges */}
@@ -490,7 +512,7 @@ export function StudentDashboardClient({
         </div>
       </div>
 
-      {/* ── Become an Instructor ── */}
+      {/* ── Become an Instructor / Active Instructor Status ── */}
       <section className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 p-6 shadow-sm">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
@@ -498,14 +520,44 @@ export function StudentDashboardClient({
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-bold text-gray-900">
-              {language === 'en' ? 'Become an Instructor' : 'ইন্সট্রাক্টর হোন'}
+              {isInstructor
+                ? language === 'en'
+                  ? 'Instructor Studio & Teaching Hub'
+                  : 'ইন্সট্রাক্টর স্টুডিও ও টিচিং হাব'
+                : language === 'en'
+                ? 'Become an Instructor'
+                : 'ইন্সট্রাক্টর হোন'}
             </h2>
             <p className="mt-1 mb-4 text-sm text-gray-600 max-w-xl leading-relaxed">
-              {language === 'en'
+              {isInstructor
+                ? language === 'en'
+                  ? 'Your account is an approved instructor. You can create courses, conduct live classes, and inspect payouts in the Instructor Studio while retaining full access to your learning journey.'
+                  : 'আপনার অ্যাকাউন্টটি অনুমোদিত ইন্সট্রাক্টর হিসেবে সক্রিয় রয়েছে। আপনি কোর্স তৈরি, লাইভ ক্লাস পরিচালনা ও পেআউট চেক করতে পারেন এবং একই সাথে আপনার লার্নিং ড্যাশবোর্ডও চালু রাখতে পারেন।'
+                : language === 'en'
                 ? 'Share your knowledge on e-Shikho and earn revenue from your courses. Your request requires approval from an Admin and SuperAdmin.'
                 : 'e-Shikho-তে আপনার জ্ঞান শেয়ার করুন এবং আপনার কোর্স থেকে আয় করুন। আপনার আবেদনটি অ্যাডমিন ও সুপারঅ্যাডমিন দ্বারা অনুমোদিত হতে হবে।'}
             </p>
-            <InstructorRequestForm status={instructorRequest?.status} />
+            {isInstructor ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/instructor"
+                  id="btn-goto-instructor-studio"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 text-sm font-semibold shadow-sm transition"
+                >
+                  <Layers className="h-4 w-4" />
+                  <span>{language === 'en' ? 'Open Instructor Studio' : 'ইন্সট্রাক্টর স্টুডিও খুলুন'}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/instructor/create-course"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 px-4 py-2.5 text-sm font-semibold shadow-sm transition"
+                >
+                  <span>{language === 'en' ? 'Create New Course' : 'নতুন কোর্স তৈরি করুন'}</span>
+                </Link>
+              </div>
+            ) : (
+              <InstructorRequestForm status={instructorRequest?.status} />
+            )}
           </div>
         </div>
       </section>

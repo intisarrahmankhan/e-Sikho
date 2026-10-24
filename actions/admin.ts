@@ -240,6 +240,13 @@ export async function assignCourseToStudent(studentId: string, courseId: string)
       return { success: false, error: 'Selected course could not be found.' };
     }
 
+    if (isDbCourse) {
+      const dbCourse = await Course.findById(courseId).select('createdById').lean() as any;
+      if (dbCourse?.createdById && dbCourse.createdById.toString() === studentId.toString()) {
+        return { success: false, error: 'Cannot assign a course to its own creator/instructor.' };
+      }
+    }
+
     // Check if student is already enrolled
     const existing = await Enrollment.findOne({
       userId: studentId,
@@ -248,7 +255,7 @@ export async function assignCourseToStudent(studentId: string, courseId: string)
     });
 
     if (existing) {
-      return { success: false, error: `Student is already enrolled in "${courseTitle}".` };
+      return { success: false, error: `User is already enrolled in "${courseTitle}".` };
     }
 
     // Create or update enrollment

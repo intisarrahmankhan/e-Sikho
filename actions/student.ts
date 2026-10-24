@@ -1,32 +1,29 @@
 'use server';
-import { auth } from '@/auth';
-import dbConnect from '@/lib/mongoose';
-import InstructorRequest from '@/models/InstructorRequest';
-import { revalidatePath } from 'next/cache';
+
+import {
+  requestInstructorRole as _requestInstructorRole,
+  enrollInCourseAction as _enrollInCourseAction,
+  getStudentProfileAction as _getStudentProfileAction,
+  updateStudentProfileAction as _updateStudentProfileAction,
+  updateStudentPasswordAction as _updateStudentPasswordAction,
+} from './student-actions';
 
 export async function requestInstructorRole(formData: FormData) {
-  const session = await auth();
-  const userId = (session?.user as { id?: string; role?: string } | undefined)?.id;
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const reason = String(formData.get('reason') || '').trim();
+  return _requestInstructorRole(formData);
+}
 
-  if (!userId || role !== 'STUDENT') return { error: 'Only students can submit this request.' };
-  if (reason.length < 20) return { error: 'Please provide at least 20 characters explaining your experience.' };
+export async function enrollInCourseAction(courseId: string) {
+  return _enrollInCourseAction(courseId);
+}
 
-  await dbConnect();
+export async function getStudentProfileAction() {
+  return _getStudentProfileAction();
+}
 
-  const existing = await InstructorRequest.findOne({ userId });
-  if (existing && ['PENDING', 'ADMIN_APPROVED', 'SUPERADMIN_APPROVED', 'APPROVED'].includes(existing.status)) {
-    return { error: 'You already have an active instructor request.' };
-  }
+export async function updateStudentProfileAction(data: Parameters<typeof _updateStudentProfileAction>[0]) {
+  return _updateStudentProfileAction(data);
+}
 
-  await InstructorRequest.findOneAndUpdate(
-    { userId },
-    { reason, status: 'PENDING', adminApprovedAt: null, superadminApprovedAt: null, reviewedAt: null },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-
-  revalidatePath('/student');
-  revalidatePath('/admin/dashboard');
-  return { success: true };
+export async function updateStudentPasswordAction(data: Parameters<typeof _updateStudentPasswordAction>[0]) {
+  return _updateStudentPasswordAction(data);
 }

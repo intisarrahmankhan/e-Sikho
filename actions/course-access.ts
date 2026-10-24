@@ -143,13 +143,14 @@ export async function getCourseAccessDetails(courseId: string): Promise<CourseAc
     }
 
     // Access determination:
-    // Staff always has full access.
+    // Staff and course creator always have full access.
     // If course has ended or enrollment expired, student only has access IF temporary revision access is active!
     // Otherwise if enrolled and not expired, student has full access.
-    let canAccessAll = isStaff;
+    const isCreator = !!(dbCourse?.createdById && dbCourse.createdById.toString() === userId.toString());
+    let canAccessAll = isStaff || isCreator;
     if (isEnrolled) {
       if (isCourseEnded || isEnrollmentExpired) {
-        canAccessAll = isStaff || isRevisionAccessActive;
+        canAccessAll = isStaff || isCreator || isRevisionAccessActive;
       } else {
         canAccessAll = true;
       }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target, Trophy, Award, Heart } from 'lucide-react';
+import { Search, User, LogOut, LogIn, UserPlus, BookOpen, LayoutDashboard, Home, Target, Trophy, Award, Heart, GraduationCap } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { Input } from '@/components/ui/Input';
 import { useLanguage } from '@/context/LanguageContext';
@@ -149,19 +149,50 @@ export function Navbar() {
             {/* Real-time Prioritized Notification Bell */}
             <NotificationBell />
 
-            <Link
-              href={userDashboardUrl}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
-                pathname.startsWith('/student') ||
-                pathname.startsWith('/instructor') ||
-                pathname.startsWith('/admin')
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>{t('nav.dashboard')}</span>
-            </Link>
+            {role === 'INSTRUCTOR' ? (
+              <div className="flex items-center gap-1">
+                <Link
+                  href="/instructor"
+                  id="nav-instructor-studio"
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-semibold rounded-lg transition ${
+                    pathname.startsWith('/instructor')
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                  title="Instructor Studio"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="hidden sm:inline">Studio</span>
+                </Link>
+                <Link
+                  href="/student"
+                  id="nav-my-learning"
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-semibold rounded-lg transition ${
+                    pathname.startsWith('/student')
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                  title="My Learning / Student Dashboard"
+                >
+                  <GraduationCap className="h-4 w-4 text-emerald-600" />
+                  <span className="hidden sm:inline">{language === 'en' ? 'My Learning' : 'শিক্ষা'}</span>
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href={userDashboardUrl}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                  pathname.startsWith('/student') ||
+                  pathname.startsWith('/instructor') ||
+                  pathname.startsWith('/admin')
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span>{t('nav.dashboard')}</span>
+              </Link>
+            )}
 
             <div className="flex items-center gap-2 border-l border-gray-200 pl-3 ml-1">
               <Link href={`${userDashboardUrl}/settings`} className="flex items-center gap-2 hover:bg-gray-50 rounded-lg p-1 transition cursor-pointer">

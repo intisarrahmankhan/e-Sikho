@@ -30,6 +30,7 @@ import {
   GraduationCap,
   Trophy,
   Eye,
+  Layers,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
@@ -297,9 +298,35 @@ export default function CourseDetailsPage() {
 
   const canAccessAll = accessDetails.canAccessAll;
 
-  /** Navigate to the SSLCommerz-style payment gateway for this course. */
-  function handleEnroll() {
+  const sessionUserId = (session?.user as any)?.id;
+  const courseCreatorId = (course as any)?.createdById;
+  const isCourseCreator = !!(
+    sessionUserId &&
+    courseCreatorId &&
+    courseCreatorId.toString() === sessionUserId.toString()
+  );
+
+  /** Navigate to payment gateway or handle direct enrollment for free course */
+  async function handleEnroll() {
     setEnrolling(true);
+    if (isCourseCreator) {
+      router.push(`/instructor/courses/${courseId}/lectures`);
+      return;
+    }
+    if (currentPrice === 0) {
+      try {
+        const { enrollInCourseAction } = await import('@/actions/student-actions');
+        const res = await enrollInCourseAction(courseId);
+        if (res.enrolled) {
+          const accessRes = await getCourseAccessDetails(courseId);
+          setAccessDetails(accessRes);
+          setEnrolling(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Free enrollment error:', err);
+      }
+    }
     router.push(`/payment/${courseId}`);
   }
 
@@ -1138,9 +1165,45 @@ export default function CourseDetailsPage() {
           </div>
         </div>
 
-        {/* Right Column: Sticky Pricing or Enrolled Student Panel */}
+        {/* Right Column: Sticky Pricing, Creator Studio, or Enrolled Student Panel */}
         <div className="lg:sticky lg:top-6 space-y-6">
-          {canAccessAll ? (
+          {isCourseCreator ? (
+            <Card className="border-indigo-200 shadow-xl overflow-hidden bg-white">
+              <div className="bg-gradient-to-r from-indigo-600 to-violet-700 p-6 text-white text-center">
+                <div className="inline-flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full text-xs font-bold text-white mb-2">
+                  <Sparkles className="h-4 w-4 text-amber-300" />
+                  <span>{language === 'en' ? 'Course Instructor' : 'কোর্স ইন্সট্রাক্টর'}</span>
+                </div>
+                <h3 className="text-xl font-black">
+                  {language === 'en' ? 'You Created this Course' : 'আপনি এই কোর্সের শিক্ষক'}
+                </h3>
+                <p className="text-xs text-indigo-100 mt-1">
+                  {language === 'en'
+                    ? 'Manage modules, video lectures, and exams from your instructor studio.'
+                    : 'আপনার ইন্সট্রাক্টর স্টুডিও থেকে মডিউল, ভিডিও এবং পরীক্ষা পরিচালনা করুন।'}
+                </p>
+              </div>
+
+              <CardContent className="p-6 space-y-3">
+                <Button
+                  size="lg"
+                  onClick={() => router.push(`/instructor/courses/${courseId}/lectures`)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-4 gap-2 shadow-sm"
+                >
+                  <Layers className="h-4 w-4" />
+                  <span>{language === 'en' ? 'Manage Lectures & Modules' : 'লেকচার ও মডিউল পরিচালনা'}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push('/instructor')}
+                  className="w-full text-slate-700 text-xs py-2"
+                >
+                  <span>{language === 'en' ? 'Instructor Studio' : 'ইন্সট্রাক্টর স্টুডিও'}</span>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : canAccessAll ? (
             <Card className="border-slate-200 shadow-xl overflow-hidden bg-white">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-white text-center">
                 <div className="inline-flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full text-xs font-bold text-white mb-2">
