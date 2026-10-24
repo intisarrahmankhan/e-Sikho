@@ -628,7 +628,7 @@ export default function PayoutManagementQueue({
 
           {ledgerEntries.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              No financial ledger entries recorded yet. Click "Seed Sample Payouts" to populate audit trails.
+              No financial ledger entries recorded yet. Click &quot;Seed Sample Payouts&quot; to populate audit trails.
             </div>
           ) : (
             <div className="overflow-x-auto">

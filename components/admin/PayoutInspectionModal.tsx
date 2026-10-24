@@ -508,7 +508,7 @@ export default function PayoutInspectionModal({
                 Reason: {payout.rejectionReason || 'No explicit reason specified.'}
               </p>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                The full amount of ৳{payout.amount.toLocaleString()} has been safely refunded to the instructor's wallet.
+                The full amount of ৳{payout.amount.toLocaleString()} has been safely refunded to the instructor&apos;s wallet.
               </span>
             </div>
           )}
@@ -598,7 +598,7 @@ export default function PayoutInspectionModal({
                 <span>Reject Payout & Refund Instructor Balance</span>
               </h5>
               <p className="text-xs text-rose-800/90 dark:text-rose-200">
-                Rejecting will atomically return ৳{payout.amount.toLocaleString()} back to the instructor's wallet and record a PAYOUT_REFUND entry in the ledger.
+                Rejecting will atomically return ৳{payout.amount.toLocaleString()} back to the instructor&apos;s wallet and record a PAYOUT_REFUND entry in the ledger.
               </p>
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
