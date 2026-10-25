@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { reviewInstructorApplication, assignCourseToStudent } from '@/actions/admin';
-import { requestInstructorRole, enrollInCourseAction } from '@/actions/student-actions';
+import { reviewInstructorApplication, assignCourseToStudent, updateUserRole } from '@/actions/admin';
+import { requestInstructorRole, enrollInCourseAction, getUserEnrolledCourses } from '@/actions/student-actions';
 
 // Mock DB connection
 vi.mock('@/lib/mongoose', () => ({
@@ -92,9 +92,13 @@ vi.mock('@/models/InstructorProfile', () => ({
 }));
 
 const mockInstructorFindOneAndUpdate = vi.fn();
+const mockInstructorFindOne = vi.fn();
+const mockInstructorCreate = vi.fn();
 vi.mock('@/models/Instructor', () => ({
   default: {
     findOneAndUpdate: (...args: any[]) => mockInstructorFindOneAndUpdate(...args),
+    findOne: (...args: any[]) => mockInstructorFindOne(...args),
+    create: (...args: any[]) => mockInstructorCreate(...args),
   },
 }));
 
@@ -137,6 +141,10 @@ vi.mock('@/models/Enrollment', () => ({
     find: (...args: any[]) => {
       const res = mockEnrollmentFind(...args);
       return {
+        sort: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue(res),
+          then: (fn: any) => Promise.resolve(res).then(fn),
+        }),
         lean: vi.fn().mockResolvedValue(res),
         then: (fn: any) => Promise.resolve(res).then(fn),
       };
@@ -148,6 +156,14 @@ vi.mock('@/models/Enrollment', () => ({
 vi.mock('@/models/AuditLog', () => ({
   default: {
     create: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('@/models/CourseRoutine', () => ({
+  default: {
+    findOne: vi.fn().mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    }),
   },
 }));
 
@@ -481,4 +497,155 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
       expect(res.error).toContain('already enrolled');
     });
   });
+
+  describe('5. Unified Enrolled Courses Retrieval for Instructors', () => {
+    it('retrieves all courses enrolled when user was a student without having to go back to student profile', async () => {
+      const instructorId = '65f000000000000000000002';
+
+      // Past student enrollments
+      mockEnrollmentFind.mockResolvedValue([
+        {
+          _id: 'enr-student-1',
+          userId: instructorId,
+          courseId: '65f000000000000000000101',
+          paymentStatus: 'success',
+          enrolledAt: new Date('2025-01-15'),
+        },
+      ]);
+
+      mockCourseFindById.mockResolvedValue({
+        _id: '65f000000000000000000101',
+        title: 'Python for Beginners & Data Science',
+        category: 'programming',
+        price: 0,
+        thumbnailUrl: '/images/python.jpg',
+      });
+
+      const enrolledCourses = await getUserEnrolledCourses(instructorId);
+
+      expect(enrolledCourses).toHaveLength(1);
+      expect(enrolledCourses[0]!.id).toBe('65f000000000000000000101');
+      expect(enrolledCourses[0]!.title).toBe('Python for Beginners & Data Science');
+      expect(enrolledCourses[0]!.progressPercentage).toBeGreaterThanOrEqual(0);
+    });
+
+    it('aggregates both student-enrolled courses and newly instructor-enrolled courses in the enrolled courses list', async () => {
+      const instructorId = '65f000000000000000000002';
+
+      // Two enrollments: one enrolled when user was student, one enrolled as instructor
+      mockEnrollmentFind.mockResolvedValue([
+        {
+          _id: 'enr-student-1',
+          userId: instructorId,
+          courseId: '65f000000000000000000101',
+          paymentStatus: 'success',
+          enrolledAt: new Date('2025-01-15'),
+        },
+        {
+          _id: 'enr-instructor-2',
+          userId: instructorId,
+          courseId: '65f000000000000000000202',
+          paymentStatus: 'success',
+          enrolledAt: new Date('2025-06-20'),
+        },
+      ]);
+
+      mockCourseFindById.mockImplementation((id: string) => {
+        if (id === '65f000000000000000000101') {
+          return {
+            _id: '65f000000000000000000101',
+            title: 'Algorithms & Problem Solving (Student Era)',
+            category: 'programming',
+            price: 1500,
+          };
+        }
+        return {
+          _id: '65f000000000000000000202',
+          title: 'Docker & Kubernetes (Instructor Era)',
+          category: 'devops',
+          price: 2500,
+        };
+      });
+
+      const enrolledCourses = await getUserEnrolledCourses(instructorId);
+
+      expect(enrolledCourses).toHaveLength(2);
+      expect(enrolledCourses.map((c: any) => c.title)).toContain('Algorithms & Problem Solving (Student Era)');
+      expect(enrolledCourses.map((c: any) => c.title)).toContain('Docker & Kubernetes (Instructor Era)');
+    });
+
+    it('revalidates both student and instructor dashboard paths when enrolling', async () => {
+      currentSessionUser = {
+        id: '65f000000000000000000002',
+        role: 'INSTRUCTOR',
+        name: 'Instructor Learner',
+        email: 'instructor_learner@eshikho.test',
+      };
+
+      const eligibleCourse = {
+        _id: '65f000000000000000000303',
+        title: 'Cloud Architecture Essentials',
+        createdById: '65f000000000000000000999', // Another instructor
+        price: 0,
+        studentsEnrolled: 5,
+      };
+
+      mockCourseFindById.mockResolvedValue(eligibleCourse);
+      mockEnrollmentFindOne.mockResolvedValue(null);
+      mockEnrollmentFindOneAndUpdate.mockResolvedValue({ _id: 'enr-new' });
+
+      mockRevalidatePath.mockClear();
+
+      const res = await enrollInCourseAction('65f000000000000000000303');
+      expect(res.success).toBe(true);
+
+      // Verifies both student and instructor paths are revalidated
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/student');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/instructor');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/courses/65f000000000000000000303');
+    });
+  });
+
+  describe('5. Admin Role Promotion and Auto-Revalidation for Instructors', () => {
+    it('promotes user role to INSTRUCTOR and revalidates all student and instructor dashboard paths', async () => {
+      currentSessionUser = {
+        id: '65f000000000000000000099',
+        role: 'SUPERADMIN',
+        name: 'Super Administrator',
+        email: 'superadmin@eshikho.test',
+      };
+
+      const targetUserId = '65f000000000000000000123';
+      const userDoc = {
+        _id: targetUserId,
+        name: 'Intisar Khan',
+        email: '01792616710@phone.esikho.com',
+        role: 'STUDENT',
+      };
+
+      mockUserFindById.mockResolvedValue(userDoc);
+      mockUserFindByIdAndUpdate.mockResolvedValue({ ...userDoc, role: 'INSTRUCTOR' });
+      mockInstructorFindOne.mockResolvedValue(null);
+      mockInstructorCreate.mockResolvedValue({ _id: 'inst-123', name: 'Intisar Khan' });
+
+      mockRevalidatePath.mockClear();
+
+      const res = await updateUserRole(targetUserId, 'INSTRUCTOR');
+
+      expect(res.success).toBe(true);
+      expect(mockUserFindByIdAndUpdate).toHaveBeenCalledWith(targetUserId, { role: 'INSTRUCTOR' });
+      expect(mockInstructorCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Intisar Khan' })
+      );
+
+      // Verifies all student & instructor settings and dashboard paths are refreshed
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/admin');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/dashboard');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/student');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/student/settings');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/instructor');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/instructor/settings');
+    });
+  });
 });
+

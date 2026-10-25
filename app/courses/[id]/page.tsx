@@ -31,6 +31,7 @@ import {
   Trophy,
   Eye,
   Layers,
+  Rocket,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
@@ -45,6 +46,7 @@ import SecureVideoPlayer from "@/components/video/SecureVideoPlayer";
 import { CourseCohortLeaderboard } from "@/components/course/CourseCohortLeaderboard";
 import { ProtectedPdfViewerModal } from "@/components/pdf/ProtectedPdfViewerModal";
 import { WishlistButton } from "@/components/courses/WishlistButton";
+import { ProjectSubmissionPortal } from "@/components/project/ProjectSubmissionPortal";
 import {
   getCourseAccessDetails,
   toggleLessonProgressAction,
@@ -115,6 +117,22 @@ export default function CourseDetailsPage() {
     pdfUrl: '',
     title: '',
     isDownloadable: false,
+  });
+
+  // Project Submission Portal Modal State
+  const [activeProjectPortal, setActiveProjectPortal] = useState<{
+    isOpen: boolean;
+    lessonId: string;
+    title: string;
+    projectInstructions?: string;
+    maxMarks?: number;
+    passMarks?: number;
+    githubRequired?: boolean;
+    liveUrlRequired?: boolean;
+  }>({
+    isOpen: false,
+    lessonId: '',
+    title: '',
   });
 
   // Temporary Revision Access Request Modal State
@@ -344,6 +362,20 @@ export default function CourseDetailsPage() {
     if (!isUnlocked) {
       setLockedLessonTitle(lesson.title);
       setIsLockedModalOpen(true);
+      return;
+    }
+
+    if (lesson.type === 'PROJECT') {
+      setActiveProjectPortal({
+        isOpen: true,
+        lessonId: lesson.id || '',
+        title: lesson.title,
+        projectInstructions: (lesson as any).projectInstructions || (lesson as any).content || '',
+        maxMarks: (lesson as any).maxMarks || 100,
+        passMarks: (lesson as any).passMarks || 60,
+        githubRequired: (lesson as any).githubRequired !== false,
+        liveUrlRequired: (lesson as any).liveUrlRequired !== false,
+      });
       return;
     }
 
@@ -762,6 +794,7 @@ export default function CourseDetailsPage() {
                           const isUnlocked = lesson.isFree || canAccessAll;
                           const isQuiz = (lesson as any).type === 'QUIZ' || !!(lesson as any).quizId;
                           const isPdf = (lesson as any).type === 'PDF' || (!!(lesson as any).pdfUrl && !lesson.videoUrl);
+                          const isProject = (lesson as any).type === 'PROJECT';
                           const lessonDisplayTitle = language === 'en' && lesson.titleEn ? lesson.titleEn : lesson.title;
 
                           return (
@@ -776,7 +809,12 @@ export default function CourseDetailsPage() {
                                   type: (lesson as any).type,
                                   pdfUrl: (lesson as any).pdfUrl,
                                   quizId: (lesson as any).quizId,
-                                })
+                                  projectInstructions: (lesson as any).projectInstructions || (lesson as any).content,
+                                  maxMarks: (lesson as any).maxMarks,
+                                  passMarks: (lesson as any).passMarks,
+                                  githubRequired: (lesson as any).githubRequired,
+                                  liveUrlRequired: (lesson as any).liveUrlRequired,
+                                } as any)
                               }
                               className={`px-5 py-3.5 flex items-center justify-between text-xs sm:text-sm transition ${
                                 isUnlocked ? 'hover:bg-primary-50/50 cursor-pointer' : 'hover:bg-slate-50 cursor-pointer opacity-90'
@@ -786,6 +824,8 @@ export default function CourseDetailsPage() {
                                 {isUnlocked ? (
                                   isCompleted ? (
                                     <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                  ) : isProject ? (
+                                    <Rocket className="h-4 w-4 text-rose-600 shrink-0" />
                                   ) : isQuiz ? (
                                     <GraduationCap className="h-4 w-4 text-purple-600 shrink-0" />
                                   ) : isPdf ? (
@@ -810,6 +850,11 @@ export default function CourseDetailsPage() {
                                   <Badge variant="outline" className="text-slate-400 text-[10px] font-medium border-slate-200 flex items-center gap-1">
                                     <Lock className="h-3 w-3" />
                                     <span>{language === 'en' ? 'Locked' : 'লকড'}</span>
+                                  </Badge>
+                                ) : isProject ? (
+                                  <Badge variant="secondary" className="bg-rose-50 text-rose-700 text-[10px] font-semibold border-rose-200 flex items-center gap-1">
+                                    <Rocket className="h-3 w-3" />
+                                    <span>{language === 'en' ? 'Project Portal' : 'প্রজেক্ট পোর্টাল'}</span>
                                   </Badge>
                                 ) : isQuiz ? (
                                   <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-[10px] font-semibold border-purple-200">
@@ -1635,6 +1680,39 @@ export default function CourseDetailsPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Project Submission Portal Modal */}
+      {activeProjectPortal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
+          <div className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-white rounded-3xl shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setActiveProjectPortal((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute top-5 right-5 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm transition"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            <ProjectSubmissionPortal
+              courseId={courseId}
+              lessonId={activeProjectPortal.lessonId}
+              lessonTitle={activeProjectPortal.title}
+              projectInstructions={activeProjectPortal.projectInstructions}
+              maxMarks={activeProjectPortal.maxMarks}
+              passMarks={activeProjectPortal.passMarks}
+              githubRequired={activeProjectPortal.githubRequired}
+              liveUrlRequired={activeProjectPortal.liveUrlRequired}
+              onEvaluationComplete={(score, passed) => {
+                if (passed) {
+                  setAccessDetails((prev) => ({
+                    ...prev,
+                    completedLessonIds: Array.from(new Set([...prev.completedLessonIds, activeProjectPortal.lessonId])),
+                  }));
+                }
+              }}
+            />
           </div>
         </div>
       )}

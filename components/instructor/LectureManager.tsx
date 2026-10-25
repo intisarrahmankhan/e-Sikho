@@ -26,11 +26,14 @@ import {
   HelpCircle,
   FileDown,
   ShieldCheck,
+  Rocket,
+  Code2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import VideoEmbedPlayer from '@/components/instructor/VideoEmbedPlayer';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   addCourseLecture,
   addCourseModule,
@@ -59,10 +62,15 @@ export interface Lesson {
   pdfUrl?: string;
   pdfName?: string;
   quizId?: any;
-  type?: 'VIDEO' | 'PDF' | 'QUIZ';
+  type?: 'VIDEO' | 'PDF' | 'QUIZ' | 'PROJECT';
   isDownloadable?: boolean;
   bunnyVideoId?: string;
   bunnyLibraryId?: string;
+  projectInstructions?: string;
+  maxMarks?: number;
+  passMarks?: number;
+  githubRequired?: boolean;
+  liveUrlRequired?: boolean;
 }
 
 export interface Module {
@@ -96,6 +104,7 @@ export default function LectureManager({
   course: initialCourse,
   quizzes = [],
 }: LectureManagerProps) {
+  const { language } = useLanguage();
   const [course, setCourse] = useState<Course>(initialCourse);
   const [modules, setModules] = useState<Module[]>(initialCourse.modules || []);
   const [openModules, setOpenModules] = useState<Record<string, boolean>>(() => {
@@ -120,7 +129,14 @@ export default function LectureManager({
   const [lectureContent, setLectureContent] = useState('');
   const [lectureDuration, setLectureDuration] = useState('15:00');
   const [lectureIsFree, setLectureIsFree] = useState(false);
-  const [lectureType, setLectureType] = useState<'VIDEO' | 'PDF' | 'QUIZ'>('VIDEO');
+  const [lectureType, setLectureType] = useState<'VIDEO' | 'PDF' | 'QUIZ' | 'PROJECT'>('VIDEO');
+
+  // Project Portal States (Add)
+  const [projectInstructions, setProjectInstructions] = useState('');
+  const [maxMarks, setMaxMarks] = useState(100);
+  const [passMarks, setPassMarks] = useState(60);
+  const [githubRequired, setGithubRequired] = useState(true);
+  const [liveUrlRequired, setLiveUrlRequired] = useState(true);
 
   // Video states
   const [videoMode, setVideoMode] = useState<'url' | 'file' | 'bunny'>('url');
@@ -144,7 +160,12 @@ export default function LectureManager({
   );
 
   // Edit states
-  const [editLectureType, setEditLectureType] = useState<'VIDEO' | 'PDF' | 'QUIZ'>('VIDEO');
+  const [editLectureType, setEditLectureType] = useState<'VIDEO' | 'PDF' | 'QUIZ' | 'PROJECT'>('VIDEO');
+  const [editProjectInstructions, setEditProjectInstructions] = useState('');
+  const [editMaxMarks, setEditMaxMarks] = useState(100);
+  const [editPassMarks, setEditPassMarks] = useState(60);
+  const [editGithubRequired, setEditGithubRequired] = useState(true);
+  const [editLiveUrlRequired, setEditLiveUrlRequired] = useState(true);
   const [editPdfFile, setEditPdfFile] = useState<File | null>(null);
   const [editPdfUrl, setEditPdfUrl] = useState('');
   const [editPdfName, setEditPdfName] = useState('');
@@ -200,6 +221,11 @@ export default function LectureManager({
     setLectureDuration('15:00');
     setLectureIsFree(false);
     setLectureType('VIDEO');
+    setProjectInstructions('');
+    setMaxMarks(100);
+    setPassMarks(60);
+    setGithubRequired(true);
+    setLiveUrlRequired(true);
     setVideoMode('url');
     setVideoUrl('');
     setVideoFile(null);
@@ -222,6 +248,11 @@ export default function LectureManager({
     const resolvedType =
       lesson.type || (lesson.quizId ? 'QUIZ' : lesson.pdfUrl ? 'PDF' : 'VIDEO');
     setEditLectureType(resolvedType);
+    setEditProjectInstructions(lesson.projectInstructions || lesson.content || '');
+    setEditMaxMarks(lesson.maxMarks || 100);
+    setEditPassMarks(lesson.passMarks || 60);
+    setEditGithubRequired(lesson.githubRequired !== false);
+    setEditLiveUrlRequired(lesson.liveUrlRequired !== false);
     setVideoFile(null);
     setEditBunnyVideoId(lesson.bunnyVideoId || '');
     setEditBunnyLibraryId(lesson.bunnyLibraryId || '345678');
@@ -251,7 +282,7 @@ export default function LectureManager({
       setOpenModules((prev) => ({ ...prev, [addedMod._id]: true }));
       setNewModuleTitle('');
       setIsAddModuleOpen(false);
-      setStatusMessage({ text: 'মডিউল সফলভাবে তৈরি হয়েছে!' });
+      setStatusMessage({ text: language === 'en' ? 'Module created successfully!' : 'মডিউল সফলভাবে তৈরি হয়েছে!' });
     }
     setIsSubmitting(false);
   };
@@ -271,6 +302,15 @@ export default function LectureManager({
     formData.append('isFree', String(lectureIsFree));
     formData.append('type', lectureType);
     formData.append('isDownloadable', String(isDownloadable));
+
+    // Project portal details
+    if (lectureType === 'PROJECT') {
+      formData.append('projectInstructions', projectInstructions.trim());
+      formData.append('maxMarks', String(maxMarks));
+      formData.append('passMarks', String(passMarks));
+      formData.append('githubRequired', String(githubRequired));
+      formData.append('liveUrlRequired', String(liveUrlRequired));
+    }
 
     // Video details
     if (lectureType === 'VIDEO') {
@@ -323,7 +363,7 @@ export default function LectureManager({
         })
       );
       setIsAddLectureOpen(false);
-      setStatusMessage({ text: 'পাঠ / লেকচার সফলভাবে যুক্ত হয়েছে!' });
+      setStatusMessage({ text: language === 'en' ? 'Lesson created successfully!' : 'পাঠ / লেকচার সফলভাবে যুক্ত হয়েছে!' });
     }
     setIsSubmitting(false);
   };
@@ -343,6 +383,14 @@ export default function LectureManager({
     formData.append('isFree', String(activeLectureForEdit.isFree || false));
     formData.append('type', editLectureType);
     formData.append('isDownloadable', String(editIsDownloadable));
+
+    if (editLectureType === 'PROJECT') {
+      formData.append('projectInstructions', editProjectInstructions.trim());
+      formData.append('maxMarks', String(editMaxMarks));
+      formData.append('passMarks', String(editPassMarks));
+      formData.append('githubRequired', String(editGithubRequired));
+      formData.append('liveUrlRequired', String(editLiveUrlRequired));
+    }
 
     if (activeLectureForEdit.videoUrl) {
       formData.append('videoUrl', activeLectureForEdit.videoUrl);
@@ -383,7 +431,7 @@ export default function LectureManager({
         }))
       );
       setActiveLectureForEdit(null);
-      setStatusMessage({ text: 'লেকচার সফলভাবে আপডেট হয়েছে!' });
+      setStatusMessage({ text: language === 'en' ? 'Lesson updated successfully!' : 'লেকচার সফলভাবে আপডেট হয়েছে!' });
     }
     setIsSubmitting(false);
   };
@@ -595,21 +643,25 @@ export default function LectureManager({
                                   )}
 
                                   {/* Media Badges */}
-                                  {isQuiz ? (
+                                  {lesson.type === 'PROJECT' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200">
+                                      <Rocket className="h-3 w-3 text-indigo-600" /> {language === 'en' ? 'Project Portal (Automated Eval)' : 'প্রজেক্ট পোর্টাল (স্বয়ংক্রিয় মূল্যায়ন)'}
+                                    </span>
+                                  ) : isQuiz ? (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200">
-                                      <GraduationCap className="h-3 w-3" /> কুইজ / পরীক্ষা
+                                      <GraduationCap className="h-3 w-3" /> {language === 'en' ? 'Quiz / Exam' : 'কুইজ / পরীক্ষা'}
                                     </span>
                                   ) : isPdf ? (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
-                                      <FileText className="h-3 w-3" /> PDF লেকচার নোটস
+                                      <FileText className="h-3 w-3" /> {language === 'en' ? 'PDF Slides' : 'PDF লেকচার নোটস'}
                                     </span>
                                   ) : hasVideo ? (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
-                                      <Video className="h-3 w-3" /> ভিডিও লেকচার
+                                      <Video className="h-3 w-3" /> {language === 'en' ? 'Video Class' : 'ভিডিও লেকচার'}
                                     </span>
                                   ) : (
                                     <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200">
-                                      টেক্সট পাঠ
+                                      {language === 'en' ? 'Text Lesson' : 'টেক্সট পাঠ'}
                                     </span>
                                   )}
 
@@ -761,46 +813,59 @@ export default function LectureManager({
               {/* Content Type Selector */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  পাঠের প্রধান ধরন (Content Type) *
+                  {language === 'en' ? 'Content Type *' : 'পাঠের প্রধান ধরন (Content Type) *'}
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
                     type="button"
                     onClick={() => setLectureType('VIDEO')}
-                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs sm:text-sm font-bold transition ${
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs font-bold transition ${
                       lectureType === 'VIDEO'
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-200'
                         : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     <Video className="h-4 w-4 text-indigo-600" />
-                    <span>ভিডিও লেকচার</span>
+                    <span>{language === 'en' ? 'Video' : 'ভিডিও লেকচার'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setLectureType('PDF')}
-                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs sm:text-sm font-bold transition ${
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs font-bold transition ${
                       lectureType === 'PDF'
                         ? 'border-amber-600 bg-amber-50 text-amber-800 ring-2 ring-amber-200'
                         : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     <FileText className="h-4 w-4 text-amber-600" />
-                    <span>পিডিএফ স্লাইডস</span>
+                    <span>{language === 'en' ? 'PDF Slides' : 'পিডিএফ স্লাইডস'}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setLectureType('QUIZ')}
-                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs sm:text-sm font-bold transition ${
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs font-bold transition ${
                       lectureType === 'QUIZ'
                         ? 'border-purple-600 bg-purple-50 text-purple-800 ring-2 ring-purple-200'
                         : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     <GraduationCap className="h-4 w-4 text-purple-600" />
-                    <span>কুইজ / পরীক্ষা</span>
+                    <span>{language === 'en' ? 'Quiz / Exam' : 'কুইজ / পরীক্ষা'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLectureType('PROJECT')}
+                    className={`flex items-center justify-center gap-2 rounded-xl p-3 border text-xs font-bold transition ${
+                      lectureType === 'PROJECT'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-200 shadow-xs'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Rocket className="h-4 w-4 text-emerald-600" />
+                    <span>{language === 'en' ? 'Project Portal' : 'প্রজেক্ট পোর্টাল'}</span>
                   </button>
                 </div>
               </div>
@@ -1103,6 +1168,89 @@ export default function LectureManager({
                 </div>
               )}
 
+              {/* Project Portal Section (shown if PROJECT) */}
+              {lectureType === 'PROJECT' && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <Rocket className="h-4 w-4 text-emerald-600" />
+                      {language === 'en' ? 'Project Submission Portal & Automated Evaluation' : 'প্রজেক্ট সাবমিশন পোর্টাল ও স্বয়ংক্রিয় মূল্যায়ন কনফিগারেশন'}
+                    </span>
+                    <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
+                      {language === 'en' ? 'Automated Checks' : 'অটোমেটেড মূল্যায়ন'}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      {language === 'en' ? 'Project Requirements & Instructions *' : 'প্রজেক্ট নির্দেশনাবলী ও প্রয়োজনীয় ফিচারসমূহ *'}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={projectInstructions}
+                      onChange={(e) => setProjectInstructions(e.target.value)}
+                      placeholder={
+                        language === 'en'
+                          ? 'e.g. Build an E-Commerce or AI web app with Next.js & MongoDB. Deploy live and submit GitHub + live URL.'
+                          : 'যেমন: Next.js ও MongoDB ব্যবহার করে একটি সম্পূর্ণ ফুলস্ট্যাক প্রজেক্ট তৈরি করুন। Vercel বা অন্য হোস্টিংয়ে লাইভ করে গিটহাব ও লাইভ লিংক দিন।'
+                      }
+                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-xs shadow-sm outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                        {language === 'en' ? 'Maximum Marks' : 'সর্বোচ্চ নম্বর'}
+                      </label>
+                      <input
+                        type="number"
+                        value={maxMarks}
+                        onChange={(e) => setMaxMarks(Number(e.target.value))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                        {language === 'en' ? 'Pass Marks' : 'পাস নম্বর'}
+                      </label>
+                      <input
+                        type="number"
+                        value={passMarks}
+                        onChange={(e) => setPassMarks(Number(e.target.value))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Automated Evaluation Checklist Highlight */}
+                  <div className="p-3 bg-white rounded-xl border border-emerald-100 space-y-2">
+                    <p className="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                      {language === 'en' ? 'Automated Evaluation Suite Enabled:' : 'স্বয়ংক্রিয় মূল্যায়ন সিস্টেমের চেকলিস্ট:'}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={githubRequired} onChange={(e) => setGithubRequired(e.target.checked)} className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'GitHub Repo Inspection (25 Marks)' : 'পাবলিক গিটহাব রিপোজিটরি যাচাই (২৫ নম্বর)'}</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={liveUrlRequired} onChange={(e) => setLiveUrlRequired(e.target.checked)} className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'Live Deployment Ping Check (25 Marks)' : 'লাইভ ডেপ্লয়মেন্ট পিং যাচাই (২৫ নম্বর)'}</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked readOnly className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'Code Architecture & Stack (25 Marks)' : 'কোড আর্কিটেকচার ও টেক স্ট্যাক (২৫ নম্বর)'}</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked readOnly className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'Docs & README Spec (25 Marks)' : 'ডকুমেন্টেশন ও রিডমি মানদণ্ড (২৫ নম্বর)'}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Duration and Free preview checkbox */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -1281,9 +1429,9 @@ export default function LectureManager({
               {/* Type Switcher */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  পাঠের ধরন
+                  {language === 'en' ? 'Lesson Type' : 'পাঠের ধরন'}
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
                     type="button"
                     onClick={() => setEditLectureType('VIDEO')}
@@ -1294,7 +1442,7 @@ export default function LectureManager({
                     }`}
                   >
                     <Video className="h-3.5 w-3.5" />
-                    <span>ভিডিও</span>
+                    <span>{language === 'en' ? 'Video' : 'ভিডিও'}</span>
                   </button>
                   <button
                     type="button"
@@ -1306,7 +1454,7 @@ export default function LectureManager({
                     }`}
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    <span>পিডিএফ</span>
+                    <span>{language === 'en' ? 'PDF' : 'পিডিএফ'}</span>
                   </button>
                   <button
                     type="button"
@@ -1318,7 +1466,19 @@ export default function LectureManager({
                     }`}
                   >
                     <GraduationCap className="h-3.5 w-3.5" />
-                    <span>কুইজ</span>
+                    <span>{language === 'en' ? 'Quiz / Exam' : 'কুইজ'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditLectureType('PROJECT')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      editLectureType === 'PROJECT'
+                        ? 'bg-emerald-50 border-emerald-600 text-emerald-800'
+                        : 'bg-white border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    <Rocket className="h-3.5 w-3.5" />
+                    <span>{language === 'en' ? 'Project' : 'প্রজেক্ট'}</span>
                   </button>
                 </div>
               </div>
@@ -1482,6 +1642,89 @@ export default function LectureManager({
                   ) : (
                     <p className="text-xs text-gray-500">কোনো কুইজ পাওয়া যায়নি।</p>
                   )}
+                </div>
+              )}
+
+              {/* Project Portal Section (shown if PROJECT) */}
+              {editLectureType === 'PROJECT' && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <Rocket className="h-4 w-4 text-emerald-600" />
+                      {language === 'en' ? 'Project Submission Portal & Automated Evaluation' : 'প্রজেক্ট সাবমিশন পোর্টাল ও স্বয়ংক্রিয় মূল্যায়ন কনফিগারেশন'}
+                    </span>
+                    <Badge className="bg-emerald-600 text-white text-[10px] font-bold">
+                      {language === 'en' ? 'Automated Checks' : 'অটোমেটেড মূল্যায়ন'}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      {language === 'en' ? 'Project Requirements & Instructions *' : 'প্রজেক্ট নির্দেশনাবলী ও প্রয়োজনীয় ফিচারসমূহ *'}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editProjectInstructions}
+                      onChange={(e) => setEditProjectInstructions(e.target.value)}
+                      placeholder={
+                        language === 'en'
+                          ? 'e.g. Build an E-Commerce or AI web app with Next.js & MongoDB. Deploy live and submit GitHub + live URL.'
+                          : 'যেমন: Next.js ও MongoDB ব্যবহার করে একটি সম্পূর্ণ ফুলস্ট্যাক প্রজেক্ট তৈরি করুন। Vercel বা অন্য হোস্টিংয়ে লাইভ করে গিটহাব ও লাইভ লিংক দিন।'
+                      }
+                      className="w-full rounded-xl border border-gray-200 bg-white p-3 text-xs shadow-sm outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                        {language === 'en' ? 'Maximum Marks' : 'সর্বোচ্চ নম্বর'}
+                      </label>
+                      <input
+                        type="number"
+                        value={editMaxMarks}
+                        onChange={(e) => setEditMaxMarks(Number(e.target.value))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                        {language === 'en' ? 'Pass Marks' : 'পাস নম্বর'}
+                      </label>
+                      <input
+                        type="number"
+                        value={editPassMarks}
+                        onChange={(e) => setEditPassMarks(Number(e.target.value))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Automated Evaluation Checklist Highlight */}
+                  <div className="p-3 bg-white rounded-xl border border-emerald-100 space-y-2">
+                    <p className="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                      {language === 'en' ? 'Automated Evaluation Suite Enabled:' : 'স্বয়ংক্রিয় মূল্যায়ন সিস্টেমের চেকলিস্ট:'}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={editGithubRequired} onChange={(e) => setEditGithubRequired(e.target.checked)} className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'GitHub Repo Inspection (25 Marks)' : 'পাবলিক গিটহাব রিপোজিটরি যাচাই (২৫ নম্বর)'}</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={editLiveUrlRequired} onChange={(e) => setEditLiveUrlRequired(e.target.checked)} className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'Live Deployment Ping Check (25 Marks)' : 'লাইভ ডেপ্লয়মেন্ট পিং যাচাই (২৫ নম্বর)'}</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked readOnly className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'Code Architecture & Stack (25 Marks)' : 'কোড আর্কিটেকচার ও টেক স্ট্যাক (২৫ নম্বর)'}</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked readOnly className="rounded text-emerald-600" />
+                        <span>{language === 'en' ? 'Docs & README Spec (25 Marks)' : 'ডকুমেন্টেশন ও রিডমি মানদণ্ড (২৫ নম্বর)'}</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 

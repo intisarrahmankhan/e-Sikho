@@ -355,6 +355,7 @@ export async function enrollInCourseAction(courseId: string) {
       }
 
       revalidatePath('/student');
+      revalidatePath('/instructor');
       revalidatePath(`/courses/${courseId}`);
       return {
         success: true,
@@ -372,6 +373,117 @@ export async function enrollInCourseAction(courseId: string) {
   } catch (error: any) {
     console.error('Failed to enroll in course:', error);
     return { success: false, error: 'কোর্স এনরোলমেন্ট প্রক্রিয়াকরণ ব্যর্থ হয়েছে।' };
+  }
+}
+
+/**
+ * Fetches all enrolled courses for any user (Student or Instructor),
+ * preserving all enrollments from student and instructor periods.
+ */
+export async function getUserEnrolledCourses(safeUserId: string) {
+  try {
+    await dbConnect();
+
+    // Query enrollments for this user
+    const enrollments = await Enrollment.find({
+      userId: safeUserId,
+      paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
+    })
+      .sort({ enrolledAt: -1, createdAt: -1 })
+      .lean();
+
+    if (!enrollments || enrollments.length === 0) {
+      return [];
+    }
+
+    let CourseRoutine: any = null;
+    try {
+      const routineMod = await import('@/models/CourseRoutine');
+      CourseRoutine = routineMod.default;
+    } catch {}
+
+    const enrolledCourses = (
+      await Promise.all(
+        enrollments.map(async (e: any) => {
+          const courseIdStr = String(e.courseId);
+          const staticCourse = getCourseById(courseIdStr);
+
+          let userRoutine: any = null;
+          if (CourseRoutine) {
+            try {
+              userRoutine = await CourseRoutine.findOne({ userId: safeUserId, courseId: courseIdStr }).lean();
+            } catch {}
+          }
+
+          let targetCompletionDate = new Date(new Date().setMonth(new Date().getMonth() + 2))
+            .toISOString()
+            .split('T')[0];
+          let paceMode: string | undefined = undefined;
+          let progressPercentage = 25;
+
+          if (userRoutine) {
+            if (userRoutine.targetCompletionDate) {
+              targetCompletionDate = new Date(userRoutine.targetCompletionDate)
+                .toISOString()
+                .split('T')[0];
+            }
+            paceMode = userRoutine.paceMode;
+            const items = userRoutine.items || [];
+            const totalItems = items.length || 1;
+            const completedItems = items.filter((i: any) => i.completed).length;
+
+            if (totalItems > 0 && completedItems > 0) {
+              progressPercentage = Math.round((completedItems / totalItems) * 100);
+            }
+          }
+
+          if (staticCourse) {
+            return {
+              id: staticCourse.id,
+              title: staticCourse.title,
+              titleEn: staticCourse.titleEn || '',
+              thumbnailUrl: staticCourse.thumbnailUrl,
+              thumbnailUrlEn: staticCourse.thumbnailUrlEn || '',
+              progressPercentage,
+              targetCompletionDate,
+              paceMode,
+              category: staticCourse.category,
+              price: staticCourse.price,
+              enrolledAt: e.enrolledAt
+                ? new Date(e.enrolledAt).toISOString()
+                : (e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString()),
+            };
+          }
+
+          try {
+            const dbCourse = (await Course.findById(courseIdStr).lean()) as any;
+            if (dbCourse) {
+              return {
+                id: dbCourse._id.toString(),
+                title: dbCourse.title,
+                titleEn: dbCourse.titleEn || '',
+                thumbnailUrl: dbCourse.thumbnailUrl || '/images/default-course.jpg',
+                thumbnailUrlEn: dbCourse.thumbnailUrlEn || '',
+                progressPercentage,
+                targetCompletionDate,
+                paceMode,
+                category: dbCourse.category,
+                price: dbCourse.price,
+                enrolledAt: e.enrolledAt
+                  ? new Date(e.enrolledAt).toISOString()
+                  : (e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString()),
+              };
+            }
+          } catch {}
+          return null;
+        })
+      )
+    ).filter(Boolean);
+
+    return enrolledCourses;
+  } catch (err) {
+    console.warn('Error fetching enrolled courses for user:', err);
+    return [];
   }
 }
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   Lock,
   ShieldCheck,
@@ -52,7 +53,9 @@ function determineStatus(tab: Tab, card: string, mobile: string, pin: string): P
 export default function PaymentPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const courseId = params?.courseId as string;
+  const dashboardUrl = (session?.user as any)?.role === 'INSTRUCTOR' ? '/instructor?tab=enrolled' : '/student';
 
   const [course, setCourse] = useState<any>(() => COURSES_DATA.find((c) => c.id === courseId) ?? null);
   const [loading, setLoading] = useState(!course);
@@ -242,7 +245,7 @@ export default function PaymentPage() {
               সকল কোর্স
             </button>
             <button
-              onClick={() => router.push('/student')}
+              onClick={() => router.push(dashboardUrl)}
               className="flex-1 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition"
             >
               ড্যাশবোর্ড

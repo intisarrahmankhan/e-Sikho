@@ -6,6 +6,7 @@ import {
   getStudentProfileAction as _getStudentProfileAction,
   updateStudentProfileAction as _updateStudentProfileAction,
   updateStudentPasswordAction as _updateStudentPasswordAction,
+  getUserEnrolledCourses as _getUserEnrolledCourses,
 } from './student-actions';
 
 export async function requestInstructorRole(formData: FormData) {
@@ -26,4 +27,8 @@ export async function updateStudentProfileAction(data: Parameters<typeof _update
 
 export async function updateStudentPasswordAction(data: Parameters<typeof _updateStudentPasswordAction>[0]) {
   return _updateStudentPasswordAction(data);
+}
+
+export async function getUserEnrolledCourses(safeUserId: string) {
+  return _getUserEnrolledCourses(safeUserId);
 }

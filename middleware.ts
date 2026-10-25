@@ -72,9 +72,12 @@ export default auth((req) => {
       const target = getRoleDashboard(role) || '/student';
       return NextResponse.redirect(new URL(target, req.url));
     }
-    if (pathname.startsWith('/instructor') && role !== 'INSTRUCTOR') {
-      const target = getRoleDashboard(role) || '/student';
-      return NextResponse.redirect(new URL(target, req.url));
+    // Automatically route instructors from student portal views to instructor equivalents
+    if ((pathname === '/student' || pathname === '/student/') && role === 'INSTRUCTOR') {
+      return NextResponse.redirect(new URL('/instructor', req.url));
+    }
+    if ((pathname === '/student/settings' || pathname === '/student/settings/') && role === 'INSTRUCTOR') {
+      return NextResponse.redirect(new URL('/instructor/settings', req.url));
     }
     if (pathname.startsWith('/student') && role !== 'STUDENT' && role !== 'INSTRUCTOR') {
       const target = getRoleDashboard(role);
@@ -88,5 +91,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!api|_next|favicon.ico).*)'],
 };

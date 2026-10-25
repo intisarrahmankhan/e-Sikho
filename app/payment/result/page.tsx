@@ -15,6 +15,7 @@
 
 import React, { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   CheckCircle2,
   XCircle,
@@ -97,6 +98,9 @@ const STATUS_CONFIG: Record<
 function ResultContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
+  const dashboardUrl = role === 'INSTRUCTOR' ? '/instructor?tab=enrolled' : '/student';
 
   // Read query params set by the gateway page countdown redirect
   const rawStatus = searchParams.get('status') ?? 'failed';
@@ -188,7 +192,7 @@ function ResultContent() {
           {status === 'success' && (
             <button
               id="btn-go-dashboard"
-              onClick={() => router.push('/student')}
+              onClick={() => router.push(dashboardUrl)}
               className="w-full rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 flex items-center justify-center gap-2 transition"
             >
               <LayoutDashboard className="h-4 w-4" />
@@ -210,7 +214,7 @@ function ResultContent() {
           {status === 'pending' && (
             <button
               id="btn-pending-dashboard"
-              onClick={() => router.push('/student')}
+              onClick={() => router.push(dashboardUrl)}
               className="w-full rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 flex items-center justify-center gap-2 transition"
             >
               <LayoutDashboard className="h-4 w-4" />

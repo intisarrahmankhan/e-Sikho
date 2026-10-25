@@ -334,10 +334,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const hasValidObjectId = isValidMongoObjectId(token.id);
 
             try {
-                if (token.email && (!hasValidObjectId || account?.provider === 'google' || trigger === 'update')) {
+                if (token.email || hasValidObjectId) {
                     await dbConnect();
-                    let dbUser = await User.findOne({ email: token.email }).select('_id role status name phone').lean() as any;
-                    if (!dbUser && (token.name || account?.provider === 'google')) {
+                    const query = hasValidObjectId ? { _id: token.id } : { email: token.email };
+                    let dbUser = await User.findOne(query).select('_id role status name phone email').lean() as any;
+                    if (!dbUser && token.email && (token.name || account?.provider === 'google')) {
                         dbUser = await User.create({
                             name: token.name || 'User',
                             email: token.email,
@@ -352,6 +353,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         token.status = dbUser.status || token.status || 'APPROVED';
                         if (dbUser.phone) token.phone = dbUser.phone;
                         if (dbUser.name) token.name = dbUser.name;
+                        if (dbUser.email) token.email = dbUser.email;
                     }
                 }
             } catch (err) {
@@ -374,6 +376,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 (session.user as any).status = token.status ?? 'APPROVED';
                 (session.user as any).phone = token.phone;
                 if (token.name) session.user.name = token.name;
+                if (token.email) session.user.email = token.email;
             }
             return session;
         },

@@ -30,7 +30,7 @@ export function Sidebar() {
       ? role === 'INSTRUCTOR'
         ? [
             { name: 'ইন্সট্রাক্টর স্টুডিও', href: '/instructor', icon: LayoutDashboard },
-            { name: 'আমার কোর্স ও শিক্ষা', href: '/student', icon: GraduationCap },
+            { name: 'আমার এনরোল্ড কোর্সসমূহ', href: '/instructor?tab=enrolled', icon: GraduationCap },
             { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
             { name: t('sidebar.settings', 'সেটিংস'), href: userSettingsUrl, icon: Settings },
           ]

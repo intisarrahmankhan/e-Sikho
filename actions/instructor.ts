@@ -286,8 +286,15 @@ export async function addCourseLecture(formData: FormData) {
     const quizId = String(formData.get('quizId') || '').trim() || undefined;
     const isDownloadable = formData.get('isDownloadable') === 'true'; // Default false = View-Only
     const rawType = String(formData.get('type') || (quizId ? 'QUIZ' : pdfFile || pdfUrl ? 'PDF' : 'VIDEO'));
-    const lessonType: 'VIDEO' | 'PDF' | 'QUIZ' =
-      rawType === 'PDF' || rawType === 'QUIZ' ? rawType : 'VIDEO';
+    const lessonType: 'VIDEO' | 'PDF' | 'QUIZ' | 'PROJECT' =
+      rawType === 'PDF' || rawType === 'QUIZ' || rawType === 'PROJECT' ? rawType : 'VIDEO';
+
+    // Project portal fields
+    const projectInstructions = String(formData.get('projectInstructions') || '').trim();
+    const maxMarks = Number(formData.get('maxMarks')) || 100;
+    const passMarks = Number(formData.get('passMarks')) || 60;
+    const githubRequired = formData.get('githubRequired') !== 'false';
+    const liveUrlRequired = formData.get('liveUrlRequired') !== 'false';
 
     // Ensure a module exists
     if (!moduleId) {
@@ -320,6 +327,12 @@ export async function addCourseLecture(formData: FormData) {
       quizId,
       type: lessonType,
       isDownloadable,
+      projectInstructions: projectInstructions || undefined,
+      maxMarks,
+      passMarks,
+      githubRequired,
+      liveUrlRequired,
+      automatedChecks: ['github_repo_valid', 'live_url_active', 'code_structure', 'readme_docs'],
     });
 
     // Update course totalLessons
@@ -362,6 +375,13 @@ export async function updateCourseLecture(formData: FormData) {
   let pdfName = String(formData.get('pdfName') || '').trim();
   const quizId = String(formData.get('quizId') || '').trim();
   const lessonType = String(formData.get('type') || '').trim();
+
+  // Project portal fields
+  const projectInstructions = formData.has('projectInstructions') ? String(formData.get('projectInstructions') || '').trim() : undefined;
+  const maxMarks = formData.has('maxMarks') ? Number(formData.get('maxMarks')) || 100 : undefined;
+  const passMarks = formData.has('passMarks') ? Number(formData.get('passMarks')) || 60 : undefined;
+  const githubRequired = formData.has('githubRequired') ? formData.get('githubRequired') !== 'false' : undefined;
+  const liveUrlRequired = formData.has('liveUrlRequired') ? formData.get('liveUrlRequired') !== 'false' : undefined;
 
   if (!lessonId || !title) {
     return { error: 'Lesson ID and title are required.' };
@@ -425,6 +445,11 @@ export async function updateCourseLecture(formData: FormData) {
     }
     if (quizId) lesson.quizId = quizId as any;
     if (lessonType) lesson.type = lessonType as any;
+    if (projectInstructions !== undefined) lesson.projectInstructions = projectInstructions;
+    if (maxMarks !== undefined) lesson.maxMarks = maxMarks;
+    if (passMarks !== undefined) lesson.passMarks = passMarks;
+    if (githubRequired !== undefined) lesson.githubRequired = githubRequired;
+    if (liveUrlRequired !== undefined) lesson.liveUrlRequired = liveUrlRequired;
 
     await lesson.save();
 

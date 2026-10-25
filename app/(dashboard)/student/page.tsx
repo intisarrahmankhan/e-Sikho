@@ -117,6 +117,14 @@ export default async function StudentDashboardPage() {
     console.warn('MongoDB connection/query warning in StudentDashboardPage, using graceful fallback defaults:', dbErr);
   }
 
+  const effectiveRole = userDoc?.role || (session.user as any)?.role;
+  if (effectiveRole === 'INSTRUCTOR') {
+    redirect('/instructor');
+  }
+  if (effectiveRole === 'ADMIN' || effectiveRole === 'SUPERADMIN') {
+    redirect('/admin');
+  }
+
   const elo = userDoc?.elo || 1200;
   const competitiveElo = userDoc?.competitiveElo || 1200;
   const problemsSolved = userDoc?.problemsSolved || 0;

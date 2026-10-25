@@ -156,26 +156,6 @@ export function StudentDashboardClient({
                 day: 'numeric',
               })}
             </p>
-
-            {/* Dashboard Switcher: If user is an approved Instructor */}
-            {isInstructor && (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/instructor"
-                  id="btn-switch-to-instructor"
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white px-4 py-2 text-xs sm:text-sm font-bold shadow-lg shadow-indigo-600/30 transition transform active:scale-95 border border-indigo-400/30"
-                  title="Switch to Instructor Dashboard"
-                >
-                  <Layers className="h-4 w-4" />
-                  <span>{language === 'en' ? 'Switch to Instructor Studio' : 'ইন্সট্রাক্টর স্টুডিওতে যান'}</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-                <div className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>{language === 'en' ? 'Dual Access: Instructor & Student' : 'দ্বৈত ভূমিকা: শিক্ষক ও শিক্ষার্থী সক্রিয়'}</span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* ELO + Streak badges */}

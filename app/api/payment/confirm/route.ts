@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
 
@@ -123,10 +124,17 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    if (status === 'success' && course) {
-      await Course.findByIdAndUpdate(courseId, { $inc: { studentsEnrolled: 1 } });
-      if (course.price > 0) {
-        await processEnrollmentCommission(enrollment._id.toString(), courseId, course.price);
+    if (status === 'success') {
+      try {
+        revalidatePath('/student');
+        revalidatePath('/instructor');
+        revalidatePath(`/courses/${courseId}`);
+      } catch {}
+      if (course) {
+        await Course.findByIdAndUpdate(courseId, { $inc: { studentsEnrolled: 1 } });
+        if (course.price > 0) {
+          await processEnrollmentCommission(enrollment._id.toString(), courseId, course.price);
+        }
       }
     }
 

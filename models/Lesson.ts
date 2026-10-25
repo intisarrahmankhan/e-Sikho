@@ -12,10 +12,18 @@ export interface ILesson extends Document {
   pdfUrl?: string;
   pdfName?: string;
   quizId?: mongoose.Types.ObjectId | string;
-  type?: 'VIDEO' | 'PDF' | 'QUIZ';
+  type?: 'VIDEO' | 'PDF' | 'QUIZ' | 'PROJECT';
   isDownloadable?: boolean; // false = View-Only by default to protect intellectual property
   bunnyVideoId?: string;
   bunnyLibraryId?: string;
+  // Project submission portal fields
+  projectInstructions?: string;
+  projectDeliverables?: string[];
+  maxMarks?: number;
+  passMarks?: number;
+  githubRequired?: boolean;
+  liveUrlRequired?: boolean;
+  automatedChecks?: string[];
 }
 
 const lessonSchema = new Schema<ILesson>(
@@ -31,10 +39,20 @@ const lessonSchema = new Schema<ILesson>(
     pdfUrl: { type: String, default: '' },
     pdfName: { type: String, default: '' },
     quizId: { type: Schema.Types.ObjectId, ref: 'Exam' },
-    type: { type: String, enum: ['VIDEO', 'PDF', 'QUIZ'], default: 'VIDEO' },
+    type: { type: String, enum: ['VIDEO', 'PDF', 'QUIZ', 'PROJECT'], default: 'VIDEO' },
     isDownloadable: { type: Boolean, default: false }, // Default view-only
     bunnyVideoId: { type: String, default: '' },
     bunnyLibraryId: { type: String, default: '' },
+    projectInstructions: { type: String, default: '' },
+    projectDeliverables: { type: [String], default: ['github', 'liveUrl', 'description'] },
+    maxMarks: { type: Number, default: 100 },
+    passMarks: { type: Number, default: 60 },
+    githubRequired: { type: Boolean, default: true },
+    liveUrlRequired: { type: Boolean, default: true },
+    automatedChecks: {
+      type: [String],
+      default: ['github_repo_valid', 'live_url_active', 'code_structure', 'readme_docs'],
+    },
   },
   {
     timestamps: false,

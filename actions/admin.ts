@@ -81,6 +81,23 @@ export async function updateUserRole(
     await dbConnect();
     await User.findByIdAndUpdate(userId, { role: newRole });
 
+    if (newRole === 'INSTRUCTOR') {
+      const updatedUser = await User.findById(userId);
+      if (updatedUser) {
+      const existingInstructor = await Instructor.findOne({ name: updatedUser.name });
+      if (!existingInstructor) {
+        await Instructor.create({
+          name: updatedUser.name,
+          role: updatedUser.instructorTitle || updatedUser.headline || 'Course Instructor',
+          avatar:
+            updatedUser.image ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(updatedUser.name)}`,
+          bio: updatedUser.bio || 'Course Instructor',
+        });
+      }
+    }
+  }
+
     await AuditLog.create({
       action: 'UPDATE_USER_ROLE',
       category: 'SECURITY',
@@ -91,6 +108,11 @@ export async function updateUserRole(
 
     revalidatePath('/admin');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/student');
+    revalidatePath('/student/settings');
+    revalidatePath('/instructor');
+    revalidatePath('/instructor/settings');
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to update user role:', error);

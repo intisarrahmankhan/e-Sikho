@@ -17,5 +17,13 @@ export default async function StudentSettingsPage() {
     redirect('/login');
   }
 
+  const effectiveRole = res.profile.role || (session.user as any)?.role;
+  if (effectiveRole === 'INSTRUCTOR') {
+    redirect('/instructor/settings');
+  }
+  if (effectiveRole === 'ADMIN' || effectiveRole === 'SUPERADMIN') {
+    redirect('/admin');
+  }
+
   return <StudentSettingsClient initialProfile={res.profile} />;
 }
