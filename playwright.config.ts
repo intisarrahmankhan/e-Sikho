@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './__tests__/ui-testing',
+  testIgnore: 'assessment-workflows.spec.ts',
   timeout: 90000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

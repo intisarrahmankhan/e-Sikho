@@ -5,6 +5,7 @@ import {
   calculatePlatformCommission,
 } from '@/lib/commission';
 import { processEnrollmentCommission } from '@/actions/financial';
+import { auth } from '@/auth';
 
 // Mock mongoose and dependencies
 vi.mock('@/lib/mongoose', () => ({
@@ -211,6 +212,14 @@ describe('Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%)', () => {
   });
 
   describe('processEnrollmentCommission Atomic Server Action & Tracking', () => {
+    it('does not let anonymous callers or students generate instructor earnings', async () => {
+      vi.mocked(auth).mockResolvedValueOnce(null as any);
+      expect((await processEnrollmentCommission('enrollment-1', 'course-1', 5000)).success).toBe(false);
+      vi.mocked(auth).mockResolvedValueOnce({ user: { id: 'student-1', role: 'STUDENT' } } as any);
+      expect((await processEnrollmentCommission('enrollment-1', 'course-1', 5000)).success).toBe(false);
+      expect(mockPlatformCommissionCreate).not.toHaveBeenCalled();
+      expect(mockUserFindByIdAndUpdate).not.toHaveBeenCalled();
+    });
     it('creates PLATFORM_COMMISSION entity with DEFAULT 10% rule tracking', async () => {
       const oldDate = new Date(Date.now() - 100 * 86400000);
       mockCourseFindByIdResult = {

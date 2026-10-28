@@ -79,6 +79,8 @@ vi.mock('@/models/InstructorRequest', () => ({
 describe('Superadmin Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const course = { title: 'Test course' };
+    mockCourseFindById.mockReturnValue({ lean: async () => course, select: () => ({ lean: async () => course }) });
   });
 
   describe('assignCourseToStudent', () => {
@@ -91,13 +93,13 @@ describe('Superadmin Actions', () => {
       mockEnrollmentFindOne.mockResolvedValueOnce(null); // not enrolled yet
       mockEnrollmentFindOneAndUpdate.mockResolvedValueOnce({ _id: 'enrollment-1' });
 
-      // assign static course 'fullstack-nextjs'
-      const res = await assignCourseToStudent('student-123', 'fullstack-nextjs');
+      // assign static course '507f1f77bcf86cd799439010'
+      const res = await assignCourseToStudent('student-123', '507f1f77bcf86cd799439010');
 
       expect(res.success).toBe(true);
       expect(res.message).toContain('John Student');
       expect(mockEnrollmentFindOneAndUpdate).toHaveBeenCalledWith(
-        { userId: 'student-123', courseId: 'fullstack-nextjs' },
+        { userId: 'student-123', courseId: '507f1f77bcf86cd799439010' },
         expect.objectContaining({ paymentStatus: 'GRANTED' }),
         expect.any(Object)
       );
@@ -111,7 +113,7 @@ describe('Superadmin Actions', () => {
       });
       mockEnrollmentFindOne.mockResolvedValueOnce({ _id: 'existing-enrollment' });
 
-      const res = await assignCourseToStudent('student-123', 'fullstack-nextjs');
+      const res = await assignCourseToStudent('student-123', '507f1f77bcf86cd799439010');
 
       expect(res.success).toBe(false);
       expect(res.error).toContain('already enrolled');
@@ -122,12 +124,12 @@ describe('Superadmin Actions', () => {
     it('successfully revokes course enrollment', async () => {
       mockEnrollmentFindOneAndDelete.mockResolvedValueOnce({ _id: 'enrollment-1' });
 
-      const res = await removeCourseFromStudent('student-123', 'fullstack-nextjs');
+      const res = await removeCourseFromStudent('student-123', '507f1f77bcf86cd799439010');
 
       expect(res.success).toBe(true);
       expect(mockEnrollmentFindOneAndDelete).toHaveBeenCalledWith({
         userId: 'student-123',
-        courseId: 'fullstack-nextjs',
+        courseId: '507f1f77bcf86cd799439010',
       });
     });
   });

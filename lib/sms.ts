@@ -13,20 +13,11 @@ export async function sendOtpSms(phone: string, otp: string, purpose: 'SIGNUP' |
   const purposeBangla = purpose === 'SIGNUP' ? 'অ্যাকাউন্ট ভেরিফিকেশন' : 'লগইন';
   const smsBody = `e-Shikho: আপনার ${purposeBangla} ওটিপি কোড হলো ${otp}। এটি ৫ মিনিটের জন্য কার্যকর থাকবে। কাউকে কোডটি বলবেন না।`;
 
-  // Always log OTP to server console for development & debugging
-  console.log(`\n======================================================`);
-  console.log(`📱 [e-Shikho SMS Service]`);
-  console.log(`   To: ${phone}`);
-  console.log(`   Code: ${otp}`);
-  console.log(`   Purpose: ${purpose}`);
-  console.log(`   Message: ${smsBody}`);
-  console.log(`======================================================\n`);
-
   // Check for Greenweb BD Gateway
   if (process.env.GREENWEB_SMS_API_KEY) {
     try {
       const formattedPhone = phone.startsWith('880') ? phone : phone.startsWith('0') ? `88${phone}` : phone;
-      const res = await fetch('http://api.greenweb.com.bd/api.php', {
+      const res = await fetch('https://api.greenweb.com.bd/api.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -36,7 +27,7 @@ export async function sendOtpSms(phone: string, otp: string, purpose: 'SIGNUP' |
         }),
       });
       const data = await res.text();
-      console.log('Greenweb SMS response:', data);
+      if (!res.ok || !data.startsWith('Ok:')) throw new Error('SMS gateway rejected the request.');
       return { success: true, message: 'SMS পাঠানো হয়েছে।' };
     } catch (err: any) {
       console.error('Greenweb SMS send error:', err?.message);
@@ -47,7 +38,7 @@ export async function sendOtpSms(phone: string, otp: string, purpose: 'SIGNUP' |
   if (process.env.BULKSMSBD_API_KEY) {
     try {
       const formattedPhone = phone.startsWith('880') ? phone : phone.startsWith('0') ? `88${phone}` : phone;
-      const res = await fetch('http://bulksmsbd.net/api/smsapi', {
+      const res = await fetch('https://bulksmsbd.net/api/smsapi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,17 +50,13 @@ export async function sendOtpSms(phone: string, otp: string, purpose: 'SIGNUP' |
         }),
       });
       const data = await res.json();
-      console.log('BulkSMSBD response:', data);
+      if (!res.ok || Number(data.response_code) !== 202) throw new Error('SMS gateway rejected the request.');
       return { success: true, message: 'SMS পাঠানো হয়েছে।' };
     } catch (err: any) {
       console.error('BulkSMSBD SMS send error:', err?.message);
     }
   }
 
-  // Return development code so testing without paid SMS gateway is 100% smooth
-  return {
-    success: true,
-    message: 'ওটিপি তৈরি হয়েছে।',
-    devCode: otp,
-  };
+  if (process.env.NODE_ENV === 'development') return { success: true, devCode: otp, message: 'Development OTP (SMS not sent).' };
+  return { success: false, error: 'SMS delivery is not configured or failed.' };
 }

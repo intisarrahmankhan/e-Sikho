@@ -1,15 +1,16 @@
+import { auth } from '@/auth';
 import React from 'react';
-import { getExamsAction, seedSampleExamsAction } from '@/actions/exam';
+import { getExamsAction } from '@/actions/exam';
 import { ExamsListClient } from '@/components/exam/ExamsListClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ExamsPage() {
-  // Seed sample exams if database is empty so users have instant access to rich LaTeX questions
-  await seedSampleExamsAction();
 
+  const session = await auth();
+  const canCreate = ['INSTRUCTOR', 'ADMIN', 'SUPERADMIN'].includes((session?.user as any)?.role || '');
   const res = await getExamsAction();
   const exams = res.exams || [];
 
-  return <ExamsListClient exams={exams} />;
+  return <ExamsListClient exams={exams} canCreate={canCreate} />;
 }

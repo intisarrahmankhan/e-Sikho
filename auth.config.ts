@@ -1,40 +1,9 @@
+import { AUTH_SECRET } from '@/lib/auth-secret';
 import type { NextAuthConfig } from 'next-auth';
-import Google from 'next-auth/providers/google';
-import Credentials from 'next-auth/providers/credentials';
 
 export const authConfig = {
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'e-sikho-auth-super-secret-key-cse314-2026',
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID || 'dummy-google-client-id',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy-google-client-secret',
-    }),
-    Credentials({
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        phone: { label: 'Phone', type: 'text' },
-        password: { label: 'Password', type: 'password' },
-        role: { label: 'Role', type: 'text' },
-      },
-      async authorize(credentials) {
-        if (credentials?.role && !credentials?.email && !credentials?.phone) {
-          const role = String(credentials.role).toUpperCase();
-          const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
-          return { id: mockId, name: `Demo ${role}`, email: `dev_${role.toLowerCase()}@eshikho.test`, role, status: 'APPROVED' };
-        }
-        if (credentials?.email === 'test@example.com' && credentials?.password === 'password123') {
-          return { id: '65f000000000000000000001', name: 'Test Student', email: 'test@example.com', role: 'STUDENT', status: 'APPROVED' };
-        }
-        if (credentials?.email === 'instructor@eshikho.com' && credentials?.password === 'instructor123456') {
-          return { id: '65f000000000000000000002', name: 'Test Instructor', email: 'instructor@eshikho.com', role: 'INSTRUCTOR', status: 'APPROVED' };
-        }
-        if (credentials?.email === 'admin@eshikho.com' && credentials?.password === 'admin123456') {
-          return { id: '65f000000000000000000003', name: 'Test Admin', email: 'admin@eshikho.com', role: 'ADMIN', status: 'APPROVED' };
-        }
-        return null;
-      },
-    }),
-  ],
+  secret: AUTH_SECRET,
+  providers: [], // Middleware only decodes sessions; authentication runs in auth.ts.
   pages: {
     signIn: '/login',
   },
@@ -58,7 +27,7 @@ export const authConfig = {
     // Required so middleware can read role/id/status from the JWT token
     session({ session, token }: any) {
       if (session.user) {
-        (session.user as any).id = token.id || token.sub || '65f000000000000000000001';
+        (session.user as any).id = token.id || token.sub;
         (session.user as any).role = token.role ?? 'STUDENT';
         (session.user as any).status = token.status ?? 'APPROVED';
         (session.user as any).phone = token.phone;

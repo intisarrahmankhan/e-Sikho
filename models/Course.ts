@@ -28,6 +28,7 @@ export interface ICourse extends Document {
   reviewedAt?: Date;
   createdById?: mongoose.Types.ObjectId | string;
   instructorId: mongoose.Types.ObjectId | string;
+  instructorUserIds?: mongoose.Types.ObjectId[];
   learningOutcomes: string;
   prerequisites: string;
   hasCertificate: boolean;
@@ -72,6 +73,7 @@ const courseSchema = new Schema<ICourse>(
     reviewedAt: { type: Date },
     createdById: { type: Schema.Types.ObjectId, ref: 'User' },
     instructorId: { type: Schema.Types.ObjectId, ref: 'Instructor', required: true },
+    instructorUserIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     learningOutcomes: { type: String, required: true },
     prerequisites: { type: String, required: true },
     hasCertificate: { type: Boolean, default: false },

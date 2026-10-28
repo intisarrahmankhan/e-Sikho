@@ -144,7 +144,7 @@ export default function LectureManager({
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewSrc, setVideoPreviewSrc] = useState('');
   const [bunnyVideoId, setBunnyVideoId] = useState('');
-  const [bunnyLibraryId, setBunnyLibraryId] = useState('345678');
+  const [bunnyLibraryId, setBunnyLibraryId] = useState('');
   const [uploadToBunny, setUploadToBunny] = useState(true);
 
   // PDF states
@@ -172,7 +172,7 @@ export default function LectureManager({
   const [editIsDownloadable, setEditIsDownloadable] = useState(false);
   const [editQuizId, setEditQuizId] = useState('');
   const [editBunnyVideoId, setEditBunnyVideoId] = useState('');
-  const [editBunnyLibraryId, setEditBunnyLibraryId] = useState('345678');
+  const [editBunnyLibraryId, setEditBunnyLibraryId] = useState('');
 
   // Form states for adding module
   const [newModuleTitle, setNewModuleTitle] = useState('');
@@ -231,7 +231,7 @@ export default function LectureManager({
     setVideoFile(null);
     setVideoPreviewSrc('');
     setBunnyVideoId('');
-    setBunnyLibraryId('345678');
+    setBunnyLibraryId('');
     setUploadToBunny(true);
     setPdfMode('file');
     setPdfFile(null);
@@ -255,7 +255,7 @@ export default function LectureManager({
     setEditLiveUrlRequired(lesson.liveUrlRequired !== false);
     setVideoFile(null);
     setEditBunnyVideoId(lesson.bunnyVideoId || '');
-    setEditBunnyLibraryId(lesson.bunnyLibraryId || '345678');
+    setEditBunnyLibraryId(lesson.bunnyLibraryId || '');
     setEditPdfFile(null);
     setEditPdfUrl(lesson.pdfUrl || '');
     setEditPdfName(lesson.pdfName || '');
@@ -324,7 +324,7 @@ export default function LectureManager({
       } else if (videoMode === 'bunny' && bunnyVideoId.trim()) {
         formData.append('bunnyVideoId', bunnyVideoId.trim());
         formData.append('bunnyLibraryId', bunnyLibraryId.trim());
-        formData.append('videoUrl', `https://iframe.mediadelivery.net/embed/${bunnyLibraryId.trim() || '345678'}/${bunnyVideoId.trim()}`);
+        formData.append('videoUrl', `https://iframe.mediadelivery.net/embed/${bunnyLibraryId.trim() || ''}/${bunnyVideoId.trim()}`);
       }
     }
 
@@ -401,7 +401,7 @@ export default function LectureManager({
     if (editBunnyVideoId) {
       formData.append('bunnyVideoId', editBunnyVideoId.trim());
       formData.append('bunnyLibraryId', editBunnyLibraryId.trim());
-      formData.append('videoUrl', `https://iframe.mediadelivery.net/embed/${editBunnyLibraryId.trim() || '345678'}/${editBunnyVideoId.trim()}`);
+      formData.append('videoUrl', `https://iframe.mediadelivery.net/embed/${editBunnyLibraryId.trim() || ''}/${editBunnyVideoId.trim()}`);
     }
 
     if (editPdfFile) {
@@ -667,7 +667,7 @@ export default function LectureManager({
 
                                   {isBunny && (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                                      <ShieldCheck className="h-3 w-3 text-emerald-600" /> Bunny DRM
+                                      <ShieldCheck className="h-3 w-3 text-emerald-600" /> Bunny Stream
                                     </span>
                                   )}
 
@@ -921,7 +921,7 @@ export default function LectureManager({
                         }`}
                       >
                         <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                        Bunny DRM
+                        Bunny Stream
                       </button>
                     </div>
                   </div>
@@ -959,18 +959,18 @@ export default function LectureManager({
                         />
                         <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 inline" />
-                          Bunny.net DRM স্বয়ংক্রিয় এনক্রিপশন সহ আপলোড করুন (ভিডিও ডাউনলোড প্রতিরোধে HLS AES-128)
+                          Bunny Stream এ আপলোড করুন। এনক্রিপশন লাইব্রেরির Security সেটিংসে চালু করতে হবে।
                         </span>
                       </label>
                       <p className="text-[11px] text-gray-500">
-                        সরাসরি এমপি৪, ওয়েবএম ভিডিও ফাইল নির্বাচন করুন। ক্লাউডফ্লেয়ার বা Bunny.net মাধ্যমে এনক্রিপ্ট হবে।
+                        সরাসরি এমপি৪, ওয়েবএম ভিডিও ফাইল নির্বাচন করুন। সাধারণ ফাইল আপলোডে মিডিয়া এনক্রিপশন যোগ হয় না।
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-3 bg-white p-3.5 rounded-xl border border-indigo-200">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
                         <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                        <span>Bunny.net DRM এনক্রিপ্টেড স্ট্রিমিং (Token-signed HLS)</span>
+                        <span>Bunny Stream (সময়-সীমিত ভিডিও অ্যাক্সেস)</span>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
@@ -983,7 +983,7 @@ export default function LectureManager({
                             onChange={(e) => {
                               setBunnyVideoId(e.target.value);
                               if (e.target.value.trim()) {
-                                setVideoPreviewSrc(`https://iframe.mediadelivery.net/embed/${bunnyLibraryId || '345678'}/${e.target.value.trim()}`);
+                                setVideoPreviewSrc(`https://iframe.mediadelivery.net/embed/${bunnyLibraryId || ''}/${e.target.value.trim()}`);
                               }
                             }}
                             placeholder="যেমন: 8a7c2b1e-3f90-4d56-a123-abcdef012345"
@@ -1004,7 +1004,7 @@ export default function LectureManager({
                         </div>
                       </div>
                       <p className="text-[11px] text-gray-500">
-                        Bunny Stream ড্যাশবোর্ড থেকে ভিডিও আইডি দিলে এটি ছাত্রছাত্রীদের কাছে টাইম-লিমিটেড টোকেন এবং ডাইনামিক ওয়াটারমার্ক সহ সুরক্ষিতভাবে এনক্রিপ্টেড চলবে। ডাউনলোড করা অসম্ভব।
+                        Bunny Stream ড্যাশবোর্ডের ভিডিও ও লাইব্রেরি আইডি দিন। অনুমোদিত শিক্ষার্থীরা সময়-সীমিত লিংক দিয়ে দেখতে পারবেন। এনক্রিপশন ও ডাউনলোড সুরক্ষা আপনার লাইব্রেরির সেটিংসের ওপর নির্ভর করে।
                       </p>
                     </div>
                   )}
@@ -1099,7 +1099,7 @@ export default function LectureManager({
                       <p className="text-[11px] text-amber-800 mt-0.5">
                         {isDownloadable
                           ? 'ডাউনলোড সক্রিয়: শিক্ষার্থীরা মূল পিডিএফ ফাইল সরাসরি ডাউনলোড করতে পারবে।'
-                          : 'ডিফল্ট ভিউ-অনলি: মেধা সম্পদ সুরক্ষায় শিক্ষার্থীদের জন্য ডাউনলোড বন্ধ থাকবে (ভিউ-অনলি DRM)।'}
+                          : 'ডিফল্ট ভিউ-অনলি: মেধা সম্পদ সুরক্ষায় শিক্ষার্থীদের জন্য ডাউনলোড বন্ধ থাকবে (ভিউ-অনলি)।'}
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
@@ -1513,11 +1513,11 @@ export default function LectureManager({
                     />
                   </div>
 
-                  {/* Bunny DRM inputs in Edit Modal */}
+                  {/* Bunny Stream inputs in Edit Modal */}
                   <div className="rounded-lg border border-indigo-200 bg-white p-3 space-y-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
                       <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                      <span>Bunny.net DRM সিকিউর স্ট্রিমিং আইডি (অপশনাল)</span>
+                      <span>Bunny Stream ভিডিও আইডি (অপশনাল)</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>

@@ -34,7 +34,7 @@ export function ExamCard({
   const { language } = useLanguage();
 
   return (
-    <Card className="border border-slate-200/90 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between overflow-hidden group">
+    <Card role="article" aria-label={title} className="border border-slate-200/90 rounded-2xl bg-white shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between overflow-hidden group">
       <div>
         <div className="p-5 pb-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center justify-between">
           <Badge

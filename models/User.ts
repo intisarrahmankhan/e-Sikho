@@ -16,6 +16,8 @@ export interface IUser extends Document {
   bio?: string;
   targetTrack?: string;
   academicBackground?: string;
+  educationLevel?: 'SCHOOL' | 'COLLEGE' | 'UNIVERSITY';
+  department?: string;
   weeklyGoalHours?: number;
   interests?: string[];
   skills?: string[];
@@ -67,10 +69,12 @@ const userSchema = new Schema<IUser>(
     },
     availableBalance: { type: Number, default: 0 },
     totalEarnings: { type: Number, default: 0 },
-    headline: { type: String, default: 'Aspiring Developer' },
+    headline: { type: String, default: '' },
     bio: { type: String, default: '' },
-    targetTrack: { type: String, default: 'Fullstack Web Development' },
-    academicBackground: { type: String, default: 'Computer Science & Engineering (CSE)' },
+    targetTrack: { type: String, default: '' },
+    academicBackground: { type: String, default: '' },
+    educationLevel: { type: String, enum: ['SCHOOL', 'COLLEGE', 'UNIVERSITY'] },
+    department: { type: String, default: '' },
     weeklyGoalHours: { type: Number, default: 10 },
     interests: { type: [String], default: [] },
     skills: { type: [String], default: [] },
@@ -91,7 +95,7 @@ const userSchema = new Schema<IUser>(
     competitiveElo: { type: Number, default: 1200 },
     problemsSolved: { type: Number, default: 0 },
     completedCoursesCount: { type: Number, default: 0 },
-    streak: { type: Number, default: 1 },
+    streak: { type: Number, default: 0 },
     eloHistory: [
       {
         date: { type: Date, default: Date.now },

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   BookOpen,
@@ -19,13 +19,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { COURSES_DATA } from '@/lib/courses-data';
+import { getPublishedCoursesAction } from '@/actions/course-catalog';
 import { useLanguage } from '@/context/LanguageContext';
+import HomeExamsSection from '@/components/home/HomeExamsSection';
 import { HomeContestsSection } from '@/components/home/HomeContestsSection';
 
 export default function HomePage() {
   const { t, language } = useLanguage();
-  const featuredCourses = COURSES_DATA.slice(0, 3);
+  const [courses, setCourses] = useState<Awaited<ReturnType<typeof getPublishedCoursesAction>>>([]);
+  useEffect(() => {
+    let active = true;
+    getPublishedCoursesAction().then((data) => { if (active) setCourses(data); });
+    return () => { active = false; };
+  }, []);
+  const featuredCourses = courses.slice(0, 3);
 
   const categories = [
     {
@@ -62,36 +69,6 @@ export default function HomePage() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: language === 'en' ? 'Ariful Islam' : 'আরিফুল ইসলাম',
-      role: language === 'en' ? 'Junior Software Engineer, Brain Station 23' : 'জুনিয়র সফটওয়্যার ইঞ্জিনিয়ার, Brain Station 23',
-      content: language === 'en'
-        ? 'e-Shikho’s fullstack track completely changed my career trajectory. The project-driven curriculum and mentor guidance were second to none!'
-        : 'e-Shikho এর ফুলস্ট্যাক কোর্সটি আমার ক্যারিয়ার বদলে দিয়েছে। প্রজেক্ট ভিত্তিক শিক্ষা আর মেন্টরদের গাইডেন্স অসাধারণ!',
-      rating: 5,
-      course: 'Next.js Fullstack',
-    },
-    {
-      name: language === 'en' ? 'Samia Rahman' : 'সামিয়া রহমান',
-      role: language === 'en' ? 'Data Analyst, Optimizely' : 'ডাটা অ্যানালিস্ট, Optimizely',
-      content: language === 'en'
-        ? 'Working with real-world datasets in the Python & Data Science bootcamp gave me an edge during my technical interviews.'
-        : 'পাইথন এবং ডাটা সায়েন্স বুটক্যাম্পের রিয়েল-লাইফ ডেটাসেট নিয়ে কাজ করার অভিজ্ঞতা আমাকে ইন্টারভিউতে এগিয়ে রেখেছে।',
-      rating: 5,
-      course: 'Python & Data Science',
-    },
-    {
-      name: language === 'en' ? 'Mahmudul Hasan' : 'মাহমুদুল হাসান',
-      role: language === 'en' ? 'Competitive Programmer (Candidate Master)' : 'কম্পিটিটিভ প্রোগ্রামার (ক্যান্ডিডেট মাস্টার)',
-      content: language === 'en'
-        ? 'I have never encountered such deep and well-structured C++ & DSA content explained in our native language.'
-        : 'বাংলায় সি++ এবং ডেটা স্ট্রাকচারের এত গভীর ও গোছানো কনটেন্ট আগে কোথাও পাইনি।',
-      rating: 5,
-      course: 'Competitive Programming',
-    },
-  ];
-
   const steps = [
     {
       step: '01',
@@ -125,7 +102,7 @@ export default function HomePage() {
 
   const checkItems = [
     t('home.heroCheck1', 'প্রজেক্ট ভিত্তিক পাঠ্যক্রম'),
-    t('home.heroCheck2', 'লাইফটাইম অ্যাক্সেস'),
+
     t('home.heroCheck3', 'ইন্ডাস্ট্রি সার্টিফিকেট'),
   ];
 
@@ -179,101 +156,16 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Hero right — stat card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-card space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <div>
-              <p className="font-semibold text-gray-900 text-sm">
-                {t('home.liveDashboard', 'লাইভ লার্নিং ড্যাশবোর্ড')}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {t('home.realtimeProgress', 'রিয়েল-টাইম প্রোগ্রেস ও কুইজ')}
-              </p>
-            </div>
-            <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
-              Active
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-gray-600">
-              <span>{language === 'en' ? 'Fullstack Next.js Bootcamp' : 'ফুলস্ট্যাক Next.js বুটক্যাম্প'}</span>
-              <span className="font-semibold text-primary-600">
-                {language === 'en' ? '78% Complete' : '৭৮% সম্পন্ন'}
-              </span>
-            </div>
-            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-primary-600 rounded-full w-[78%]" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              {
-                label: 'Elo Rating',
-                value: language === 'en' ? '1450' : '১৪৫০',
-                color: 'text-amber-600',
-              },
-              {
-                label: language === 'en' ? 'Study Streak 🔥' : 'স্টাডি স্ট্রিক 🔥',
-                value: language === 'en' ? '12 Days' : '১২ দিন',
-                color: 'text-green-600',
-              },
-            ].map((s) => (
-              <div key={s.label} className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
-                <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-[11px] text-gray-400 mt-0.5">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <Link href="/courses" className="block">
-            <div className="w-full py-2.5 rounded-lg border border-primary-200 text-primary-600 text-xs font-semibold text-center hover:bg-primary-50 transition">
-              {t('home.browseCatalog', 'কোর্স ক্যাটালগে ব্রাউজ করুন →')}
-            </div>
-          </Link>
+          <BookOpen className="h-12 w-12 text-primary-600" />
+          <h2 className="font-semibold text-gray-900">{language === 'en' ? 'Explore published courses' : 'প্রকাশিত কোর্সগুলো দেখুন'}</h2>
+          <p className="text-sm text-gray-500">{language === 'en' ? 'Browse the syllabus, preview lessons, and choose a course that fits your goals.' : 'সিলেবাস ও প্রিভিউ লেসন দেখে আপনার লক্ষ্য অনুযায়ী কোর্স বেছে নিন।'}</p>
+          <Link href="/courses" className="inline-block text-primary-600">{t('home.browseCatalog', 'কোর্স ক্যাটালগে ব্রাউজ করুন →')}</Link>
         </div>
       </section>
 
-      {/* ── Stats Bar ── */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          {
-            label: t('home.statsStudents', 'সক্রিয় শিক্ষার্থী'),
-            value: language === 'en' ? '10,000+' : '১০,০০০+',
-            icon: Users,
-            color: 'text-blue-600 bg-blue-50',
-          },
-          {
-            label: t('home.statsCourses', 'এক্সক্লুসিভ কোর্স'),
-            value: language === 'en' ? '50+' : '৫০+',
-            icon: Laptop,
-            color: 'text-indigo-600 bg-indigo-50',
-          },
-          {
-            label: t('home.statsRating', 'গড় রেটিং'),
-            value: language === 'en' ? '4.9 / 5.0' : '৪.৯ / ৫.০',
-            icon: Star,
-            color: 'text-amber-600 bg-amber-50',
-          },
-          {
-            label: t('home.statsInstructors', 'ইন্ডাস্ট্রি মেন্টরস'),
-            value: '24/7',
-            icon: Trophy,
-            color: 'text-green-600 bg-green-50',
-          },
-        ].map((stat, i) => (
-          <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 text-center shadow-card">
-            <div className={`h-10 w-10 mx-auto rounded-lg flex items-center justify-center mb-3 ${stat.color}`}>
-              <stat.icon className="h-5 w-5" />
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-            <div className="text-xs text-gray-500 mt-1">{stat.label}</div>
-          </div>
-        ))}
-      </section>
-
       {/* ── Problem Solving Contests & Dynamic Elo Arena ── */}
+      <HomeExamsSection />
       <HomeContestsSection />
 
       {/* ── Categories ── */}
@@ -303,7 +195,7 @@ export default function HomePage() {
                   <h3 className="font-semibold text-gray-900 text-sm group-hover:text-primary-600 transition">
                     {cat.name}
                   </h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{cat.count}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{courses.filter((course) => course.category === cat.id).length} {language === 'en' ? 'courses' : 'টি কোর্স'}</p>
                 </div>
               </div>
             </Link>
@@ -329,14 +221,14 @@ export default function HomePage() {
           </div>
           <Link href="/courses">
             <Button variant="outline" className="border-gray-300 text-gray-700 hover:border-primary-600 hover:text-primary-600 font-semibold gap-1.5 text-sm shrink-0">
-              {language === 'en' ? `All Courses (${COURSES_DATA.length})` : `সকল কোর্স (${COURSES_DATA.length}টি)`} <ArrowRight className="h-4 w-4" />
+              {language === 'en' ? `All Courses (${courses.length})` : `সকল কোর্স (${courses.length}টি)`} <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {featuredCourses.map((course) => {
-            const discount = Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100);
+            const discount = course.originalPrice > 0 ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100) : 0;
             const displayTitle = (language === 'en' && course.titleEn) ? course.titleEn : course.title;
             const displayTagline = (language === 'en' && course.taglineEn) ? course.taglineEn : course.tagline;
             const displayThumbnail = (language === 'en' && course.thumbnailUrlEn) ? course.thumbnailUrlEn : course.thumbnailUrl;
@@ -423,47 +315,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section className="space-y-8">
-        <div className="text-center max-w-xl mx-auto space-y-2">
-          <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider">
-            {t('home.testimonials', 'শিক্ষার্থীদের মতামত')}
-          </p>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {language === 'en' ? 'Success Stories from Our Learners' : 'আমাদের সফল শিক্ষার্থীদের অভিজ্ঞতা'}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((tItem, idx) => (
-            <div key={idx} className="bg-white border border-gray-200 rounded-xl p-6 shadow-card flex flex-col gap-4">
-              <div className="flex gap-0.5">
-                {[...Array(tItem.rating)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-sm text-gray-600 leading-relaxed flex-1">&quot;{tItem.content}&quot;</p>
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{tItem.name}</p>
-                  <p className="text-xs text-gray-400">{tItem.role}</p>
-                </div>
-                <span className="text-[11px] text-primary-600 border border-primary-200 bg-primary-50 px-2 py-1 rounded-md font-medium">
-                  {tItem.course}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Bottom CTA ── */}
       <section className="bg-primary-700 rounded-2xl text-white p-8 sm:p-14 text-center space-y-6">
         <h2 className="text-2xl sm:text-3xl font-bold max-w-xl mx-auto leading-snug">
           {t('home.ctaTitle', 'আজই শুরু করুন আপনার লার্নিং জার্নি')}
         </h2>
         <p className="text-primary-200 text-sm">
-          {t('home.ctaDesc', 'হাজারো শিক্ষার্থীর সাথে যোগ দিন এবং আপনার পছন্দের বিষয়ে দক্ষতা অর্জন করুন।')}
+          {language === 'en' ? 'Choose a course and build skills in your field.' : 'আপনার পছন্দের কোর্সে যোগ দিন এবং দক্ষতা অর্জন করুন।'}
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/courses">

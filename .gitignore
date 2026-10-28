@@ -48,3 +48,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local audit reports may contain database record IDs.
+/audit-local/
+
+# Isolated production verification builds.
+/.next-assessment-audit/

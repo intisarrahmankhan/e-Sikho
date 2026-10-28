@@ -6,7 +6,7 @@ import LiveQuestion from '@/models/LiveQuestion';
 import LiveSession from '@/models/LiveSession';
 import User from '@/models/User';
 import Course from '@/models/Course';
-import { COURSES_DATA } from '@/lib/courses-data';
+import { getCourseAccessDetails } from '@/actions/course-access';
 import { revalidatePath } from 'next/cache';
 import { sendRealtimeNotification, broadcastRealtimeEvent } from '@/lib/realtime-notifications';
 
@@ -51,66 +51,13 @@ export interface LiveSessionData {
 /**
  * Seed questions to provide an authentic, vibrant live experience for any session
  */
-const DEFAULT_SEED_QUESTIONS: Record<string, Array<{ studentName: string; question: string; upvoteCount: number; isAnswered: boolean; reply?: string }>> = {
-  'live-next-1': [
-    {
-      studentName: 'রাকিবুল হাসান',
-      question: 'ভাইয়া, Server Actions কি সরাসরি client component এর onClick হ্যান্ডলারে কল করা নিরাপদ, নাকি useTransition ব্যবহার করাই বেস্ট প্র্যাকটিস?',
-      upvoteCount: 14,
-      isAnswered: true,
-      reply: 'Client Component এ useTransition অথবা useActionState ব্যবহার করা সবচেয়ে নিরাপদ, এতে পেন্ডিং স্টেট ও লেটেন্সি সুন্দরভাবে হ্যান্ডেল হয়।',
-    },
-    {
-      studentName: 'তানজিলা তাসনিম',
-      question: 'NextAuth v5 এ Prisma Adapter ছাড়া শুধুমাত্র কাস্টম JWT দিয়ে সেশন ম্যানেজ করলে কি পারফরম্যান্স কোনো সুবিধা পাওয়া যায়?',
-      upvoteCount: 9,
-      isAnswered: false,
-    },
-    {
-      studentName: 'মেহরাব হোসেন',
-      question: 'Zod ভ্যালিডেশন স্কিমা কি ক্লায়েন্ট এবং সার্ভার অ্যাকশন উভয় স্থানেই শেয়ার করা সম্ভব?',
-      upvoteCount: 6,
-      isAnswered: true,
-      reply: 'হ্যাঁ, Zod স্কিমা একটি কমন ফোল্ডারে (যেমন /lib/validations) রেখে দুটি স্থানেই ব্যবহার করা আদর্শ।',
-    },
-    {
-      studentName: 'সাদিয়া সুলতানা',
-      question: 'Dynamic Route এ generateStaticParams ব্যবহার করলে বিল্ড টাইমে কতগুলো পেজ জেনারেট হওয়া সেফ?',
-      upvoteCount: 4,
-      isAnswered: false,
-    },
-  ],
-  'live-ml-1': [
-    {
-      studentName: 'শাকিল আহমেদ',
-      question: 'Imbalanced dataset এ SMOTE ব্যবহার করার সঠিক পর্যায় কোনটি? Train-Test split এর আগে না পরে?',
-      upvoteCount: 12,
-      isAnswered: true,
-      reply: 'অবশ্যই Train-Test split এর পরে শুধুমাত্র Training ডেটায় SMOTE প্রয়োগ করতে হবে, নয়তো ডেটা লিকেজ ঘটবে।',
-    },
-    {
-      studentName: 'ফারজানা ববি',
-      question: 'Random Forest vs XGBoost: কোন পরিস্থিতিতে XGBoost বেশি কার্যকরী হয়?',
-      upvoteCount: 8,
-      isAnswered: false,
-    },
-  ],
-  'live-dsa-1': [
-    {
-      studentName: 'আসিফ ইকবাল',
-      question: 'Dijkstra অ্যালগরিদমে Priority Queue এর জায়গায় Fibonacci Heap ব্যবহার করলে কি বাস্তবে কোনো উল্লেখযোগ্য পারফরম্যান্স বৃদ্ধি দেখা যায়?',
-      upvoteCount: 15,
-      isAnswered: true,
-      reply: 'তাত্ত্বিকভাবে O(E + V log V) হলেও বাস্তবে Fibonacci Heap এর কনস্ট্যান্ট ফ্যাক্টর অনেক বেশি, তাই স্ট্যান্ডার্ড বাইনারি মিন-হিপই দ্রুততর।',
-    },
-    {
-      studentName: 'নাঈম রহমান',
-      question: 'Dynamic Programming এর মেমোইজেশন ও ট্যাবুলেশনের মধ্যে স্পেস অপ্টিমাইজেশন কখন সম্ভব হয়?',
-      upvoteCount: 11,
-      isAnswered: false,
-    },
-  ],
-};
+
+
+async function canManageLiveCourse(user: any, courseId: string) {
+  if (!user?.id) return false;
+  if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') return true;
+  return user.role === 'INSTRUCTOR' && !!await Course.exists({ _id: courseId, createdById: user.id });
+}
 
 /**
  * Retrieves live session details and all interactive student questions
@@ -146,11 +93,6 @@ export async function getLiveSessionDetailsAction(sessionId: string): Promise<{
       }
     }
 
-    const isInstructorOrAdmin =
-      currentUserRole === 'INSTRUCTOR' ||
-      currentUserRole === 'ADMIN' ||
-      currentUserRole === 'SUPERADMIN';
-
     // 1. Resolve Session Data
     let sessionData: LiveSessionData | null = null;
 
@@ -168,10 +110,10 @@ export async function getLiveSessionDetailsAction(sessionId: string): Promise<{
             scheduledTime: new Date(dbSession.scheduledTime).toISOString(),
             duration: dbSession.duration || '১ ঘণ্টা ৩০ মিনিট',
             status: dbSession.status || 'LIVE_NOW',
-            streamUrl: dbSession.streamUrl || 'https://www.youtube.com/embed/live_stream?channel=UC_x5XG1OV2P6uZZ5FSM9Ttw',
+            streamUrl: dbSession.streamUrl || '',
             meetUrl: dbSession.meetUrl,
             recordingUrl: dbSession.recordingUrl,
-            viewerCount: dbSession.viewerCount || 148,
+            viewerCount: dbSession.viewerCount || 0,
             description: dbSession.description,
             topic: dbSession.topic,
           };
@@ -179,91 +121,28 @@ export async function getLiveSessionDetailsAction(sessionId: string): Promise<{
       }
     } catch {}
 
-    // Fallback standard sessions
-    if (!sessionData) {
-      const isNext = sessionId.includes('next');
-      const isML = sessionId.includes('ml');
-      const isDSA = sessionId.includes('dsa');
-
-      let courseId = 'fullstack-nextjs';
-      let title = 'লাইভ ইন্টারেক্টিভ ক্লাস: Next.js 14 App Router, Server Actions ও রিয়েল-টাইম প্রশ্নোত্তর';
-      let titleEn = 'Live Interactive Class: Next.js 14 App Router, Server Actions & Real-Time Q&A';
-      let instructorName = 'তানভীর আহমেদ';
-      let topic = 'Next.js 14 Architecture & Production Best Practices';
-
-      if (isML) {
-        courseId = 'python-machine-learning';
-        title = 'লাইভ ওয়ার্কশপ: Scikit-Learn মডেল ডিপ্লয়মেন্ট ও ডেটা প্রিপ্রসেসিং মাস্টারক্লাস';
-        titleEn = 'Live Workshop: Scikit-Learn Model Deployment & Data Preprocessing';
-        instructorName = 'ড. সাজিদ হাসান';
-        topic = 'End-to-End ML Pipeline Architecture';
-      } else if (isDSA) {
-        courseId = 'dsa-in-bangla';
-        title = 'লাইভ ইন্টারভিউ মক সেশন: Graph Algorithms & Dynamic Programming Deep Dive';
-        titleEn = 'Live Mock Interview: Graph Algorithms & DP Deep Dive';
-        instructorName = 'নাজমুল আরেফিন';
-        topic = 'Advanced Graph Theory & Interview Problem Solving';
+    if (!sessionData) return { success: false, questions: [], isInstructorOrAdmin: false, error: 'Live session not found.' };
+    const access = await getCourseAccessDetails(sessionData.courseId);
+    if (!access.canAccessAll) return { success: false, questions: [], isInstructorOrAdmin: false, error: 'Course access is required.' };
+    const course = await Course.findById(sessionData.courseId).lean();
+    const { parseBunnyVideoUrl, generateBunnySignedEmbedUrl } = await import('@/lib/bunny');
+    for (const field of ['recordingUrl', 'streamUrl'] as const) {
+      const source = sessionData[field];
+      if (!source) continue;
+      const bunnyVideo = parseBunnyVideoUrl(source);
+      if (bunnyVideo) sessionData[field] = generateBunnySignedEmbedUrl(bunnyVideo.libraryId, bunnyVideo.videoId).embedUrl;
+      else if (/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(source)) {
+        const url = new URL(source);
+        const videoId = url.hostname === 'youtu.be' ? url.pathname.slice(1) : url.searchParams.get('v') || url.pathname.split('/').pop();
+        sessionData[field] = `https://www.youtube.com/embed/${encodeURIComponent(videoId || '')}`;
       }
-
-      sessionData = {
-        id: sessionId,
-        courseId,
-        title,
-        titleEn,
-        instructorName,
-        instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-        scheduledTime: new Date().toISOString(),
-        duration: '১ ঘণ্টা ৪৫ মিনিট',
-        status: 'LIVE_NOW',
-        streamUrl: 'https://www.youtube.com/embed/5qap5aO4i9A', // High-quality tech lecture embed
-        meetUrl: 'https://meet.google.com/esh-ikho-live',
-        viewerCount: 164,
-        description: 'ইন্সট্রাক্টরের সাথে সরাসরি লাইভ প্রশ্ন করুন এবং গুরুত্বপূর্ণ ডাউট ক্লিয়ার করুন। আপনার প্রশ্ন উপরে তুলতে আপভোট দিন।',
-        topic,
-      };
     }
-
-    // Try finding course title
-    const staticCourse = COURSES_DATA.find((c) => c.id === sessionData?.courseId);
-    if (staticCourse && sessionData) {
-      sessionData.courseTitle = staticCourse.title;
-    }
+    sessionData.courseTitle = course?.title || '';
 
     // 2. Fetch existing questions for this session
     let dbQuestions = await LiveQuestion.find({ sessionId })
       .sort({ isPinned: -1, upvoteCount: -1, createdAt: -1 })
       .lean() as any[];
-
-    // If no questions in DB yet, seed initial questions for this session
-    if (dbQuestions.length === 0) {
-      const seedList = DEFAULT_SEED_QUESTIONS[sessionId] || DEFAULT_SEED_QUESTIONS['live-next-1'] || [];
-      const courseIdToUse = sessionData.courseId || 'fullstack-nextjs';
-
-      const createdSeeds = [];
-      for (const [idx, s] of seedList.entries()) {
-        const fakeUserId = `student-seed-${idx + 1}`;
-        const upvotesArray = Array.from({ length: s.upvoteCount }, (_, i) => `user-voter-${i + 1}`);
-
-        const created = await LiveQuestion.create({
-          sessionId,
-          courseId: courseIdToUse,
-          studentId: fakeUserId,
-          studentName: s.studentName,
-          studentAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(s.studentName)}`,
-          question: s.question,
-          upvotes: upvotesArray,
-          upvoteCount: s.upvoteCount,
-          isAnswered: s.isAnswered,
-          answeredAt: s.isAnswered ? new Date(Date.now() - (idx + 1) * 300000) : undefined,
-          instructorReply: s.reply || '',
-          isPinned: idx === 0, // Pin first top question
-          createdAt: new Date(Date.now() - (idx + 2) * 600000),
-        });
-        createdSeeds.push(created.toObject());
-      }
-
-      dbQuestions = createdSeeds;
-    }
 
     // 3. Format questions with current user context
     const questions: LiveQuestionItem[] = dbQuestions.map((q: any) => {
@@ -297,7 +176,7 @@ export async function getLiveSessionDetailsAction(sessionId: string): Promise<{
       session: sessionData,
       questions,
       currentUserId,
-      isInstructorOrAdmin,
+      isInstructorOrAdmin: await canManageLiveCourse(sessionUser, sessionData.courseId),
     };
   } catch (err: any) {
     console.error('Error in getLiveSessionDetailsAction:', err);
@@ -363,6 +242,13 @@ export async function submitLiveQuestionAction(params: {
     if (!studentAvatar) {
       studentAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(studentName)}`;
     }
+
+    const liveSession = await LiveSession.findById(params.sessionId).lean();
+    if (!liveSession || String(liveSession.courseId) !== params.courseId || liveSession.status === 'COMPLETED') {
+      return { success: false, error: 'Active live session not found in this course.' };
+    }
+    const access = await getCourseAccessDetails(params.courseId);
+    if (!access.canAccessAll) return { success: false, error: 'Course access is required.' };
 
     const created = await LiveQuestion.create({
       sessionId: params.sessionId,
@@ -440,6 +326,8 @@ export async function toggleUpvoteLiveQuestionAction(questionId: string): Promis
       return { success: false, upvoteCount: 0, hasUpvoted: false, error: 'প্রশ্নটি পাওয়া যায়নি।' };
     }
 
+    if (!(await getCourseAccessDetails(question.courseId)).canAccessAll) return { success: false, upvoteCount: 0, hasUpvoted: false, error: 'Course access is required.' };
+
     const currentUpvotes = Array.isArray(question.upvotes) ? question.upvotes : [];
     const alreadyUpvoted = currentUpvotes.includes(userIdStr);
 
@@ -493,6 +381,10 @@ export async function answerLiveQuestionAction(params: {
       return { success: false, isAnswered: false, error: 'প্রশ্নটি পাওয়া যায়নি।' };
     }
 
+    if (!await canManageLiveCourse(session.user, question.courseId)) {
+      return { success: false, isAnswered: false, error: 'Only the course instructor or an administrator can answer questions.' };
+    }
+
     const shouldAnswer = params.isAnswered !== undefined ? params.isAnswered : true;
     question.isAnswered = shouldAnswer;
     question.answeredAt = shouldAnswer ? new Date() : undefined;
@@ -535,6 +427,10 @@ export async function pinLiveQuestionAction(questionId: string): Promise<{
       return { success: false, isPinned: false, error: 'প্রশ্নটি পাওয়া যায়নি।' };
     }
 
+    if (!await canManageLiveCourse(session.user, question.courseId)) {
+      return { success: false, isPinned: false, error: 'Only the course instructor or an administrator can pin questions.' };
+    }
+
     question.isPinned = !question.isPinned;
     await question.save();
 
@@ -572,6 +468,9 @@ export async function getLiveQuestionsAction(sessionId: string): Promise<{
       const u = (await User.findOne({ email: sessionUser.email }).select('_id').lean()) as any;
       if (u) currentUserId = u._id.toString();
     }
+
+    const liveSession = await LiveSession.findById(sessionId).lean();
+    if (!liveSession || !(await getCourseAccessDetails(liveSession.courseId)).canAccessAll) return { success: false, questions: [] };
 
     const dbQuestions = await LiveQuestion.find({ sessionId })
       .sort({ isPinned: -1, upvoteCount: -1, createdAt: -1 })
@@ -640,22 +539,18 @@ export async function completeLiveSessionAndSaveToModuleAction({
 
     let sessionDoc = await LiveSession.findById(sessionId);
     if (!sessionDoc) {
-      // Create record if mock session
-      sessionDoc = await LiveSession.create({
-        courseId: 'fullstack-nextjs',
-        title: 'লাইভ ডাউট সলভিং ও রিভিশন ক্লাস',
-        instructorName: user.name || 'ইন্সট্রাক্টর',
-        scheduledTime: new Date(),
-        status: 'LIVE_NOW',
-      });
+      return { success: false, error: 'Live session not found.' };
     }
 
     const courseId = sessionDoc.courseId;
+    if (!await canManageLiveCourse(user, courseId)) return { success: false, error: 'Only the course instructor or an administrator can archive this session.' };
+    if (moduleId && !await Module.exists({ _id: moduleId, courseId })) return { success: false, error: 'Module does not belong to this course.' };
+
     const finalRecordingUrl =
       recordingUrl?.trim() ||
       sessionDoc.recordingUrl ||
-      sessionDoc.streamUrl ||
-      'https://www.youtube.com/watch?v=wm5gMKuwSYk';
+      sessionDoc.streamUrl || '';
+    if (!finalRecordingUrl) return { success: false, error: 'A recording URL is required.' };
 
     // 1. Update LiveSession status to COMPLETED
     sessionDoc.status = 'COMPLETED';
@@ -782,16 +677,7 @@ export async function getLiveRecordingPlaybackAction(sessionId: string): Promise
 
     let sessionDoc = await LiveSession.findById(sessionId).lean() as any;
     if (!sessionDoc) {
-      // Check static list
-      const { getCourseLiveSessionsAction } = await import('@/actions/course-access');
-      const list = await getCourseLiveSessionsAction('fullstack-nextjs');
-      const found = list.liveSessions.find((s) => s.id === sessionId);
-      if (found) {
-        sessionDoc = {
-          ...found,
-          courseId: 'fullstack-nextjs',
-        };
-      }
+      return { success: false, error: 'Live session not found.' };
     }
 
     if (!sessionDoc) {
@@ -812,7 +698,11 @@ export async function getLiveRecordingPlaybackAction(sessionId: string): Promise
       };
     }
 
-    const rawUrl = sessionDoc.recordingUrl || sessionDoc.streamUrl || 'https://www.youtube.com/watch?v=wm5gMKuwSYk';
+    let rawUrl = sessionDoc.recordingUrl || '';
+    if (!rawUrl) return { success: false, error: 'No recording has been added.' };
+    const { parseBunnyVideoUrl, generateBunnySignedEmbedUrl } = await import('@/lib/bunny');
+    const bunnyVideo = parseBunnyVideoUrl(rawUrl);
+    if (bunnyVideo) rawUrl = generateBunnySignedEmbedUrl(bunnyVideo.libraryId, bunnyVideo.videoId).embedUrl;
     let videoType: 'youtube' | 'bunny' | 'html5' = 'html5';
     if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
       videoType = 'youtube';
@@ -821,7 +711,7 @@ export async function getLiveRecordingPlaybackAction(sessionId: string): Promise
     }
 
     const watermark = {
-      studentId: sessionUser.id || 'std-drm',
+      studentId: sessionUser.id || '',
       studentEmail: sessionUser.email,
       studentName: sessionUser.name || 'Student',
       timestamp: new Date().toLocaleTimeString('bn-BD', {

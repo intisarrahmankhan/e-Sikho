@@ -28,6 +28,7 @@ vi.mock('@/models/Course', () => ({
     findById: vi.fn(),
     findByIdAndUpdate: vi.fn(),
     countDocuments: vi.fn(),
+    exists: vi.fn(),
   },
 }));
 
@@ -37,6 +38,7 @@ vi.mock('@/models/Module', () => ({
     find: vi.fn(),
     findOne: vi.fn(),
     countDocuments: vi.fn(),
+    exists: vi.fn(),
   },
 }));
 
@@ -63,6 +65,10 @@ vi.mock('next/cache', () => ({
 describe('Curriculum Builder & Lecture Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'inst-1', role: 'INSTRUCTOR' } } as any);
+    vi.mocked(Course.findById).mockResolvedValue({ _id: 'course-1', createdById: 'inst-1' } as any);
+    vi.mocked(Module.exists).mockResolvedValue({ _id: 'mod-1' } as any);
+    vi.mocked(Lesson.findById).mockResolvedValue({ _id: 'lesson-1', moduleId: 'mod-1' } as any);
   });
 
   describe('addCourseModule', () => {
@@ -79,6 +85,7 @@ describe('Curriculum Builder & Lecture Actions', () => {
 
       vi.mocked(Course.findById).mockResolvedValueOnce({
         _id: 'course-1',
+        createdById: 'inst-1',
         title: 'Fullstack Next.js',
       } as any);
 
@@ -105,6 +112,7 @@ describe('Curriculum Builder & Lecture Actions', () => {
 
       vi.mocked(Course.findById).mockResolvedValueOnce({
         _id: 'course-1',
+        createdById: 'inst-1',
         totalLessons: 0,
         save: vi.fn().mockResolvedValue(true),
       } as any);
@@ -149,6 +157,7 @@ describe('Curriculum Builder & Lecture Actions', () => {
 
       vi.mocked(Course.findById).mockResolvedValueOnce({
         _id: 'course-1',
+        createdById: 'inst-1',
         totalLessons: 1,
         save: vi.fn().mockResolvedValue(true),
       } as any);
@@ -241,6 +250,7 @@ describe('Curriculum Builder & Lecture Actions', () => {
         lean: vi.fn().mockResolvedValue({
           _id: '507f1f77bcf86cd799439011',
           title: 'Fullstack Course',
+          createdById: 'inst-1',
         }),
       } as any);
 
@@ -278,15 +288,14 @@ describe('Curriculum Builder & Lecture Actions', () => {
       expect(res.course?.modules[0].lessons[0].title).toBe('Intro Lesson');
     });
 
-    it('falls back to static courses for static IDs like fullstack-nextjs', async () => {
+    it('does not fabricate a curriculum for removed sample courses', async () => {
       vi.mocked(Course.findById).mockReturnValue({
         lean: vi.fn().mockResolvedValue(null),
       } as any);
 
       const res = await getCourseCurriculum('fullstack-nextjs');
-      expect(res.success).toBe(true);
-      expect(res.course?.title).toBeDefined();
-      expect(res.course?.modules.length).toBeGreaterThan(0);
+      expect(res.success).not.toBe(true);
+      expect(res.error).toBeDefined();
     });
   });
 
@@ -312,4 +321,22 @@ describe('Curriculum Builder & Lecture Actions', () => {
       expect(res.quizzes?.[0].questionCount).toBe(3);
     });
   });
+  it('prevents instructors from modifying another instructor course', async () => {
+    vi.mocked(Course.findById).mockResolvedValue({ _id: 'course-1', createdById: 'other-instructor' } as any);
+    expect(await addCourseModule('course-1', 'New module')).toHaveProperty('error');
+    expect(Module.create).not.toHaveBeenCalled();
+    expect(await deleteCourseLecture('lesson-1', 'course-1')).toHaveProperty('error');
+    expect(Lesson.findByIdAndDelete).not.toHaveBeenCalled();
+  });
+  it('does not delete lessons that belong to a different course', async () => {
+    vi.mocked(Module.exists).mockResolvedValue(null);
+    expect(await deleteCourseLecture('lesson-1', 'course-1')).toHaveProperty('error');
+    expect(Lesson.findByIdAndDelete).not.toHaveBeenCalled();
+  });
+  it('does not expose the instructor curriculum and media URLs to students', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'student-1', role: 'STUDENT' } } as any);
+    expect(await getCourseCurriculum('course-1')).toHaveProperty('error');
+    expect(Lesson.find).not.toHaveBeenCalled();
+  });
+
 });

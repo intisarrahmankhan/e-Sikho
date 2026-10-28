@@ -22,7 +22,7 @@ export function UpcomingExamsWidget({ exams }: { exams: Exam[] }) {
         <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-between">
           <Link href="/exams" className="flex items-center gap-2 hover:text-primary-600 transition">
             <Clock className="w-4 h-4 text-primary-600" />
-            <span>{language === 'en' ? 'Upcoming Exams & Quizzes' : 'আসন্ন পরীক্ষা ও কুইজ'}</span>
+            <span>{language === 'en' ? 'Available Exams & Quizzes' : 'উপলব্ধ পরীক্ষা ও কুইজ'}</span>
           </Link>
           <Link href="/exams" className="flex items-center gap-1 text-[11px] font-semibold text-primary-600 hover:text-primary-700">
             <span>{language === 'en' ? 'All Exams' : 'সকল পরীক্ষা'}</span>
@@ -39,7 +39,7 @@ export function UpcomingExamsWidget({ exams }: { exams: Exam[] }) {
           exams.map((exam) => (
             <Link
               key={exam.id}
-              href="/exams"
+              href={`/exams/${exam.id}`}
               className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-primary-200 hover:bg-primary-50/30 transition group"
             >
               <div className="space-y-0.5">
@@ -48,12 +48,12 @@ export function UpcomingExamsWidget({ exams }: { exams: Exam[] }) {
                 </p>
                 <p className="text-[11px] text-slate-400 flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  {new Date(exam.date).toLocaleDateString(language === 'en' ? 'en-US' : 'bn-BD')}
+                  {exam.date ? new Date(exam.date).toLocaleDateString(language === 'en' ? 'en-US' : 'bn-BD') : (language === 'en' ? 'Available now' : 'এখন অংশ নিতে পারবেন')}
                 </p>
               </div>
               <div>
                 <span className="inline-flex items-center rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600 border border-rose-100">
-                  {language === 'en' ? `${exam.daysLeft} days left` : `${exam.daysLeft} দিন বাকি`}
+                  {exam.date ? (language === 'en' ? `${exam.daysLeft} days left` : `${exam.daysLeft} দিন বাকি`) : (language === 'en' ? 'Open' : 'উন্মুক্ত')}
                 </span>
               </div>
             </Link>

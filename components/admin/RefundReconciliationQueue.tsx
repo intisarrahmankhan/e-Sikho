@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/Badge';
 import RefundReconciliationModal, {
   RefundPaymentItem,
 } from '@/components/admin/RefundReconciliationModal';
-import { seedDemoRefundRequestsAction } from '@/actions/financial';
+
 
 interface RefundReconciliationQueueProps {
   initialPayments: RefundPaymentItem[];
@@ -45,7 +45,7 @@ export default function RefundReconciliationQueue({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<RefundPaymentItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
+
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -169,31 +169,7 @@ export default function RefundReconciliationQueue({
     }, 6000);
   };
 
-  const handleSeedDemoData = async () => {
-    setIsSeeding(true);
-    try {
-      const res = await seedDemoRefundRequestsAction();
-      if (res.success) {
-        setNotification({
-          type: 'success',
-          message: res.message || 'Demo refund records generated successfully.',
-        });
-        window.location.reload();
-      } else {
-        setNotification({
-          type: 'error',
-          message: res.error || 'Failed to generate demo refund records.',
-        });
-      }
-    } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err.message || 'Error executing demo seed.',
-      });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
+
 
   const getStatusBadge = (status: string) => {
     const s = status.toLowerCase();
@@ -395,16 +371,7 @@ export default function RefundReconciliationQueue({
             />
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSeedDemoData}
-            disabled={isSeeding}
-            className="rounded-xl border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-xs shrink-0 flex items-center gap-1.5 font-semibold"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>{isSeeding ? 'Seeding...' : 'Demo Data'}</span>
-          </Button>
+
         </div>
       </div>
 
@@ -419,7 +386,7 @@ export default function RefundReconciliationQueue({
               No refund or dispute records found
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
-              There are no payment records matching your current filter criteria. You can click &quot;Demo Data&quot; to populate realistic student refund records.
+              There are no payment records matching your current filter criteria.
             </p>
           </div>
         ) : (

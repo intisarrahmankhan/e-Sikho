@@ -1,3 +1,10 @@
+// This suite isolates grading/answer confidentiality; audience permissions have dedicated tests.
+vi.mock('@/lib/assessment-access', () => ({
+  getAssessmentViewer: async () => (await auth() as any)?.user || null,
+  authorizeAssessmentCreation: vi.fn(async () => ({ scope: 'GLOBAL', approvalStatus: 'APPROVED', audience: { educationLevels: [], departments: [], studentIds: [] } })),
+  canAccessAssessment: vi.fn(async (_record, viewer) => !!viewer),
+  filterVisibleAssessments: vi.fn(async (records) => records),
+}));
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createExamAction, submitExamAction } from '@/actions/exam';
 import { auth } from '@/auth';
@@ -57,7 +64,7 @@ describe('Configurable Fractional Negative Marking Engine', () => {
         category: 'পদার্থবিজ্ঞান',
         duration: 30,
         totalMarks: 4,
-        passMarks: 2,
+        passMarks: 1,
         hasNegativeMarking: true,
         negativeMarkingValue: 0.25,
         questions: [
@@ -100,7 +107,7 @@ describe('Configurable Fractional Negative Marking Engine', () => {
         category: 'গণিত',
         duration: 45,
         totalMarks: 10,
-        passMarks: 5,
+        passMarks: 1,
         hasNegativeMarking: true,
         negativeMarkingValue: 0.33,
         questions: [

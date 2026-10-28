@@ -328,6 +328,7 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
         title: 'Deep Learning & Neural Networks',
         createdById: '65f000000000000000000099', // Different author
         price: 0, // Free course
+        status: 'PUBLISHED',
         studentsEnrolled: 10,
         approvalStatus: 'APPROVED',
       };
@@ -371,6 +372,7 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
         title: 'My Own Next.js Masterclass',
         createdById: '65f000000000000000000002', // Same author ID!
         price: 1500,
+        status: 'PUBLISHED',
         studentsEnrolled: 50,
       };
 
@@ -396,6 +398,7 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
         title: 'Distributed Systems',
         createdById: '65f000000000000000000099',
         price: 2000,
+        status: 'PUBLISHED',
       };
 
       mockCourseFindById.mockResolvedValue(existingCourse);
@@ -428,6 +431,7 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
         title: 'Advanced Microservices Architecture',
         createdById: '65f000000000000000000099',
         price: 3500,
+        status: 'PUBLISHED',
       };
 
       mockCourseFindById.mockResolvedValue(paidCourse);
@@ -518,6 +522,7 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
         title: 'Python for Beginners & Data Science',
         category: 'programming',
         price: 0,
+        status: 'PUBLISHED',
         thumbnailUrl: '/images/python.jpg',
       });
 
@@ -587,6 +592,7 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
         title: 'Cloud Architecture Essentials',
         createdById: '65f000000000000000000999', // Another instructor
         price: 0,
+        status: 'PUBLISHED',
         studentsEnrolled: 5,
       };
 
@@ -647,5 +653,12 @@ describe('Student-to-Instructor Role Upgrade & Instructor Course Enrollment', ()
       expect(mockRevalidatePath).toHaveBeenCalledWith('/instructor/settings');
     });
   });
+  it.each(['DRAFT', 'PENDING_REVIEW'])('does not enroll students in %s courses', async (status) => {
+    currentSessionUser = { id: '65f000000000000000000002', role: 'STUDENT', email: 'student@example.test' };
+    mockCourseFindById.mockResolvedValue({ _id: '65f000000000000000000033', status, price: 0 });
+    expect((await enrollInCourseAction('65f000000000000000000033')).success).toBe(false);
+    expect(mockEnrollmentFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
 });
 

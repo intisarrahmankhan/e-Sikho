@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LoginPage from '@/app/login/page';
-import { loginWithGoogle, signUpWithPhone, loginWithPhone, loginAsDeveloper } from '@/actions/auth';
+import { loginWithGoogle, signUpWithPhone, loginWithPhone } from '@/actions/auth';
 import { useSearchParams } from 'next/navigation';
 
 // Mock server actions and next/navigation
@@ -145,19 +145,10 @@ describe('LoginPage', () => {
     });
   });
 
-  it('triggers developer auto-login for instructor and student', () => {
-    (useSearchParams as any).mockReturnValue({
-      get: vi.fn().mockReturnValue(null),
-    });
-
+  it('does not expose developer login shortcuts', () => {
+    (useSearchParams as any).mockReturnValue({ get: vi.fn().mockReturnValue(null) });
     render(<LoginPage />);
-
-    const instructorDevBtn = screen.getByRole('button', { name: /Test as Instructor/i });
-    fireEvent.click(instructorDevBtn);
-    expect(loginAsDeveloper).toHaveBeenCalledWith('INSTRUCTOR', '/instructor');
-
-    const studentDevBtn = screen.getByRole('button', { name: /Test as Student/i });
-    fireEvent.click(studentDevBtn);
-    expect(loginAsDeveloper).toHaveBeenCalledWith('STUDENT', '/student');
+    expect(screen.queryByRole('button', { name: /Test as Instructor/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Test as Student/i })).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import { AUTH_SECRET } from '@/lib/auth-secret';
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
@@ -5,16 +6,16 @@ import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
 import Instructor from '@/models/Instructor';
 import VerificationCode from '@/models/VerificationCode';
-import { normalizePhone, hashPassword, verifyPassword, isValidMongoObjectId } from '@/lib/auth-helpers';
+import { normalizePhone, isValidBDPhone, hashPassword, verifyPassword, isValidMongoObjectId } from '@/lib/auth-helpers';
 
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     trustHost: true,
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'e-sikho-auth-super-secret-key-cse314-2026',
+    secret: AUTH_SECRET,
     providers: [
         Google({
-            clientId: process.env.GOOGLE_CLIENT_ID || 'dummy-google-client-id',
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy-google-client-secret',
+            clientId: process.env.GOOGLE_CLIENT_ID || '',
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
         }),
         Credentials({
             name: 'Credentials',
@@ -28,29 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 isSignUp: { label: 'IsSignUp', type: 'text' },
             },
             async authorize(credentials) {
-                // Developer auto-login bypass (when role is supplied directly from quick login buttons)
-                if (credentials?.role && !credentials?.email && !credentials?.phone) {
-                    const role = String(credentials.role).toUpperCase();
-                    const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
-                    return {
-                        id: mockId,
-                        name: role === 'STUDENT' ? 'শিক্ষার্থী (Demo)' : 'ইন্সট্রাক্টর (Demo)',
-                        email: `dev_${role.toLowerCase()}@eshikho.test`,
-                        role: role,
-                        status: 'APPROVED',
-                    };
-                }
-
-                // Dummy credentials bypass for testing
-                if (credentials?.email === 'test@example.com' && credentials?.password === 'password123') {
-                    return { id: '65f000000000000000000001', name: 'Test Student', email: 'test@example.com', role: 'STUDENT', status: 'APPROVED' } as any;
-                }
-                if (credentials?.email === 'instructor@eshikho.com' && credentials?.password === 'instructor123456') {
-                    return { id: '65f000000000000000000002', name: 'Test Instructor', email: 'instructor@eshikho.com', role: 'INSTRUCTOR', status: 'APPROVED' } as any;
-                }
-                if (credentials?.email === 'admin@eshikho.com' && credentials?.password === 'admin123456') {
-                    return { id: '65f000000000000000000003', name: 'Test Admin', email: 'admin@eshikho.com', role: 'ADMIN', status: 'APPROVED' } as any;
-                }
+                if (!credentials?.phone && !credentials?.email) return null;
 
                 try {
                     await dbConnect();
@@ -62,7 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 // 1. Phone number authentication (Sign up or Login with OTP / Password)
                 if (credentials?.phone) {
                     const cleanPhone = normalizePhone(String(credentials.phone));
-                    if (!cleanPhone) {
+                    if (!isValidBDPhone(cleanPhone)) {
                         throw new Error('একটি সঠিক মোবাইল নম্বর লিখুন');
                     }
 
@@ -72,6 +51,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     const otp = credentials.otp ? String(credentials.otp).trim() : '';
 
                     if (isSignUp) {
+                        if (!/^\d{6}$/.test(otp)) throw new Error('A verified signup OTP is required.');
+                        if (password && password.length < 6) throw new Error('Password must have at least 6 characters.');
                         // Check if phone is already registered
                         const existingUser = await User.findOne({
                             $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@phone.esikho.com` }],
@@ -161,6 +142,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             throw new Error('আপনার অ্যাকাউন্টটি সাময়িকভাবে বা স্থায়ীভাবে ব্লক করা হয়েছে। অ্যাডমিনের সাথে যোগাযোগ করুন। (Account Blocked)');
                         }
 
+                        if (!otp && (!password || !user.password)) return null;
+
                         // 1. Verify password if account has password
                         if (user.password && password) {
                             const isValid = verifyPassword(password, user.password);
@@ -211,41 +194,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     }
                 }
 
-                // 2. Email credentials fallback (Demo / dev logins)
-                if (!credentials?.email) return null;
+                // Email login must authenticate an existing account.
+                if (!credentials?.email || !credentials?.password) return null;
                 const email = String(credentials.email).toLowerCase().trim();
-                const requestedRole = String(credentials.role || 'STUDENT').toUpperCase();
-                const name = String(
-                    credentials.name || (requestedRole === 'INSTRUCTOR' ? 'ইন্সট্রাক্টর আরিফ হাসান' : 'শিক্ষার্থী')
-                ).trim();
-
-                let user = await User.findOne({ email });
-
-                if (user && (user.status === 'BLOCKED' || user.status === 'SUSPENDED')) {
-                    throw new Error('আপনার অ্যাকাউন্টটি সাময়িকভাবে বা স্থায়ীভাবে ব্লক করা হয়েছে। অ্যাডমিনের সাথে যোগাযোগ করুন। (Account Blocked)');
-                }
-
-                if (!user) {
-                    user = await User.create({
-                        name,
-                        email,
-                        role: 'STUDENT',
-                        status: 'APPROVED',
-                        image: '',
-                    });
-                }
-
-                if (requestedRole === 'INSTRUCTOR' && user.role !== 'INSTRUCTOR' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
-                    const InstructorRequest = (await import('@/models/InstructorRequest')).default;
-                    const existingReq = await InstructorRequest.findOne({ userId: user._id });
-                    if (!existingReq) {
-                        await InstructorRequest.create({
-                            userId: user._id,
-                            reason: 'Requested instructor access during email login',
-                            status: 'PENDING',
-                        });
-                    }
-                }
+                const user = await User.findOne({ email });
+                if (!user || !user.password || !verifyPassword(String(credentials.password), user.password)) return null;
+                if (user.status === 'BLOCKED' || user.status === 'SUSPENDED') return null;
 
                 return {
                     id: user._id.toString(),
@@ -258,24 +212,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 };
             },
         }),
-        Credentials({
-            name: "Developer Auto Login",
-            credentials: {
-                role: { label: "Role (STUDENT, INSTRUCTOR, ADMIN)", type: "text", placeholder: "INSTRUCTOR" }
-            },
-            async authorize(credentials) {
-                const role = (credentials?.role as string)?.toUpperCase() || 'INSTRUCTOR';
-                const mockId = role === 'STUDENT' ? '65f000000000000000000001' : role === 'INSTRUCTOR' ? '65f000000000000000000002' : '65f000000000000000000003';
-
-                return {
-                    id: mockId,
-                    name: `Dev ${role}`,
-                    email: `dev_${role.toLowerCase()}@eshikho.test`,
-                    role: role,
-                    status: 'APPROVED',
-                };
-            }
-        })
     ],
     pages: {
         signIn: '/login',
@@ -303,10 +239,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             {
                                 $set: {
                                     image: user.image ?? '',
-                                    role: (user as any).role ?? 'STUDENT',
-                                    status: (user as any).status ?? 'APPROVED',
                                 },
                                 $setOnInsert: {
+                                    role: 'STUDENT',
+                                    status: 'APPROVED',
                                     name: user.name ?? 'User',
                                     email: user.email,
                                 },
@@ -316,6 +252,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     }
                 } catch (err) {
                     console.error('Error in signIn callback:', err);
+                    return false;
                 }
             }
             return true;
@@ -338,15 +275,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     await dbConnect();
                     const query = hasValidObjectId ? { _id: token.id } : { email: token.email };
                     let dbUser = await User.findOne(query).select('_id role status name phone email').lean() as any;
-                    if (!dbUser && token.email && (token.name || account?.provider === 'google')) {
-                        dbUser = await User.create({
-                            name: token.name || 'User',
-                            email: token.email,
-                            role: token.role || 'STUDENT',
-                            status: 'APPROVED',
-                            phone: token.phone || undefined,
-                        });
-                    }
+                    if (!dbUser || dbUser.status === 'BLOCKED' || dbUser.status === 'SUSPENDED') return null;
                     if (dbUser) {
                         token.id = dbUser._id.toString();
                         token.role = dbUser.role || token.role || 'STUDENT';
@@ -358,20 +287,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 }
             } catch (err) {
                 console.warn('Database connection warning in jwt callback:', err);
-                if (!hasValidObjectId) {
-                    token.id = '65f000000000000000000001';
-                }
+                return null;
             }
 
-            if (!isValidMongoObjectId(token.id)) {
-                token.id = '65f000000000000000000001';
-            }
+            if (!isValidMongoObjectId(token.id)) return null;
 
             return token;
         },
         async session({ session, token }: any) {
             if (session.user) {
-                (session.user as any).id = isValidMongoObjectId(token.id) ? token.id : '65f000000000000000000001';
+                (session.user as any).id = token.id;
                 (session.user as any).role = token.role ?? 'STUDENT';
                 (session.user as any).status = token.status ?? 'APPROVED';
                 (session.user as any).phone = token.phone;

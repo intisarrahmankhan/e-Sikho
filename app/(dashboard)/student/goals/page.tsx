@@ -23,12 +23,12 @@ export default async function StudentGoalsPage({
   const session = await auth();
   if (!session || !session.user) redirect('/login');
 
-  const rawUserId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  const rawUserId = (session.user as any).id || (session.user as any).email || '';
   const userEmail = (session.user as any).email;
   let userId = rawUserId;
   let safeUserId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId)
     ? rawUserId
-    : '65f000000000000000000001';
+    : '';
 
   let enrollments: any[] = [];
   try {
@@ -47,7 +47,7 @@ export default async function StudentGoalsPage({
 
     safeUserId = typeof userId === 'string' && /^[0-9a-fA-F]{24}$/.test(userId)
       ? userId
-      : '65f000000000000000000001';
+      : '';
 
     const rawEnrollments = await Enrollment.find({
       userId: safeUserId,

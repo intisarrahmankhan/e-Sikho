@@ -20,7 +20,7 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
 
   if (!session || !user) redirect('/login');
 
-  let userId = user.id || '65f000000000000000000002';
+  let userId = user.id || '';
   let userName = user.name || 'ইন্সট্রাক্টর';
   let availableBalance = 0;
   let totalEarnings = 0;

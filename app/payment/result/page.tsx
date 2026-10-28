@@ -13,7 +13,7 @@
  * buttons so the user can head to their dashboard or browse more courses.
  */
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -27,7 +27,7 @@ import {
   RotateCcw,
   ShieldCheck,
 } from 'lucide-react';
-import { COURSES_DATA } from '@/lib/courses-data';
+import { getCourseAccessDetails } from '@/actions/course-access';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -107,14 +107,29 @@ function ResultContent() {
   const courseId  = searchParams.get('courseId') ?? '';
 
   // Sanitize status; fall back to 'failed' for unknown values
-  const status: ResultStatus = (['success', 'failed', 'pending', 'cancelled'] as const).includes(
+  const requestedStatus: ResultStatus = (['success', 'failed', 'pending', 'cancelled'] as const).includes(
     rawStatus as ResultStatus
   )
     ? (rawStatus as ResultStatus)
     : 'failed';
 
-  const cfg    = STATUS_CONFIG[status];
-  const course = COURSES_DATA.find((c) => c.id === courseId);
+  const [verifiedCourseId, setVerifiedCourseId] = useState('');
+  const [course, setCourse] = useState<any>(null);
+  useEffect(() => {
+    let active = true;
+    setVerifiedCourseId('');
+    setCourse(null);
+    if (courseId) {
+      getCourseAccessDetails(courseId).then((access) => {
+        if (active && access.isEnrolled) setVerifiedCourseId(courseId);
+      }).catch(() => {});
+      fetch(`/api/courses/${encodeURIComponent(courseId)}`).then((res) => res.ok ? res.json() : null)
+        .then((data) => { if (active) setCourse(data); }).catch(() => {});
+    }
+    return () => { active = false; };
+  }, [courseId]);
+  const status: ResultStatus = requestedStatus === 'success' && verifiedCourseId !== courseId ? 'pending' : requestedStatus;
+  const cfg = STATUS_CONFIG[status];
 
   return (
     <div
@@ -178,7 +193,7 @@ function ResultContent() {
           </span>
           <span className="flex items-center gap-1">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-            256-bit Encrypted
+            Enrollment status verified by server
           </span>
           <span className="flex items-center gap-1">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />

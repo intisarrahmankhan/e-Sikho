@@ -1,5 +1,8 @@
 'use client';
 
+import AssessmentPublishingFields from './AssessmentPublishingFields';
+import { AssessmentAudience, emptyAudience } from '@/lib/assessment-policy';
+
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
@@ -46,64 +49,25 @@ interface QuestionDraft {
   marks: number;
 }
 
-export function ExamCreateForm({ courses }: { courses?: { id: string; title: string }[] }) {
+export function ExamCreateForm({ courses = [], canCreateGlobal = false }: { courses?: { id: string; title: string; status?: string }[]; canCreateGlobal?: boolean }) {
   const router = useRouter();
   const { language } = useLanguage();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Computer Science');
-  const [courseId, setCourseId] = useState('none');
+  const [courseId, setCourseId] = useState(courses[0]?.id || 'none');
+  const [scope, setScope] = useState<'COURSE' | 'GLOBAL'>('COURSE');
+  const [audience, setAudience] = useState<AssessmentAudience>(emptyAudience);
   const [duration, setDuration] = useState(25);
-  const [passMarks, setPassMarks] = useState(3);
+  const [passMarks, setPassMarks] = useState(1);
   const [hasNegativeMarking, setHasNegativeMarking] = useState(false);
   const [negativeMarkingValue, setNegativeMarkingValue] = useState(0.25);
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [questions, setQuestions] = useState<QuestionDraft[]>([
-    {
-      type: 'MCQ',
-      question: 'যদি $f(x) = \\int_{0}^{x} t^2 \\, dt$ হয়, তবে $f\'(2)$ এর মান কত?',
-      options: ['$4$', '$8$', '$\\frac{8}{3}$', '$2$'],
-      correctAnswer: 0,
-      acceptedAnswers: [],
-      codeTemplate: '',
-      codeLanguage: 'javascript',
-      testCases: [],
-      explanation: 'ক্যালকুলাসের মৌলিক উপপাদ্য (FTC) অনুযায়ী: $\\frac{d}{dx} \\int_{0}^{x} f(t) dt = f(x)$। সুতরাং $f\'(x) = x^2$ এবং $f\'(2) = 2^2 = 4$।',
-      marks: 1,
-    },
-    {
-      type: 'SHORT_ANSWER',
-      question: 'কম্পিউটার সায়েন্সে FIFO (First-In, First-Out) প্রিন্সিপাল অনুসরণকারী ডেটা স্ট্রাকচারটির নাম কী?',
-      options: [],
-      correctAnswer: 0,
-      acceptedAnswers: ['Queue', 'কিউ', 'queue', 'সারিবদ্ধ কিউ'],
-      codeTemplate: '',
-      codeLanguage: 'javascript',
-      testCases: [],
-      explanation: 'Queue ডেটা স্ট্রাকচারে প্রথমে যা ঢোকানো হয়, তা প্রথমে বের হয় (FIFO)।',
-      marks: 1,
-    },
-    {
-      type: 'CODE',
-      question: 'দুটি সংখ্যার যোগফল নির্ণয় করতে নিচের `solve(input)` ফাংশনটি লিখুন। input হিসেবে `[a, b]` আসবে এবং আপনাকে `a + b` রিটার্ন করতে হবে।',
-      options: [],
-      correctAnswer: 0,
-      acceptedAnswers: [],
-      codeTemplate: `function solve(input) {\n  // input[0] এবং input[1] যোগ করে রিটার্ন করুন\n  const a = input[0];\n  const b = input[1];\n  return a + b;\n}`,
-      codeLanguage: 'javascript',
-      testCases: [
-        { input: '[5, 10]', expectedOutput: '15', isHidden: false },
-        { input: '[-3, 7]', expectedOutput: '4', isHidden: false },
-        { input: '[100, 250]', expectedOutput: '350', isHidden: true },
-      ],
-      explanation: '`return input[0] + input[1];` লিখলেই সকল টেস্ট কেস পাস করবে।',
-      marks: 2,
-    },
-  ]);
+  const [questions, setQuestions] = useState<QuestionDraft[]>([{ type: 'MCQ', question: '', options: ['', '', '', ''], correctAnswer: 0, acceptedAnswers: [], codeTemplate: '', codeLanguage: 'javascript', testCases: [], explanation: '', marks: 1 }]);
 
   const handleAddQuestion = () => {
     const newIdx = questions.length;
@@ -139,57 +103,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
     setQuestions((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleInsertSample = (qIdx: number) => {
-    const samples: QuestionDraft[] = [
-      {
-        type: 'MCQ',
-        question: 'নির্দিষ্ট সমাকলন $\\int_{0}^{1} x \\sqrt{1 - x^2} \\, dx$ এর মান নির্ণয় করুন:',
-        options: ['$\\frac{1}{3}$', '$\\frac{2}{3}$', '$\\frac{1}{2}$', '$1$'],
-        correctAnswer: 0,
-        acceptedAnswers: [],
-        codeTemplate: '',
-        codeLanguage: 'javascript',
-        testCases: [],
-        explanation: 'ধরি $u = 1 - x^2$, সুতরাং $du = -2x dx$। মান $\\frac{1}{3}$।',
-        marks: 1,
-      },
-      {
-        type: 'SHORT_ANSWER',
-        question: 'মার্জ সর্টের (Merge Sort) সব ক্ষেত্রে সময় জটিলতা (Time Complexity) বিগ-ও নোটেশনে কত?',
-        options: [],
-        correctAnswer: 0,
-        acceptedAnswers: ['O(n log n)', 'O(nlogn)', 'n log n', 'nlogn'],
-        codeTemplate: '',
-        codeLanguage: 'javascript',
-        testCases: [],
-        explanation: 'মার্জ সর্টের বিভক্ত ও সংযুক্তিকরণ সর্বত্র $O(n \\log n)$ সময় নেয়।',
-        marks: 1,
-      },
-      {
-        type: 'CODE',
-        question: 'একটি সংখ্যা $n$ এর ফ্যাক্টোরিয়াল ($n!$) নির্ণয় করুন। `solve(n)` ফাংশনটি সম্পন্ন করুন।',
-        options: [],
-        correctAnswer: 0,
-        acceptedAnswers: [],
-        codeTemplate: `function solve(n) {\n  let res = 1;\n  for (let i = 2; i <= n; i++) {\n    res *= i;\n  }\n  return res;\n}`,
-        codeLanguage: 'javascript',
-        testCases: [
-          { input: '5', expectedOutput: '120', isHidden: false },
-          { input: '3', expectedOutput: '6', isHidden: false },
-          { input: '1', expectedOutput: '1', isHidden: true },
-        ],
-        explanation: '0! = 1, 5! = 120। লুপ দিয়ে সহজেই ফ্যাক্টোরিয়াল গণনা করা যায়।',
-        marks: 2,
-      },
-    ];
 
-    const pick = samples[Math.floor(Math.random() * samples.length)];
-    setQuestions((prev) => {
-      const copy = [...prev];
-      copy[qIdx] = { ...pick };
-      return copy;
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,9 +118,11 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
     try {
       const res = await createExamAction({
         title,
+        scope,
+        audience,
         description,
         category,
-        courseId: courseId !== 'none' ? courseId : undefined,
+        courseId: scope === 'COURSE' && courseId !== 'none' ? courseId : undefined,
         duration: Number(duration),
         passMarks: Number(passMarks),
         hasNegativeMarking,
@@ -229,6 +145,8 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto pb-12">
+        <AssessmentPublishingFields kind="EXAM" courses={courses} canCreateGlobal={canCreateGlobal} scope={scope} onScopeChange={setScope} courseId={courseId} onCourseChange={setCourseId} audience={audience} onAudienceChange={setAudience} />
+
       {/* Basic Settings Card */}
       <Card className="border border-slate-200 rounded-2xl bg-white shadow-sm overflow-hidden">
         <CardHeader className="p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
@@ -438,23 +356,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
             </div>
           </div>
 
-          {courses && courses.length > 0 && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">সম্পর্কিত কোর্স (ঐচ্ছিক)</label>
-              <select
-                value={courseId}
-                onChange={(e) => setCourseId(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 outline-none bg-white focus:border-primary-500"
-              >
-                <option value="none">কোনো নির্দিষ্ট কোর্স নেই (সবার জন্য উন্মুক্ত)</option>
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+
         </CardContent>
       </Card>
 
@@ -564,14 +466,7 @@ export function ExamCreateForm({ courses }: { courses?: { id: string; title: str
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleInsertSample(qIdx)}
-                  className="text-[11px] text-primary-600 hover:text-primary-800 font-semibold flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-primary-100 shadow-2xs"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>নমুনা প্রশ্ন</span>
-                </button>
+
 
                 <div className="flex items-center gap-1.5 text-xs text-slate-600">
                   <span className="font-semibold">মার্কস:</span>

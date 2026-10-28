@@ -41,6 +41,8 @@ interface StudentProfile {
   bio?: string;
   targetTrack?: string;
   academicBackground?: string;
+  educationLevel?: string;
+  department?: string;
   weeklyGoalHours?: number;
   interests?: string[];
   skills?: string[];
@@ -95,17 +97,19 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
   // Profile Form States
   const [name, setName] = useState(initialProfile.name || '');
   const [phone, setPhone] = useState(initialProfile.phone || '');
-  const [headline, setHeadline] = useState(initialProfile.headline || 'Aspiring Fullstack Developer');
+  const [headline, setHeadline] = useState(initialProfile.headline || '');
+  const [educationLevel, setEducationLevel] = useState(initialProfile.educationLevel || '');
+  const [department, setDepartment] = useState(initialProfile.department || '');
   const [bio, setBio] = useState(initialProfile.bio || '');
   const [academicBackground, setAcademicBackground] = useState(
-    initialProfile.academicBackground || 'Computer Science & Engineering (CSE)'
+    initialProfile.academicBackground || ''
   );
 
   // Learning Goal States & Personalized Profile
-  const [targetTrack, setTargetTrack] = useState(initialProfile.targetTrack || 'Fullstack Web Development');
+  const [targetTrack, setTargetTrack] = useState(initialProfile.targetTrack || '');
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(initialProfile.weeklyGoalHours || 10);
-  const [interests, setInterests] = useState<string[]>(initialProfile.interests || ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms']);
-  const [skills, setSkills] = useState<string[]>(initialProfile.skills || ['JavaScript', 'React', 'TypeScript']);
+  const [interests, setInterests] = useState<string[]>(initialProfile.interests || []);
+  const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
   const [availableInterests, setAvailableInterests] = useState<string[]>(() => {
     const initial = initialProfile.interests || [];
     return Array.from(new Set([...DEFAULT_INTERESTS, ...initial]));
@@ -183,6 +187,8 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
         headline,
         bio,
         academicBackground,
+        educationLevel,
+        department,
       });
 
       if (res.error) {
@@ -224,10 +230,10 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
   };
 
   const handleResetGoals = () => {
-    setTargetTrack(initialProfile.targetTrack || 'Fullstack Web Development');
+    setTargetTrack(initialProfile.targetTrack || '');
     setWeeklyGoalHours(initialProfile.weeklyGoalHours || 10);
-    setInterests(initialProfile.interests || ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms']);
-    setSkills(initialProfile.skills || ['JavaScript', 'React', 'TypeScript']);
+    setInterests(initialProfile.interests || []);
+    setSkills(initialProfile.skills || []);
     setAvailableInterests(Array.from(new Set([...DEFAULT_INTERESTS, ...(initialProfile.interests || [])])));
     setAvailableSkills(Array.from(new Set([...DEFAULT_SKILLS, ...(initialProfile.skills || [])])));
     setCustomInterest('');
@@ -431,6 +437,15 @@ export function StudentSettingsClient({ initialProfile }: StudentSettingsClientP
                   </div>
                 </div>
 
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm font-semibold">Education level
+                    <select value={educationLevel} onChange={(event) => setEducationLevel(event.target.value)} className="mt-1 w-full rounded-lg border bg-white p-2 text-sm"><option value="">Choose your level</option><option value="SCHOOL">School</option><option value="COLLEGE">College</option><option value="UNIVERSITY">University</option></select>
+                  </label>
+                  <label className="text-sm font-semibold">Department or study stream
+                    <input value={department} onChange={(event) => setDepartment(event.target.value)} maxLength={100} placeholder="CSE, EEE, Science, Humanities…" className="mt-1 w-full rounded-lg border p-2 text-sm" />
+                  </label>
+                  <p className="text-xs text-slate-500 sm:col-span-2">These details determine which targeted global exams and contests you can see and join.</p>
+                </div>
                 {/* Academic Background / Major for Contest & Notification Prioritization */}
                 <div className="space-y-1.5 p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
                   <div className="flex items-center justify-between">

@@ -5,13 +5,16 @@ import dbConnect from '@/lib/mongoose';
 import Exam, { IExamQuestion } from '@/models/Exam';
 import ExamSubmission from '@/models/ExamSubmission';
 import Course from '@/models/Course';
-import Enrollment from '@/models/Enrollment';
 import User from '@/models/User';
 import { revalidatePath } from 'next/cache';
+import { authorizeAssessmentCreation, getAssessmentViewer, canAccessAssessment, filterVisibleAssessments } from '@/lib/assessment-access';
+import { AssessmentAudience } from '@/lib/assessment-policy';
 
 import { evaluateCodeSubmission, evaluateShortAnswer, TestCase } from '@/lib/code-evaluator';
 
 export interface CreateExamInput {
+  scope?: 'COURSE' | 'GLOBAL';
+  audience?: AssessmentAudience;
   title: string;
   description?: string;
   courseId?: string;
@@ -52,7 +55,7 @@ export async function createExamAction(data: CreateExamInput) {
       return { error: 'পরীক্ষার শিরোনাম আবশ্যক।' };
     }
 
-    if (!data.questions || data.questions.length === 0) {
+    if (!Array.isArray(data.questions) || data.questions.length === 0 || data.questions.length > 200) {
       return { error: 'কমপক্ষে ১টি প্রশ্ন যোগ করতে হবে।' };
     }
 
@@ -62,12 +65,13 @@ export async function createExamAction(data: CreateExamInput) {
         return { error: `প্রশ্ন #${i + 1} এর বিষয়বস্তু খালি থাকতে পারে না।` };
       }
       const qType = q.type || 'MCQ';
+      if (!['MCQ', 'TRUE_FALSE', 'SHORT_ANSWER', 'CODE'].includes(qType) || !Number.isFinite(Number(q.marks ?? 1)) || Number(q.marks ?? 1) <= 0) return { error: 'Choose a valid question type and positive marks.' };
 
       if (qType === 'MCQ') {
-        if (!q.options || q.options.length < 2) {
+        if (!Array.isArray(q.options) || q.options.length < 2 || q.options.some((option) => typeof option !== 'string' || !option.trim())) {
           return { error: `প্রশ্ন #${i + 1} (MCQ) এ কমপক্ষে ২টি অপশন থাকতে হবে।` };
         }
-        if (q.correctAnswer === undefined || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
+        if (!Number.isInteger(q.correctAnswer) || q.correctAnswer === undefined || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
           return { error: `প্রশ্ন #${i + 1} এ সঠিক উত্তরটি নির্বাচন করুন।` };
         }
       } else if (qType === 'TRUE_FALSE') {
@@ -90,7 +94,9 @@ export async function createExamAction(data: CreateExamInput) {
 
     await dbConnect();
 
-    const computedTotalMarks = data.questions.reduce((sum, q) => sum + (q.marks || 1), 0);
+    const publication = await authorizeAssessmentCreation('EXAM', data, { id: user.id, role: user.role });
+
+    const computedTotalMarks = data.questions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0);
     const passMarks = data.passMarks || Math.ceil(computedTotalMarks * 0.4);
     const hasNegativeMarking = !!data.hasNegativeMarking;
     const negativeMarkingValue = hasNegativeMarking
@@ -101,10 +107,12 @@ export async function createExamAction(data: CreateExamInput) {
         ? Number(data.maxAttempts)
         : 3;
 
+    if (!Number.isInteger(Number(data.duration)) || Number(data.duration) < 1 || Number(data.duration) > 480 || !Number.isFinite(passMarks) || passMarks <= 0 || passMarks > computedTotalMarks || !Number.isInteger(maxAttempts) || maxAttempts > 50 || !Number.isFinite(negativeMarkingValue)) return { error: 'Check duration, pass marks, negative marking, and attempt limits.' };
+
     const newExam = await Exam.create({
+      ...publication,
       title: data.title.trim(),
       description: data.description?.trim() || '',
-      courseId: data.courseId && data.courseId !== 'none' ? data.courseId : undefined,
       category: data.category || 'General',
       duration: Number(data.duration) || 15,
       totalMarks: computedTotalMarks,
@@ -160,12 +168,15 @@ export async function getExamsAction(options?: { courseId?: string; category?: s
       .sort({ createdAt: -1 })
       .lean();
 
+    const visibleExams = await filterVisibleAssessments(exams, await getAssessmentViewer());
+
     return {
       success: true,
-      exams: exams.map((exam: any) => ({
+      exams: visibleExams.map((exam: any) => ({
         id: exam._id.toString(),
         title: exam.title,
         description: exam.description,
+        scope: exam.scope,
         courseTitle: exam.courseId?.title || null,
         courseId: exam.courseId?._id?.toString() || null,
         category: exam.category,
@@ -202,6 +213,13 @@ export async function getExamByIdAction(examId: string, forTaking: boolean = fal
       return { error: 'পরীক্ষাটি পাওয়া যায়নি।' };
     }
 
+    if (!await canAccessAssessment(exam, await getAssessmentViewer())) return { error: 'This exam is unavailable for your enrollment or audience profile.' };
+
+    const session = await auth();
+    const user = session?.user as { id?: string; role?: string } | undefined;
+    const canViewAnswers = !!user?.id && (user.role === 'ADMIN' || user.role === 'SUPERADMIN' || (user.role === 'INSTRUCTOR' && String(exam.createdById) === user.id));
+    forTaking = forTaking || !canViewAnswers;
+
     const formattedQuestions = exam.questions.map((q: any, idx: number) => {
       const qType = q.type || 'MCQ';
       return {
@@ -237,8 +255,6 @@ export async function getExamByIdAction(examId: string, forTaking: boolean = fal
     let requiresEnrollment = false;
     let courseIdStr: string | null = null;
 
-    const session = await auth();
-    const user = session?.user as { id?: string; role?: string } | undefined;
     let checkUserId = user?.id;
     if (checkUserId && typeof checkUserId === 'string' && checkUserId.includes('@')) {
       const u = await User.findOne({ email: checkUserId }).select('_id').lean() as any;
@@ -248,20 +264,6 @@ export async function getExamByIdAction(examId: string, forTaking: boolean = fal
     if (exam.courseId) {
       requiresEnrollment = true;
       courseIdStr = exam.courseId._id ? exam.courseId._id.toString() : exam.courseId.toString();
-      const isStaff = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
-
-      if (!isStaff) {
-        if (!checkUserId) {
-          isEnrolledInCourse = false;
-        } else {
-          const enr = await Enrollment.findOne({
-            userId: checkUserId,
-            courseId: courseIdStr,
-            paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
-          }).lean();
-          isEnrolledInCourse = !!enr;
-        }
-      }
     }
 
     // Retake Policy & Attempt Tracking with Mandatory 24-hour Cooldown
@@ -385,27 +387,12 @@ export async function submitExamAction({
       return { error: 'পরীক্ষাটি পাওয়া যায়নি।' };
     }
 
+    if (exam.status === 'DRAFT' || !await canAccessAssessment(exam, await getAssessmentViewer())) return { error: 'You are not eligible to participate in this exam.' };
+
     let checkUserId = user.id;
     if (typeof checkUserId === 'string' && checkUserId.includes('@')) {
       const u = await User.findOne({ email: checkUserId }).select('_id').lean() as any;
       if (u) checkUserId = u._id.toString();
-    }
-
-    if (exam.courseId) {
-      const role = (session?.user as any)?.role;
-      const isStaff = role === 'ADMIN' || role === 'SUPERADMIN';
-      if (!isStaff) {
-        const courseIdStr = exam.courseId.toString();
-        const enr = await Enrollment.findOne({
-          userId: checkUserId,
-          courseId: courseIdStr,
-          paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
-        }).lean();
-
-        if (!enr) {
-          return { error: 'এই পরীক্ষায় অংশ নিতে অনুগ্রহ করে সংশ্লিষ্ট কোর্সে প্রথমে এনরোল করুন (Enrollment Required)।' };
-        }
-      }
     }
 
     // Exam Retake Policy Enforcement (Maximum Attempts Cap)
@@ -687,142 +674,6 @@ export async function runSampleCodeAction({
  * Seeds rich sample exams featuring LaTeX math, True/False, Short-Answer, and automated Code grading.
  */
 export async function seedSampleExamsAction() {
-  try {
-    await dbConnect();
-
-    const existingCount = await Exam.countDocuments();
-    if (existingCount > 0) {
-      return { success: true, message: 'Exams already exist.' };
-    }
-
-    const sampleExams = [
-      {
-        title: 'সিএস ও সফটওয়্যার ইঞ্জিনিয়ারিং মাল্টি-ফরম্যাট মক টেস্ট (CS Multi-Format Exam)',
-        description: 'MCQ, সত্য/মিথ্যা (True/False), সংক্ষিপ্ত উত্তর (Short-Answer) এবং সরাসরি কোডিং প্রবলেম (Automated Code Evaluation) সমন্বিত পূর্ণাঙ্গ মডেল টেস্ট।',
-        category: 'Computer Science',
-        duration: 30,
-        totalMarks: 7,
-        passMarks: 4,
-        status: 'PUBLISHED',
-        questions: [
-          {
-            type: 'MCQ',
-            question: 'মাস্টার থিওরেম অনুসারে যদি $T(n) = 2T\\left(\\frac{n}{2}\\right) + O(n)$ হয়, তবে সামগ্রিক সময় জটিলতা (Time Complexity) কত?',
-            options: [
-              '$\\Theta(n \\log n)$',
-              '$\\Theta(n^2)$',
-              '$\\Theta(\\log n)$',
-              '$\\Theta(n)$',
-            ],
-            correctAnswer: 0,
-            explanation: 'মাস্টার উপপাদ্যের কেস ২ অনুযায়ী $T(n) = \\Theta(n \\log n)$ (যেমন মার্জ সর্ট)।',
-            marks: 1,
-          },
-          {
-            type: 'TRUE_FALSE',
-            question: 'রেড-ব্ল্যাক ট্রি (Red-Black Tree)-তে রুট থেকে কোনো পাতার দূরতম পাথের দৈর্ঘ্য নিকটতম পাথের দৈর্ঘ্যের দ্বিগুণের বেশি হতে পারে না।',
-            options: ['সত্য (True)', 'মিথ্যা (False)'],
-            correctAnswer: 0,
-            explanation: 'সত্য। কারণ কোনো পাথে দুটি লাল নোড পরপর থাকতে পারে না এবং সব পাথে সমান সংখ্যক কালো নোড থাকে। তাই সর্বোচ্চ অনুপাত ২:১।',
-            marks: 1,
-          },
-          {
-            type: 'SHORT_ANSWER',
-            question: 'গ্রাফ থিওরিতে সবচেয়ে কম খরচে সমস্ত শীর্ষবিন্দু সংযুক্ত করার অ্যালগরিদমকে কী বলা হয়? (ইংরেজি বা বাংলা সংক্ষেপে লিখুন)',
-            options: [],
-            correctAnswer: 0,
-            acceptedAnswers: [
-              'Minimum Spanning Tree',
-              'MST',
-              'স্প্যানিং ট্রি',
-              'মিনিমাম স্প্যানিং ট্রি',
-              'Kruskal',
-              'Prim',
-            ],
-            explanation: 'সব শীর্ষবিন্দু সর্বনিম্ন খরচে সংযুক্তকারী গ্রাফ সাব-ট্রিকে Minimum Spanning Tree (MST) বলা হয়, যা Kruskal বা Prim অ্যালগরিদম দ্বারা বের করা যায়।',
-            marks: 1,
-          },
-          {
-            type: 'CODE',
-            question: 'দুটি সংখ্যার যোগফল নির্ণয় করতে নিচের `solve(input)` ফাংশনটি সম্পূর্ণ করুন। input হিসেবে `[a, b]` আসবে এবং আপনাকে `a + b` রিটার্ন করতে হবে।',
-            options: [],
-            codeLanguage: 'javascript',
-            codeTemplate: `function solve(input) {\n  // input[0] এবং input[1] এর যোগফল রিটার্ন করুন\n  const a = input[0];\n  const b = input[1];\n  return a + b;\n}`,
-            testCases: [
-              { input: '[5, 10]', expectedOutput: '15', isHidden: false },
-              { input: '[-3, 7]', expectedOutput: '4', isHidden: false },
-              { input: '[100, 250]', expectedOutput: '350', isHidden: true },
-              { input: '[0, 0]', expectedOutput: '0', isHidden: true },
-            ],
-            explanation: 'সহজেই `return input[0] + input[1];` লিখলে সমস্ত টেস্ট কেস পাস করবে।',
-            marks: 2,
-          },
-          {
-            type: 'CODE',
-            question: 'প্রদত্ত সংখ্যা $n$-এর ফ্যাক্টোরিয়াল ($n!$) নির্ণয় করুন। input হিসেবে ধনাত্মক পূর্ণসংখ্যা $n$ আসবে।',
-            options: [],
-            codeLanguage: 'javascript',
-            codeTemplate: `function solve(n) {\n  // n! এর মান রিটার্ন করুন\n  let res = 1;\n  for (let i = 2; i <= n; i++) {\n    res *= i;\n  }\n  return res;\n}`,
-            testCases: [
-              { input: '5', expectedOutput: '120', isHidden: false },
-              { input: '3', expectedOutput: '6', isHidden: false },
-              { input: '1', expectedOutput: '1', isHidden: true },
-              { input: '0', expectedOutput: '1', isHidden: true },
-            ],
-            explanation: '0! = 1, 1! = 1 এবং n! = n * (n - 1)!। লুপ বা রিকার্শন ব্যবহার করে সমাধান সম্ভব।',
-            marks: 2,
-          },
-        ],
-      },
-      {
-        title: 'উচ্চতর গণিত ও ক্যালকুলাস মডেল টেস্ট (Higher Math & Calculus)',
-        description: 'বিভিন্ন সমাকলন, ব্যবকলন ও জটিল সংখ্যার গাণিতিক সমস্যার উপর বিশেষ কুইজ। প্রশ্ন এবং অপশনে আধুনিক LaTeX ফরম্যাটের ব্যবহার করা হয়েছে।',
-        category: 'Mathematics',
-        duration: 20,
-        totalMarks: 3,
-        passMarks: 2,
-        status: 'PUBLISHED',
-        questions: [
-          {
-            type: 'MCQ',
-            question: 'যদি $f(x) = x^3 - 3x^2 + 2x$ হয়, তবে প্রথম অন্তরকলজ $f\'(x)$ এর মান নিচের কোনটি?',
-            options: [
-              '$3x^2 - 6x + 2$',
-              '$3x^2 - 3x + 2$',
-              '$x^2 - 6x + 2$',
-              '$\\frac{x^4}{4} - x^3 + x^2$',
-            ],
-            correctAnswer: 0,
-            explanation: 'ডিফারেন্সিয়েশনের সূত্র অনুযায়ী: $\\frac{d}{dx}(x^n) = n x^{n-1}$। অতএব, $\\frac{d}{dx}(x^3 - 3x^2 + 2x) = 3x^2 - 6x + 2$।',
-            marks: 1,
-          },
-          {
-            type: 'TRUE_FALSE',
-            question: 'নির্দিষ্ট সমাকলন (Definite Integral) $\\int_{0}^{\\frac{\\pi}{2}} \\cos(x) \\, dx$-এর মান $1$।',
-            options: ['সত্য (True)', 'মিথ্যা (False)'],
-            correctAnswer: 0,
-            explanation: '$\\int \\cos(x) dx = \\sin(x)$। সুতরাং সীমা বসিয়ে পাই: $[\\sin(x)]_0^{\\pi/2} = 1 - 0 = 1$।',
-            marks: 1,
-          },
-          {
-            type: 'SHORT_ANSWER',
-            question: 'দ্বিঘাত সমীকরণ $ax^2 + bx + c = 0$-এর নিশ্চয়ক (Discriminant)-এর বীজগণিতীয় রূপটি লিখুন:',
-            options: [],
-            correctAnswer: 0,
-            acceptedAnswers: ['b^2 - 4ac', 'b^2-4ac', 'b*b - 4*a*c', 'b2 - 4ac'],
-            explanation: 'দ্বিঘাত সমীকরণের নিশ্চয়ক বা Discriminant হলো $D = b^2 - 4ac$।',
-            marks: 1,
-          },
-        ],
-      },
-    ];
-
-    await Exam.insertMany(sampleExams);
-    revalidatePath('/exams');
-    return { success: true, count: sampleExams.length };
-  } catch (error: any) {
-    console.error('Error seeding sample exams:', error);
-    return { error: 'নমুনা পরীক্ষা তৈরিতে ব্যর্থ।' };
-  }
+  return { success: false, error: 'Sample data creation has been removed.', message: undefined };
 }
 

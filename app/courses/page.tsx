@@ -28,7 +28,7 @@ export default async function CoursesPage() {
     recommendationsRes = recRes;
     userWishlistIds = wishlistRes.wishlistIds || [];
 
-    const submittedCourses = await Course.find({ approvalStatus: 'APPROVED' })
+    const submittedCourses = await Course.find({ approvalStatus: 'APPROVED', status: 'PUBLISHED' })
       .populate('instructor')
       .lean();
 

@@ -77,7 +77,7 @@ function statusLabel(status: string, lang: 'bn' | 'en' = 'bn') {
   return status;
 }
 
-// Simulate monthly enrollment trend
+// Enrollment counts grouped by course creation month (not enrollment dates).
 function buildMonthlyTrend(courses: CreatedCourseItem[]): number[] {
   const months = Array(6).fill(0);
   const now = new Date();
@@ -214,19 +214,7 @@ export function InstructorDashboardClient({
   ].filter((s) => s.value > 0);
 
   // ── drop-off data ──
-  const dropOffData = sortedByEnrollment.filter(c => c.studentsEnrolled && c.studentsEnrolled > 0).slice(0, 6).map((c) => {
-    const rate = ((c.title.charCodeAt(0) + (c.studentsEnrolled || 0)) % 35) + 10;
-    return {
-      label: c.title.length > 12 ? c.title.slice(0, 12) + '…' : c.title,
-      value: rate,
-      color: '#ef4444',
-    };
-  });
-
-  // ── KPI delta ──
-  const prevStudents = Math.max(0, totalStudents - Math.round(totalStudents * 0.14));
-  const studentDelta = totalStudents - prevStudents;
-  const studentDeltaPct = prevStudents > 0 ? ((studentDelta / prevStudents) * 100).toFixed(1) : '0.0';
+  const dropOffData: { label: string; value: number; color: string }[] = [];
 
   const firstName = userName.split(' ')[0] || 'ইন্সট্রাক্টর';
 
@@ -632,12 +620,7 @@ export function InstructorDashboardClient({
                 {language === 'en' ? 'Total Students' : 'মোট শিক্ষার্থী'}
               </p>
               <div className="flex items-center gap-1 mt-2">
-                {studentDelta >= 0
-                  ? <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-                  : <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />}
-                <span className={`text-xs font-semibold ${studentDelta >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {studentDeltaPct}% {language === 'en' ? 'vs last month' : 'গত মাসের চেয়ে'}
-                </span>
+                <span className="text-xs text-gray-400">{language === 'en' ? 'Monthly comparison unavailable' : 'মাসিক তুলনার তথ্য নেই'}</span>
               </div>
             </Card>
 

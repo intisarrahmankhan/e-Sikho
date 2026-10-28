@@ -80,24 +80,12 @@ export default function SecureVideoPlayer({
     return () => clearInterval(interval);
   }, []);
 
-  // 3. Track video playback heartbeat and drop-off timestamps for instructor analytics
-  useEffect(() => {
-    if (!courseId || !lessonId || !data?.success) return;
-
-    let secondsElapsed = 0;
-    const durSec = 720;
-    const interval = setInterval(() => {
-      secondsElapsed += 10;
-      trackLessonHeartbeatAction({
-        courseId,
-        lessonId,
-        currentTimestamp: secondsElapsed,
-        videoDuration: durSec,
-      }).catch(() => {});
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [courseId, lessonId, data?.success]);
+  const recordProgress = (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.currentTarget;
+    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+    if (!video.ended && Math.floor(video.currentTime) % 10 !== 0) return;
+    void trackLessonHeartbeatAction({ courseId, lessonId, currentTimestamp: video.currentTime, videoDuration: video.duration });
+  };
 
   if (loading) {
     return (
@@ -106,10 +94,10 @@ export default function SecureVideoPlayer({
       >
         <Loader2 className="h-8 w-8 text-primary-500 animate-spin mb-3" />
         <p className="text-sm font-semibold tracking-wide text-slate-200">
-          ডিআরএম এনক্রিপ্টেড স্ট্রিম প্রস্তুত হচ্ছে…
+          ভিডিও প্রস্তুত হচ্ছে…
         </p>
         <p className="text-xs text-slate-500 mt-1">
-          Bunny.net সুরক্ষিত কী এবং স্টুডেন্ট ওয়াটারমার্ক সিঙ্ক করা হচ্ছে
+          ভিডিও অ্যাক্সেস যাচাই করা হচ্ছে
         </p>
       </div>
     );
@@ -168,6 +156,8 @@ export default function SecureVideoPlayer({
           controls
           controlsList="nodownload"
           onContextMenu={(e) => e.preventDefault()}
+          onTimeUpdate={recordProgress}
+          onEnded={recordProgress}
           autoPlay
           playsInline
           className="h-full w-full object-contain"
@@ -193,7 +183,7 @@ export default function SecureVideoPlayer({
       <div className="pointer-events-none absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
         <div className="flex items-center gap-1.5 rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 backdrop-blur-md border border-emerald-500/20 shadow-md">
           <ShieldCheck className="h-3 w-3 text-emerald-400" />
-          <span>DRM এনক্রিপ্টেড স্ট্রিমিং</span>
+          <span>{videoType === 'bunny' ? 'Signed video access' : 'Session access verified'}</span>
         </div>
       </div>
     </div>

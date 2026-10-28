@@ -66,7 +66,7 @@ export function LiveClassRoom({
   const [replyInputId, setReplyInputId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isAnswering, setIsAnswering] = useState(false);
-  const [viewerCount, setViewerCount] = useState(initialSession.viewerCount || 154);
+  const viewerCount = initialSession.viewerCount || 0;
   const [copiedLink, setCopiedLink] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -75,17 +75,6 @@ export function LiveClassRoom({
   const [recordingInputUrl, setRecordingInputUrl] = useState(initialSession.recordingUrl || initialSession.streamUrl || '');
   const [isArchiving, setIsArchiving] = useState(false);
   const [archiveSuccessMsg, setArchiveSuccessMsg] = useState<string | null>(null);
-
-  // Gentle realistic viewer count variation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setViewerCount((prev) => {
-        const delta = Math.floor(Math.random() * 5) - 2;
-        return Math.max(120, prev + delta);
-      });
-    }, 8000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Background question polling every 7 seconds
   useEffect(() => {
@@ -373,7 +362,7 @@ export function LiveClassRoom({
               >
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="rotate-[-25deg] text-center font-mono text-xs font-bold text-white tracking-widest my-6">
-                    <div>e-Shikho DRM Protected Recording</div>
+                    <div>e-Shikho Enrollment-Restricted Recording</div>
                     <div>User: {currentUserId || 'Enrolled Student'}</div>
                     <div className="text-[10px]">Restricted Enrollment Playback</div>
                   </div>
@@ -383,7 +372,7 @@ export function LiveClassRoom({
 
             {session.streamUrl || session.recordingUrl ? (
               <iframe
-                src={`${session.recordingUrl || session.streamUrl}?autoplay=1&mute=0`}
+                src={`${session.recordingUrl || session.streamUrl}${(session.recordingUrl || session.streamUrl || '').includes('?') ? '&' : '?'}autoplay=1&mute=0`}
                 title={displayTitle}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -750,7 +739,7 @@ export function LiveClassRoom({
 
             <p className="text-xs text-slate-300 leading-relaxed">
               {language === 'en'
-                ? 'Marking this class as completed will automatically generate a recorded lecture inside the course module. Enrolled and absent students will receive an instant notification to watch the DRM-protected recording.'
+                ? 'Marking this class as completed will automatically generate a recorded lecture inside the course module. Enrolled and absent students will receive an instant notification to watch the course recording.'
                 : 'এই ক্লাসটি সম্পন্ন করলে স্বয়ংক্রিয়ভাবে সংশ্লিষ্ট কোর্স মডিউলে এর রেকর্ডিং তৈরি হয়ে যাবে। অনুপস্থিত শিক্ষার্থীসহ সকল এনরোল্ড শিক্ষার্থী তাৎক্ষণিক নোটিফিকেশন পাবেন এবং সুরক্ষিতভাবে রেকর্ডিং দেখতে পারবেন।'}
             </p>
 

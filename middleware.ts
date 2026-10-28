@@ -27,13 +27,14 @@ export default auth((req) => {
     if (!isAuthPage) {
       return NextResponse.redirect(new URL('/login?error=AccountBlocked', req.url));
     }
+    return NextResponse.next();
   }
 
   // If user is logged in and visits auth page (/login), redirect to callbackUrl or their dashboard
   if (isAuthPage) {
     if (isLoggedIn) {
       const callbackUrl = req.nextUrl.searchParams.get('callbackUrl');
-      if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')) {
+      if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//') && !callbackUrl.includes('\\') && !callbackUrl.startsWith('/login')) {
         return NextResponse.redirect(new URL(callbackUrl, req.url));
       }
 
@@ -68,6 +69,9 @@ export default auth((req) => {
 
   // Protect role specific routes for logged-in users
   if (isLoggedIn) {
+    if (pathname.startsWith('/instructor') && !['INSTRUCTOR', 'ADMIN', 'SUPERADMIN'].includes(role)) {
+      return NextResponse.redirect(new URL(getRoleDashboard(role) || '/student', req.url));
+    }
     if (pathname.startsWith('/admin') && role !== 'ADMIN' && role !== 'SUPERADMIN') {
       const target = getRoleDashboard(role) || '/student';
       return NextResponse.redirect(new URL(target, req.url));

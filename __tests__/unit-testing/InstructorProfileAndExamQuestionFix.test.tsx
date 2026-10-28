@@ -84,7 +84,7 @@ describe('ExamCreateForm - True/False Removal & Add Question Fix', () => {
     );
 
     // Initial questions count is 3 (MCQ, Short Answer, Code)
-    expect(screen.getByText('প্রশ্নাবলি (3 টি)')).toBeInTheDocument();
+    expect(screen.getByText('প্রশ্নাবলি (1 টি)')).toBeInTheDocument();
 
     const addBtn = screen.getByTestId('add-new-question-btn');
     expect(addBtn).toBeInTheDocument();
@@ -92,8 +92,8 @@ describe('ExamCreateForm - True/False Removal & Add Question Fix', () => {
     fireEvent.click(addBtn);
 
     // Question count should increase to 4
-    expect(screen.getByText('প্রশ্নাবলি (4 টি)')).toBeInTheDocument();
-    expect(screen.getByText('প্রশ্ন 4')).toBeInTheDocument();
+    expect(screen.getByText('প্রশ্নাবলি (2 টি)')).toBeInTheDocument();
+    expect(screen.getByText('প্রশ্ন 2')).toBeInTheDocument();
   });
 
   it('provides a bottom Add Another Question button that also adds questions', () => {
@@ -108,8 +108,8 @@ describe('ExamCreateForm - True/False Removal & Add Question Fix', () => {
 
     fireEvent.click(bottomBtn);
 
-    expect(screen.getByText('প্রশ্নাবলি (4 টি)')).toBeInTheDocument();
-    expect(screen.getByText('প্রশ্ন 4')).toBeInTheDocument();
+    expect(screen.getByText('প্রশ্নাবলি (2 টি)')).toBeInTheDocument();
+    expect(screen.getByText('প্রশ্ন 2')).toBeInTheDocument();
   });
 });
 

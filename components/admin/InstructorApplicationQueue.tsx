@@ -33,7 +33,7 @@ import { Badge } from '@/components/ui/Badge';
 import InstructorVerificationModal, {
   InstructorApplicationItem,
 } from '@/components/admin/InstructorVerificationModal';
-import { seedDemoInstructorApplicationsAction } from '@/actions/admin';
+
 
 interface InstructorApplicationQueueProps {
   initialApplications: InstructorApplicationItem[];
@@ -49,7 +49,7 @@ export default function InstructorApplicationQueue({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'experience'>('newest');
   const [selectedApp, setSelectedApp] = useState<InstructorApplicationItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
+
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Filter & Search Logic
@@ -168,21 +168,7 @@ export default function InstructorApplicationQueue({
     }, 5000);
   };
 
-  const handleSeedDemo = async () => {
-    setIsSeeding(true);
-    try {
-      const res = await seedDemoInstructorApplicationsAction();
-      if (res.success) {
-        window.location.reload();
-      } else {
-        setNotification({ type: 'error', message: res.error || 'Failed to seed demo data.' });
-      }
-    } catch (err: any) {
-      setNotification({ type: 'error', message: err.message || 'Seeding error.' });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
+
 
   const getStatusBadge = (status: string) => {
     const s = (status || '').toLowerCase();
@@ -377,16 +363,7 @@ export default function InstructorApplicationQueue({
           </div>
 
           {/* Quick Demo Seeder */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSeeding}
-            onClick={handleSeedDemo}
-            className="text-xs h-9 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50 flex items-center gap-1.5"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-            {isSeeding ? 'Seeding Profiles...' : 'Seed Sample Applications'}
-          </Button>
+
         </div>
 
         {/* Search & Secondary Filters */}
@@ -447,7 +424,7 @@ export default function InstructorApplicationQueue({
             </div>
             <h3 className="text-base font-bold text-gray-900">No Instructor Applications Found</h3>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
-              There are currently no applications matching your filter criteria. You can clear filters or seed realistic test applications to verify the queue flow.
+              There are currently no applications matching your filter criteria. Try clearing your filters.
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <Button
@@ -462,15 +439,7 @@ export default function InstructorApplicationQueue({
               >
                 Reset Filters
               </Button>
-              <Button
-                size="sm"
-                disabled={isSeeding}
-                onClick={handleSeedDemo}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                Seed Sample Applications
-              </Button>
+
             </div>
           </div>
         ) : (

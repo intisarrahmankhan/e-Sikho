@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
+import { AssessmentAudience } from '@/lib/assessment-policy';
 
 export type ExamQuestionType = 'MCQ' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'CODE';
 
@@ -23,6 +24,10 @@ export interface IExamQuestion {
 }
 
 export interface IExam extends Document {
+  scope?: 'COURSE' | 'GLOBAL';
+  audience?: AssessmentAudience;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  globalPermissionId?: mongoose.Types.ObjectId;
   title: string;
   description: string;
   courseId?: mongoose.Types.ObjectId | string;
@@ -68,6 +73,14 @@ const questionSchema = new Schema<IExamQuestion>({
 
 const examSchema = new Schema<IExam>(
   {
+    scope: { type: String, enum: ['COURSE', 'GLOBAL'], default: 'COURSE' },
+    audience: {
+      educationLevels: { type: [String], enum: ['SCHOOL', 'COLLEGE', 'UNIVERSITY'], default: [] },
+      departments: { type: [String], default: [] },
+      studentIds: { type: [String], default: [] },
+    },
+    approvalStatus: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
+    globalPermissionId: { type: Schema.Types.ObjectId, ref: 'GlobalAssessmentPermission' },
     title: { type: String, required: true },
     description: { type: String, default: '' },
     courseId: { type: Schema.Types.ObjectId, ref: 'Course' },

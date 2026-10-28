@@ -418,7 +418,7 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
   });
 
   describe('seedDemoRefundRequestsAction', () => {
-    it('creates realistic demo refund and dispute records', async () => {
+    it('refuses to create sample financial records', async () => {
       mockUserFindOne.mockResolvedValue({ _id: 'mock-user-1' });
       mockCourseFindOne.mockResolvedValue({ _id: 'mock-course-1' });
       mockEnrollmentFindOne.mockResolvedValue({ _id: 'mock-enr-1' });
@@ -426,9 +426,8 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       mockPaymentCreate.mockResolvedValue({ _id: 'new-payment' });
 
       const res = await seedDemoRefundRequestsAction();
-      expect(res.success).toBe(true);
-      expect(mockPaymentCreate).toHaveBeenCalled();
-      expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/refunds');
+      expect(res.success).toBe(false);
+      expect(mockPaymentCreate).not.toHaveBeenCalled();
     });
   });
 });

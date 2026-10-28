@@ -7,7 +7,10 @@ import LessonProgress from '@/models/LessonProgress';
 import Course from '@/models/Course';
 import Exam from '@/models/Exam';
 import User from '@/models/User';
-import { COURSES_DATA } from '@/lib/courses-data';
+import Module from '@/models/Module';
+import Lesson from '@/models/Lesson';
+import LiveSession from '@/models/LiveSession';
+import { isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
 import { sendRealtimeNotification } from '@/lib/realtime-notifications';
 
@@ -167,11 +170,9 @@ export async function getCourseAccessDetails(courseId: string): Promise<CourseAc
 
     // Calculate total lessons
     let totalLessons = 0;
-    const staticCourse = COURSES_DATA.find((c) => c.id === courseId);
-    if (staticCourse) {
-      totalLessons = staticCourse.modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0);
-    } else if (dbCourse?.totalLessons) {
-      totalLessons = dbCourse.totalLessons;
+    if (dbCourse) {
+      const modules = await Module.find({ courseId }).select('_id').lean();
+      totalLessons = await Lesson.countDocuments({ moduleId: { $in: modules.map((module) => module._id) } });
     }
 
     const progressPercentage =
@@ -207,6 +208,14 @@ export async function getCourseAccessDetails(courseId: string): Promise<CourseAc
   }
 }
 
+async function canTrackLesson(courseId: string, lessonId: string) {
+  if (!isValidMongoObjectId(courseId) || !isValidMongoObjectId(lessonId)) return false;
+  const access = await getCourseAccessDetails(courseId);
+  if (!access.canAccessAll) return false;
+  const lesson = await Lesson.findById(lessonId).select('moduleId').lean();
+  return !!(lesson && await Module.exists({ _id: lesson.moduleId, courseId }));
+}
+
 /**
  * Toggles or updates lesson completion for an enrolled student
  */
@@ -223,6 +232,8 @@ export async function toggleLessonProgressAction(
     }
 
     await dbConnect();
+
+    if (!await canTrackLesson(courseId, lessonId)) return { error: 'Course access is required for this lesson.' };
 
     let userId = sessionUser.id;
     if (typeof userId === 'string' && userId.includes('@')) {
@@ -270,120 +281,9 @@ export async function getCourseResourcesAction(courseId: string): Promise<{
   success: boolean;
   resources: CourseResourceItem[];
 }> {
-  // Built-in curated PDF resources for the courses
-  const commonPdfs: Record<string, CourseResourceItem[]> = {
-    'fullstack-nextjs': [
-      {
-        id: 'pdf-next-1',
-        title: 'Next.js 14 & React সম্পূর্ণ লেকচার স্লাইডস (PDF)',
-        titleEn: 'Next.js 14 & React Complete Lecture Slides (PDF)',
-        fileType: 'pdf',
-        fileSize: '4.8 MB',
-        downloadUrl: '/resources/nextjs-lecture-slides.pdf',
-        isFreePreview: true,
-      },
-      {
-        id: 'pdf-next-2',
-        title: 'TypeScript & App Router চিটশিট ও সিনট্যাক্স গাইড (PDF)',
-        titleEn: 'TypeScript & App Router Cheatsheet Guide (PDF)',
-        fileType: 'pdf',
-        fileSize: '2.1 MB',
-        downloadUrl: '/resources/typescript-next-cheatsheet.pdf',
-        isFreePreview: false,
-      },
-      {
-        id: 'pdf-next-3',
-        title: 'PostgreSQL & Prisma স্কিমা আর্কিটেকচার ব্লুপ্রিন্ট (PDF)',
-        titleEn: 'PostgreSQL & Prisma Schema Architecture Blueprint (PDF)',
-        fileType: 'pdf',
-        fileSize: '3.4 MB',
-        downloadUrl: '/resources/database-architecture.pdf',
-        isFreePreview: false,
-      },
-      {
-        id: 'zip-next-4',
-        title: 'প্রজেক্ট স্টার্টার সোর্স কোড ও বয়লারপ্লেট (ZIP)',
-        titleEn: 'Fullstack Starter Boilerplate & Source Code (ZIP)',
-        fileType: 'zip',
-        fileSize: '12.5 MB',
-        downloadUrl: '/resources/fullstack-starter.zip',
-        isFreePreview: false,
-      },
-    ],
-    'python-machine-learning': [
-      {
-        id: 'pdf-ml-1',
-        title: 'মেশিন লার্নিং ও এআই বেসিক হ্যান্ডবুক (PDF)',
-        titleEn: 'Machine Learning & AI Handbook (PDF)',
-        fileType: 'pdf',
-        fileSize: '5.2 MB',
-        downloadUrl: '/resources/ml-handbook.pdf',
-        isFreePreview: true,
-      },
-      {
-        id: 'pdf-ml-2',
-        title: 'NumPy, Pandas & Scikit-Learn অ্যালগরিদম চার্ট (PDF)',
-        titleEn: 'NumPy & Scikit-Learn Algorithms Reference (PDF)',
-        fileType: 'pdf',
-        fileSize: '3.1 MB',
-        downloadUrl: '/resources/python-data-science-cheatsheet.pdf',
-        isFreePreview: false,
-      },
-    ],
-    'dsa-in-bangla': [
-      {
-        id: 'pdf-dsa-1',
-        title: 'ডাটা স্ট্রাকচার ও অ্যালগরিদম মাস্টার নোটস (PDF)',
-        titleEn: 'DSA Comprehensive Notes & Big-O Guide (PDF)',
-        fileType: 'pdf',
-        fileSize: '6.4 MB',
-        downloadUrl: '/resources/dsa-notes.pdf',
-        isFreePreview: true,
-      },
-      {
-        id: 'pdf-dsa-2',
-        title: 'LeetCode ২০০+ প্রব্লেম সলিউশন রোডম্যাপ (PDF)',
-        titleEn: 'LeetCode Top 200 Problem Solving Roadmap (PDF)',
-        fileType: 'pdf',
-        fileSize: '4.0 MB',
-        downloadUrl: '/resources/leetcode-roadmap.pdf',
-        isFreePreview: false,
-      },
-    ],
-    'system-design-architecture': [
-      {
-        id: 'pdf-sd-1',
-        title: 'সিস্টেম ডিজাইন ব্লুপ্রিন্ট ও কেস স্টাডিজ (PDF)',
-        titleEn: 'System Design Case Studies & Architecture Patterns (PDF)',
-        fileType: 'pdf',
-        fileSize: '7.8 MB',
-        downloadUrl: '/resources/system-design-case-studies.pdf',
-        isFreePreview: true,
-      },
-    ],
-  };
+  const list: CourseResourceItem[] = [];
 
-  let list = commonPdfs[courseId] ? [...commonPdfs[courseId]] : [
-    {
-      id: `pdf-${courseId}-1`,
-      title: 'কোর্স কারিকুলাম ও লেকচার নোটস (PDF)',
-      titleEn: 'Course Curriculum & Lecture Notes (PDF)',
-      fileType: 'pdf' as const,
-      fileSize: '3.5 MB',
-      downloadUrl: `/resources/${courseId}-notes.pdf`,
-      isFreePreview: true,
-    },
-    {
-      id: `pdf-${courseId}-2`,
-      title: 'লেকচার এক্সারসাইজ ও প্র্যাকটিস ফাইলস (PDF)',
-      titleEn: 'Lecture Exercises & Practice Files (PDF)',
-      fileType: 'pdf' as const,
-      fileSize: '2.8 MB',
-      downloadUrl: `/resources/${courseId}-exercises.pdf`,
-      isFreePreview: false,
-    },
-  ];
-
+  const access = await getCourseAccessDetails(courseId);
   try {
     if (courseId && courseId.length === 24) {
       await dbConnect();
@@ -398,13 +298,13 @@ export async function getCourseResourcesAction(courseId: string): Promise<{
         }).lean();
 
         for (const pl of pdfLessons) {
-          if (pl.pdfUrl) {
+          if (pl.pdfUrl && (pl.isFree || access.canAccessAll)) {
             list.unshift({
               id: pl._id.toString(),
               title: pl.pdfName || `${pl.title} (লেকচার স্লাইড / PDF)`,
               titleEn: pl.pdfName || `${pl.title} (Lecture Slide / PDF)`,
               fileType: 'pdf',
-              fileSize: '2.5 MB',
+              fileSize: '',
               downloadUrl: pl.pdfUrl,
               isFreePreview: !!pl.isFree,
               isDownloadable: !!pl.isDownloadable, // View-only unless explicitly marked downloadable
@@ -427,69 +327,20 @@ export async function getCourseLiveSessionsAction(courseId: string): Promise<{
   success: boolean;
   liveSessions: LiveSessionItem[];
 }> {
-  const sessions: Record<string, LiveSessionItem[]> = {
-    'fullstack-nextjs': [
-      {
-        id: 'live-next-1',
-        title: 'লাইভ ডাউট সলভিং ও রিভিশন ক্লাস ১: App Router & TypeScript',
-        titleEn: 'Live Q&A & Code Review 1: App Router & TypeScript',
-        instructorName: 'তানভীর আহমেদ',
-        scheduledTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString(), // 2 hours from now
-        duration: '১ ঘণ্টা ১৫ মিনিট',
-        status: 'UPCOMING',
-        meetUrl: 'https://meet.google.com/esh-ikho-live',
-      },
-      {
-        id: 'live-next-2',
-        title: 'লাইভ ওয়ার্কশপ: NextAuth v5 সিকিউর সেশন হ্যান্ডলিং',
-        titleEn: 'Live Workshop: NextAuth v5 Secure Session Handling',
-        instructorName: 'তানভীর আহমেদ',
-        scheduledTime: new Date(Date.now() - 48 * 3600 * 1000).toISOString(), // Past session
-        duration: '১ ঘণ্টা ৩০ মিনিট',
-        status: 'COMPLETED',
-        recordingUrl: 'https://www.youtube.com/watch?v=wm5gMKuwSYk',
-      },
-    ],
-    'python-machine-learning': [
-      {
-        id: 'live-ml-1',
-        title: 'লাইভ প্রজেক্ট ওয়ার্কশপ: Scikit-Learn মডেল ডিপ্লয়মেন্ট',
-        titleEn: 'Live Workshop: Scikit-Learn Model Deployment',
-        instructorName: 'ড. সাজিদ হাসান',
-        scheduledTime: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
-        duration: '১ ঘণ্টা ৩০ মিনিট',
-        status: 'UPCOMING',
-        meetUrl: 'https://meet.google.com/esh-ikho-ml',
-      },
-    ],
-    'dsa-in-bangla': [
-      {
-        id: 'live-dsa-1',
-        title: 'লাইভ ইন্টারভিউ মক সেশন: Graph & DP Algorithms',
-        titleEn: 'Live Mock Interview: Graph & Dynamic Programming',
-        instructorName: 'নাজমুল আরেফিন',
-        scheduledTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-        duration: '২ ঘণ্টা',
-        status: 'UPCOMING',
-        meetUrl: 'https://meet.google.com/esh-ikho-dsa',
-      },
-    ],
-  };
-
-  const list = sessions[courseId] || [
-    {
-      id: `live-${courseId}-1`,
-      title: 'সাপ্তাহিক লাইভ ইন্টারেক্টিভ প্রশ্নোত্তর সেশন',
-      titleEn: 'Weekly Live Interactive Q&A Session',
-      instructorName: 'e-Shikho কোর্স মেন্টর',
-      scheduledTime: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
-      duration: '১ ঘণ্টা',
-      status: 'UPCOMING',
-      meetUrl: 'https://meet.google.com/esh-ikho-class',
-    },
-  ];
-
-  return { success: true, liveSessions: list };
+  try {
+    await dbConnect();
+    const access = await getCourseAccessDetails(courseId);
+    if (!access.canAccessAll) return { success: true, liveSessions: [] };
+    const sessions = await LiveSession.find({ courseId }).sort({ scheduledTime: -1 }).lean();
+    return { success: true, liveSessions: sessions.map((session) => ({
+      id: session._id.toString(), courseId: session.courseId, title: session.title,
+      titleEn: session.titleEn, instructorName: session.instructorName,
+      scheduledTime: new Date(session.scheduledTime).toISOString(), duration: session.duration,
+      status: session.status, meetUrl: session.meetUrl, recordingUrl: session.recordingUrl,
+    })) };
+  } catch {
+    return { success: false, liveSessions: [] };
+  }
 }
 
 /**
@@ -622,6 +473,9 @@ export async function trackLessonHeartbeatAction({
       const u = await User.findOne({ email: userId }).select('_id').lean() as any;
       if (u) userId = u._id.toString();
     }
+
+    if (!Number.isFinite(currentTimestamp) || !Number.isFinite(videoDuration) || videoDuration <= 0 || currentTimestamp < 0 || currentTimestamp > videoDuration) return { success: false, error: 'Invalid playback position.' };
+    if (!await canTrackLesson(courseId, lessonId)) return { success: false, error: 'Course access is required for this lesson.' };
 
     const curSec = Math.max(0, Math.floor(currentTimestamp));
     const totalSec = Math.max(0, Math.floor(videoDuration));

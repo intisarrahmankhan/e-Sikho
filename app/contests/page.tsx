@@ -2,7 +2,7 @@ import React from 'react';
 import { auth } from '@/auth';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
-import { getHomepageContestsAction } from '@/actions/contest';
+import { getContestsListAction } from '@/actions/contest';
 import { ContestsListClient } from '@/components/contest/ContestsListClient';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,8 @@ export default async function ContestsPage() {
   const userId = (session?.user as any)?.id;
   const userEmail = (session?.user as any)?.email;
 
-  let userBackground = 'Computer Science & Engineering (CSE)';
+  let userBackground = '';
+  const canCreate = ['INSTRUCTOR', 'ADMIN', 'SUPERADMIN'].includes((session?.user as any)?.role || '');
 
   if (userId || userEmail) {
     try {
@@ -27,9 +28,9 @@ export default async function ContestsPage() {
       }
 
       if (userQuery) {
-        const user = (await User.findOne(userQuery).select('academicBackground').lean()) as any;
-        if (user?.academicBackground) {
-          userBackground = user.academicBackground;
+        const user = (await User.findOne(userQuery).select('academicBackground department').lean()) as any;
+        if (user?.department || user?.academicBackground) {
+          userBackground = user.department || user.academicBackground;
         }
       }
     } catch (err) {
@@ -37,8 +38,8 @@ export default async function ContestsPage() {
     }
   }
 
-  const res = await getHomepageContestsAction(userBackground);
+  const res = await getContestsListAction(undefined, userBackground);
   const contests = res.contests || [];
 
-  return <ContestsListClient contests={contests} userBackground={userBackground} />;
+  return <ContestsListClient contests={contests} userBackground={userBackground} canCreate={canCreate} />;
 }

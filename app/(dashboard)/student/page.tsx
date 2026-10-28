@@ -1,3 +1,4 @@
+import { getExamsAction } from '@/actions/exam';
 import React from "react";
 import { auth } from '@/auth';
 import dbConnect from "@/lib/mongoose";
@@ -20,10 +21,10 @@ export default async function StudentDashboardPage() {
   const session = await auth();
   if (!session || !session.user) redirect('/login');
 
-  const rawUserId = (session.user as any).id || (session.user as any).email || '65f000000000000000000001';
+  const rawUserId = (session.user as any).id || (session.user as any).email || '';
   const userEmail = (session.user as any).email;
   let userId = rawUserId;
-  let safeUserId = /^[0-9a-fA-F]{24}$/.test(rawUserId) ? rawUserId : '65f000000000000000000001';
+  let safeUserId = /^[0-9a-fA-F]{24}$/.test(rawUserId) ? rawUserId : '';
 
   let userDoc: any = null;
   let enrollments: any[] = [];
@@ -54,10 +55,10 @@ export default async function StudentDashboardPage() {
     if (userDoc) {
       userId = userDoc._id.toString();
     } else if (!isObjectId) {
-      userId = '65f000000000000000000001';
+      userId = '';
     }
 
-    safeUserId = /^[0-9a-fA-F]{24}$/.test(userId) ? userId : '65f000000000000000000001';
+    safeUserId = /^[0-9a-fA-F]{24}$/.test(userId) ? userId : '';
 
     // 1. Live Enrollments
     const enrollmentsList = await Enrollment.find({
@@ -78,23 +79,8 @@ export default async function StudentDashboardPage() {
     });
 
     // 4. Live Upcoming Exams
-    const publishedExams = (await Exam.find({ status: 'PUBLISHED' })
-      .sort({ createdAt: -1 })
-      .limit(4)
-      .lean()) as any[];
-
-    if (publishedExams && publishedExams.length > 0) {
-      upcomingExams = publishedExams.map((ex, i) => {
-        const daysFromNow = (i + 1) * 3;
-        const examDate = new Date(Date.now() + daysFromNow * 86400000);
-        return {
-          id: ex._id.toString(),
-          title: ex.title,
-          date: examDate.toISOString(),
-          daysLeft: daysFromNow,
-        };
-      });
-    }
+    const availableExams = await getExamsAction();
+    upcomingExams = (availableExams.exams || []).slice(0, 4).map((exam) => ({ id: exam.id, title: exam.title, date: '', daysLeft: 0 }));
 
     // 5. Live Top Students Leaderboard from MongoDB
     const topUsers = await User.find({ role: 'STUDENT', status: 'APPROVED' })
@@ -131,49 +117,8 @@ export default async function StudentDashboardPage() {
   const completedCoursesCount = userDoc?.completedCoursesCount || 0;
   const academicBackground = userDoc?.academicBackground || 'Computer Science & Engineering (CSE)';
   const eloHistory = (userDoc?.eloHistory || []).slice(-5).reverse();
-  const streak = userDoc?.streak || 1;
+  const streak = userDoc?.streak || 0;
   const name = userDoc?.name || session.user.name || 'শিক্ষার্থী';
-
-  // Fallback upcoming exams if DB has none or is unreachable
-  if (upcomingExams.length === 0) {
-    upcomingExams = [
-      {
-        id: 'exam-sample-1',
-        title: 'CSE 314: Advanced Algorithms & System Design Final Assessment',
-        date: new Date(Date.now() + 3 * 86400000).toISOString(),
-        daysLeft: 3,
-      },
-      {
-        id: 'exam-sample-2',
-        title: 'Fullstack Next.js & Distributed Systems Midterm Exam',
-        date: new Date(Date.now() + 6 * 86400000).toISOString(),
-        daysLeft: 6,
-      },
-      {
-        id: 'exam-sample-3',
-        title: 'Discrete Mathematics & Logic Proof Evaluation',
-        date: new Date(Date.now() + 9 * 86400000).toISOString(),
-        daysLeft: 9,
-      },
-    ];
-  }
-
-  // Fallback top students leaderboard
-  if (topStudents.length === 0) {
-    topStudents = [
-      { id: 'u1', name: 'তানভীর আহমেদ', elo: 1850 },
-      { id: 'u2', name: 'নাফিস সাদিক', elo: 1720 },
-      { id: 'u3', name: 'ফারহানা ইয়াসমিন', elo: 1640 },
-      { id: 'u4', name: 'সাদিয়া রহমান', elo: 1580 },
-      { id: String(safeUserId), name: 'You', elo },
-    ];
-  } else if (!topStudents.some((s) => s.id === safeUserId.toString())) {
-    topStudents[topStudents.length - 1] = {
-      id: safeUserId.toString(),
-      name: 'You',
-      elo,
-    };
-  }
 
   // Enrolled courses & routine calculation
   if (enrollments.length > 0) {

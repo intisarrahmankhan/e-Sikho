@@ -13,38 +13,10 @@ export async function loginWithGoogle(callbackUrl: string) {
     clientId.trim() === '';
 
   if (isDummyClient) {
-    // In local development when Google OAuth credentials are not configured in .env,
-    // avoid Google's "401: invalid_client" error page by signing in as a developer test user.
-    await signIn('credentials', {
-      role: 'STUDENT',
-      redirectTo: callbackUrl || '/student',
-    });
-    return;
+    redirect('/login?error=OAuthNotConfigured');
   }
 
   await signIn('google', { redirectTo: callbackUrl });
-}
-
-export async function loginAsDeveloper(role: string, callbackUrl: string) {
-  await signIn('credentials', { role, redirectTo: callbackUrl });
-}
-
-export async function loginAsInstructor(email?: string) {
-  await signIn('credentials', {
-    email: email || 'instructor@esikho.com',
-    role: 'INSTRUCTOR',
-    name: 'ইন্সট্রাক্টর আরিফ হাসান',
-    redirectTo: '/instructor',
-  });
-}
-
-export async function loginAsStudent(email?: string) {
-  await signIn('credentials', {
-    email: email || 'student@esikho.com',
-    role: 'STUDENT',
-    name: 'শিক্ষার্থী রাহুল',
-    redirectTo: '/student',
-  });
 }
 
 export async function loginWithCredentials(

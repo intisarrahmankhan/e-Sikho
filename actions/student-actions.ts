@@ -116,10 +116,12 @@ export async function getStudentProfileAction() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        headline: user.headline || 'Aspiring Developer',
+        headline: user.headline || '',
         bio: user.bio || '',
-        targetTrack: user.targetTrack || 'Fullstack Web Development',
-        academicBackground: user.academicBackground || 'Computer Science & Engineering (CSE)',
+        targetTrack: user.targetTrack || '',
+        academicBackground: user.academicBackground || '',
+        educationLevel: user.educationLevel || '',
+        department: user.department || '',
         weeklyGoalHours: user.weeklyGoalHours || 10,
         interests: Array.isArray(user.interests) ? user.interests : [],
         skills: Array.isArray(user.skills) ? user.skills : [],
@@ -127,7 +129,7 @@ export async function getStudentProfileAction() {
         competitiveElo: user.competitiveElo || 1200,
         problemsSolved: user.problemsSolved || 0,
         completedCoursesCount: user.completedCoursesCount || 0,
-        streak: user.streak || 1,
+        streak: user.streak || 0,
         image: user.image || '',
         role: user.role,
         status: user.status,
@@ -149,6 +151,8 @@ export async function updateStudentProfileAction(data: {
   bio?: string;
   targetTrack?: string;
   academicBackground?: string;
+  educationLevel?: string;
+  department?: string;
   weeklyGoalHours?: number;
   interests?: string[];
   skills?: string[];
@@ -176,12 +180,16 @@ export async function updateStudentProfileAction(data: {
 
     if (!query) return { error: 'ইউজার খুঁজে পাওয়া যায়নি।' };
 
+    if (data.educationLevel !== undefined && !['', 'SCHOOL', 'COLLEGE', 'UNIVERSITY'].includes(data.educationLevel)) return { error: 'Choose a valid education level.' };
+    if (data.department !== undefined && (typeof data.department !== 'string' || data.department.trim().length > 100)) return { error: 'Department must be at most 100 characters.' };
     const updateFields: any = {};
+    if (data.educationLevel) updateFields.educationLevel = data.educationLevel;
+    if (data.department !== undefined) updateFields.department = data.department.trim();
     if (data.name !== undefined) updateFields.name = data.name.trim();
     if (data.headline !== undefined) updateFields.headline = data.headline?.trim() || '';
     if (data.bio !== undefined) updateFields.bio = data.bio?.trim() || '';
     if (data.targetTrack !== undefined) updateFields.targetTrack = data.targetTrack || 'Fullstack Web Development';
-    if (data.academicBackground !== undefined) updateFields.academicBackground = data.academicBackground || 'Computer Science & Engineering (CSE)';
+    if (data.academicBackground !== undefined) updateFields.academicBackground = data.academicBackground || '';
     if (data.weeklyGoalHours !== undefined) updateFields.weeklyGoalHours = Number(data.weeklyGoalHours) || 10;
 
     if (Array.isArray(data.interests)) {
@@ -199,7 +207,7 @@ export async function updateStudentProfileAction(data: {
       updateFields.phone = cleanPhone;
     }
 
-    await User.findOneAndUpdate(query, { $set: updateFields });
+    await User.findOneAndUpdate(query, { $set: updateFields, ...(data.educationLevel === '' ? { $unset: { educationLevel: 1 } } : {}) });
 
     revalidatePath('/');
     revalidatePath('/student');
@@ -309,6 +317,8 @@ export async function enrollInCourseAction(courseId: string) {
     if (!course) {
       return { success: false, error: 'নির্বাচিত কোর্সটি খুঁজে পাওয়া যায়নি।' };
     }
+
+    if (isDbCourse && course.status !== 'PUBLISHED') return { success: false, error: 'This course is not published for enrollment.' };
 
     // 2. Prevent self-enrollment (instructors cannot enroll in their own course)
     if (course.createdById && safeUserId && course.createdById.toString() === safeUserId.toString()) {

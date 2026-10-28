@@ -28,7 +28,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import PayoutInspectionModal, { PayoutRequestItem } from '@/components/admin/PayoutInspectionModal';
-import { seedDemoPayoutRequestsAction } from '@/actions/financial';
+
 
 interface PayoutManagementQueueProps {
   initialRequests: PayoutRequestItem[];
@@ -60,7 +60,7 @@ export default function PayoutManagementQueue({
   const [viewTab, setViewTab] = useState<'queue' | 'ledger'>('queue');
   const [selectedPayout, setSelectedPayout] = useState<PayoutRequestItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
+
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Compute live metrics dynamically
@@ -164,33 +164,7 @@ export default function PayoutManagementQueue({
     setTimeout(() => setNotification(null), 5000);
   };
 
-  const handleSeedDemo = async () => {
-    setIsSeeding(true);
-    try {
-      const res = await seedDemoPayoutRequestsAction();
-      if (res.success) {
-        setNotification({
-          type: 'success',
-          message: res.message || 'Demo payout workflows seeded successfully! Refreshing...',
-        });
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
-      } else {
-        setNotification({
-          type: 'error',
-          message: res.error || 'Failed to seed demo payouts.',
-        });
-      }
-    } catch (err: any) {
-      setNotification({
-        type: 'error',
-        message: err?.message || 'Error executing demo seed.',
-      });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
+
 
   return (
     <div className="space-y-6">
@@ -341,16 +315,7 @@ export default function PayoutManagementQueue({
 
         {/* Demo Data Seeder */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSeedDemo}
-            disabled={isSeeding}
-            className="text-xs border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-          >
-            <Sparkles className={`h-3.5 w-3.5 mr-1.5 text-indigo-500 ${isSeeding ? 'animate-spin' : ''}`} />
-            <span>{isSeeding ? 'Generating Sample Workflows...' : 'Seed Sample Payouts'}</span>
-          </Button>
+
         </div>
       </div>
 
@@ -433,16 +398,7 @@ export default function PayoutManagementQueue({
                     ? 'No payout requests matched your current active filter parameters.'
                     : 'The payout processing queue is currently clear. No pending instructor withdrawal requests.'}
                 </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSeedDemo}
-                  disabled={isSeeding}
-                  className="text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-indigo-500" />
-                  Seed Demo Payout Requests
-                </Button>
+
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -628,7 +584,7 @@ export default function PayoutManagementQueue({
 
           {ledgerEntries.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              No financial ledger entries recorded yet. Click &quot;Seed Sample Payouts&quot; to populate audit trails.
+              No financial ledger entries recorded yet.
             </div>
           ) : (
             <div className="overflow-x-auto">

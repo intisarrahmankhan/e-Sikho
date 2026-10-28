@@ -8,6 +8,7 @@ import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import User from '@/models/User';
 import { uploadToR2 } from '@/lib/r2';
+import { parseBunnyVideoUrl, generateBunnySignedEmbedUrl } from '@/lib/bunny';
 import { getCourseById } from '@/lib/courses-data';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
@@ -32,6 +33,13 @@ async function handleVideoUpload(file: File | null, existingUrl: string): Promis
   if (!file || file.size === 0) return '';
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (process.env.BUNNY_STREAM_API_KEY && process.env.BUNNY_STREAM_LIBRARY_ID) {
+    const { uploadVideoToBunny } = await import('@/lib/bunny');
+    const result = await uploadVideoToBunny(buffer, file.name);
+    if (!result.success) throw new Error(result.error || 'Bunny Stream upload failed.');
+    return `bunny:${result.libraryId}:${result.videoId}`;
+  }
 
   // Attempt R2 upload if credentials exist
   if (process.env.CLOUDFLARE_R2_ACCOUNT_ID && process.env.CLOUDFLARE_R2_ACCESS_KEY_ID) {
@@ -195,6 +203,7 @@ export async function addCourseModule(courseId: string, title: string, duration 
     await dbConnect();
     const course = await Course.findById(courseId);
     if (!course) return { error: 'Course not found.' };
+    if (user.role === 'INSTRUCTOR' && String(course.createdById) !== user.id) return { error: 'Course ownership is required.' };
 
     const moduleCount = await Module.countDocuments({ courseId });
     const newModule = await Module.create({
@@ -238,6 +247,9 @@ export async function addCourseLecture(formData: FormData) {
     await dbConnect();
     const course = await Course.findById(courseId);
     if (!course) return { error: 'Course not found.' };
+    if (user.role === 'INSTRUCTOR' && String(course.createdById) !== user.id) return { error: 'Course ownership is required.' };
+
+    if (moduleId && !await Module.exists({ _id: moduleId, courseId })) return { error: 'Module does not belong to this course.' };
 
     // Video handling
     let bunnyVideoId = String(formData.get('bunnyVideoId') || '').trim();
@@ -251,14 +263,14 @@ export async function addCourseLecture(formData: FormData) {
           const buffer = Buffer.from(await videoFile.arrayBuffer());
           const bunnyRes = await uploadVideoToBunny(buffer, title, bunnyLibraryId || undefined);
           if (bunnyRes.success) {
-            videoUrl = bunnyRes.embedUrl;
+            videoUrl = `bunny:${bunnyRes.libraryId}:${bunnyRes.videoId}`;
             bunnyVideoId = bunnyRes.videoId;
             bunnyLibraryId = bunnyRes.libraryId;
           } else {
-            videoUrl = await handleVideoUpload(videoFile, '');
+            throw new Error(bunnyRes.error || 'Bunny Stream upload failed.');
           }
-        } catch {
-          videoUrl = await handleVideoUpload(videoFile, '');
+        } catch (error) {
+          throw error;
         }
       } else {
         videoUrl = await handleVideoUpload(videoFile, '');
@@ -391,6 +403,10 @@ export async function updateCourseLecture(formData: FormData) {
     await dbConnect();
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) return { error: 'Lesson not found.' };
+    const course = await Course.findById(courseId);
+    if (!course || (user.role === 'INSTRUCTOR' && String(course.createdById) !== user.id)) return { error: 'Course ownership is required.' };
+    if (!await Module.exists({ _id: lesson.moduleId, courseId })) return { error: 'Lesson does not belong to this course.' };
+
 
     let bunnyVideoId = String(formData.get('bunnyVideoId') || '').trim();
     let bunnyLibraryId = String(formData.get('bunnyLibraryId') || '').trim();
@@ -403,14 +419,14 @@ export async function updateCourseLecture(formData: FormData) {
           const buffer = Buffer.from(await videoFile.arrayBuffer());
           const bunnyRes = await uploadVideoToBunny(buffer, title, bunnyLibraryId || undefined);
           if (bunnyRes.success) {
-            videoUrl = bunnyRes.embedUrl;
+            videoUrl = `bunny:${bunnyRes.libraryId}:${bunnyRes.videoId}`;
             bunnyVideoId = bunnyRes.videoId;
             bunnyLibraryId = bunnyRes.libraryId;
           } else {
-            videoUrl = await handleVideoUpload(videoFile, '');
+            throw new Error(bunnyRes.error || 'Bunny Stream upload failed.');
           }
-        } catch {
-          videoUrl = await handleVideoUpload(videoFile, '');
+        } catch (error) {
+          throw error;
         }
       } else {
         videoUrl = await handleVideoUpload(videoFile, '');
@@ -436,8 +452,8 @@ export async function updateCourseLecture(formData: FormData) {
     if (duration) lesson.duration = duration;
     lesson.isFree = isFree;
     if (videoUrl !== undefined && videoUrl !== '') lesson.videoUrl = videoUrl;
-    if (bunnyVideoId) lesson.bunnyVideoId = bunnyVideoId;
-    if (bunnyLibraryId) lesson.bunnyLibraryId = bunnyLibraryId;
+    lesson.bunnyVideoId = bunnyVideoId;
+    lesson.bunnyLibraryId = bunnyLibraryId;
     if (pdfUrl) lesson.pdfUrl = pdfUrl;
     if (pdfName) lesson.pdfName = pdfName;
     if (formData.has('isDownloadable')) {
@@ -475,6 +491,10 @@ export async function deleteCourseLecture(lessonId: string, courseId: string) {
 
   try {
     await dbConnect();
+    const course = await Course.findById(courseId);
+    const lesson = await Lesson.findById(lessonId);
+    if (!course || (user.role === 'INSTRUCTOR' && String(course.createdById) !== user.id)) return { error: 'Course ownership is required.' };
+    if (!lesson || !await Module.exists({ _id: lesson.moduleId, courseId })) return { error: 'Lesson does not belong to this course.' };
     await Lesson.findByIdAndDelete(lessonId);
 
     if (courseId) {
@@ -497,6 +517,9 @@ export async function deleteCourseLecture(lessonId: string, courseId: string) {
 
 export async function getCourseCurriculum(courseId: string) {
   try {
+    const session = await auth();
+    const user = session?.user as { id?: string; role?: string } | undefined;
+    if (!user?.id || !['INSTRUCTOR', 'ADMIN', 'SUPERADMIN'].includes(user.role || '')) return { error: 'Unauthorized.' };
     await dbConnect();
     let course = (await Course.findById(courseId).lean()) as any;
 
@@ -522,6 +545,8 @@ export async function getCourseCurriculum(courseId: string) {
       return { error: 'Course not found.' };
     }
 
+    if (user.role === 'INSTRUCTOR' && String(course.createdById) !== user.id) return { error: 'Course ownership is required.' };
+
     const rawModules = await Module.find({ courseId }).sort({ order: 1 }).lean();
     const modules = await Promise.all(
       rawModules.map(async (mod: any) => {
@@ -533,11 +558,13 @@ export async function getCourseCurriculum(courseId: string) {
           ...mod,
           id: mod._id.toString(),
           _id: mod._id.toString(),
-          lessons: lessons.map((l: any) => ({
-            ...l,
-            id: l._id.toString(),
-            _id: l._id.toString(),
-          })),
+          lessons: lessons.map((l: any) => {
+            const bunnyVideo = parseBunnyVideoUrl(l.videoUrl);
+            const videoUrl = bunnyVideo && process.env.BUNNY_STREAM_TOKEN_KEY
+              ? generateBunnySignedEmbedUrl(bunnyVideo.libraryId, bunnyVideo.videoId).embedUrl
+              : l.videoUrl || '';
+            return { ...l, videoUrl, id: l._id.toString(), _id: l._id.toString() };
+          }),
         };
       })
     );
@@ -647,7 +674,7 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
   try {
     const session = await auth();
     const user = session?.user as { id?: string; email?: string; role?: string } | undefined;
-    if (!user?.email) {
+    if (!user?.id || !['INSTRUCTOR', 'ADMIN', 'SUPERADMIN'].includes(user.role || '')) {
       return { success: false, lessons: [], overallAvgDropOff: 0, totalWatchedHours: 0, error: 'লগইন আবশ্যক।' };
     }
 
@@ -659,9 +686,11 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
 
     let targetCourseId = courseId;
     if (!targetCourseId) {
-      const firstCourse = await Course.findOne().select('_id').lean() as any;
+      const firstCourse = await Course.findOne(user.role === 'INSTRUCTOR' ? { createdById: user.id } : {}).select('_id').lean() as any;
       if (firstCourse) targetCourseId = firstCourse._id.toString();
     }
+
+    if (user.role === 'INSTRUCTOR' && (!targetCourseId || !await Course.exists({ _id: targetCourseId, createdById: user.id }))) throw new Error('Course ownership is required.');
 
     let dbModules: any[] = [];
     if (targetCourseId && targetCourseId.length === 24) {
@@ -670,10 +699,8 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
 
     const moduleIds = dbModules.map((m) => m._id);
     const videoLessons = await Lesson.find({
-      $or: [
-        { moduleId: { $in: moduleIds } },
-        { type: 'VIDEO' },
-      ],
+      moduleId: { $in: moduleIds },
+      type: { $nin: ['PDF', 'QUIZ', 'PROJECT'] },
     }).limit(12).lean() as any[];
 
     const lessonStats: VideoDropOffLessonStat[] = [];
@@ -701,7 +728,7 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
         });
       }
 
-      // If no live DB viewers yet, generate realistic analytics based on lesson metadata
+      // Use actual progress records for engagement analytics.
       const durationStr = l.duration || '১২ মিনিট';
       let durSec = 720;
       if (durationStr.includes('ঘণ্টা')) durSec = 3600;
@@ -710,8 +737,8 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
         if (!isNaN(m)) durSec = m * 60;
       }
 
-      const activeViewers = totalViewers > 0 ? totalViewers : Math.max(12, (l.title.charCodeAt(0) % 25) + 15);
-      const activeCompleted = totalViewers > 0 ? completedViewers : Math.round(activeViewers * 0.68);
+      const activeViewers = totalViewers;
+      const activeCompleted = completedViewers;
       const dropCount = activeViewers - activeCompleted;
 
       const stopTimestamps: Array<{
@@ -732,37 +759,13 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
             percentageOfDropOffs: Math.round((count / Math.max(1, dropCount)) * 100),
           });
         });
-      } else {
-        // Pre-computed analytics distribution for lecture engagement analysis
-        const keyTimes = [
-          Math.round(durSec * 0.22),
-          Math.round(durSec * 0.48),
-          Math.round(durSec * 0.74),
-        ];
-        const stopsDist = [
-          Math.max(1, Math.round(dropCount * 0.45)),
-          Math.max(1, Math.round(dropCount * 0.35)),
-          Math.max(1, Math.round(dropCount * 0.20)),
-        ];
-
-        keyTimes.forEach((sec, idx) => {
-          const mm = Math.floor(sec / 60);
-          const ss = sec % 60;
-          const count = stopsDist[idx] || 1;
-          stopTimestamps.push({
-            timestampSeconds: sec,
-            formatted: `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`,
-            studentsStopped: count,
-            percentageOfDropOffs: Math.round((count / Math.max(1, dropCount)) * 100),
-          });
-        });
       }
 
       stopTimestamps.sort((a, b) => b.studentsStopped - a.studentsStopped);
 
       const avgDropOff = totalViewers > 0
-        ? Math.round(dropOffRateSum / totalViewers)
-        : Math.round(100 - (activeCompleted / activeViewers) * 100);
+        ? Math.round(100 - dropOffRateSum / totalViewers)
+        : 0;
 
       totalDropOffSum += avgDropOff;
 
@@ -778,7 +781,7 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
         totalViewers: activeViewers,
         completedViewers: activeCompleted,
         avgDropOffRate: avgDropOff,
-        completionRate: Math.max(0, 100 - avgDropOff),
+        completionRate: totalViewers > 0 ? Math.round(completedViewers / totalViewers * 100) : 0,
         stopTimestamps,
         criticalDropOffSegment: topSpike
           ? {
@@ -790,8 +793,8 @@ export async function getVideoLessonDropOffAnalyticsAction(courseId?: string): P
       });
     }
 
-    const overallAvgDropOff = lessonStats.length > 0 ? Math.round(totalDropOffSum / lessonStats.length) : 28;
-    const totalWatchedHours = Math.round((totalWatchSecSum / 3600) * 10) / 10 || 148.5;
+    const overallAvgDropOff = lessonStats.length > 0 ? Math.round(totalDropOffSum / lessonStats.length) : 0;
+    const totalWatchedHours = Math.round((totalWatchSecSum / 3600) * 10) / 10;
 
     return {
       success: true,

@@ -331,15 +331,15 @@ describe('Task T-015 & T-016: Instructor Application Review & Role Transition', 
   });
 
   describe('seedDemoInstructorApplicationsAction', () => {
-    it('creates realistic sample applications when requested', async () => {
+    it('refuses to create sample applications', async () => {
       mockUserFindOne.mockResolvedValue(null);
       mockUserCreate.mockResolvedValue({ _id: 'seeded-user-1' });
       mockProfileFindOne.mockResolvedValue(null);
       mockProfileCreate.mockResolvedValue({ _id: 'seeded-profile-1' });
 
       const res = await seedDemoInstructorApplicationsAction();
-      expect(res.success).toBe(true);
-      expect(res.message).toContain('demo instructor applications');
+      expect(res.success).toBe(false);
+      expect(mockProfileCreate).not.toHaveBeenCalled();
     });
   });
 });

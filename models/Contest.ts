@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
+import { AssessmentAudience } from '@/lib/assessment-policy';
 
 export interface IContestProblem {
   id: string;
@@ -15,6 +16,12 @@ export interface IContestProblem {
 }
 
 export interface IContest extends Document {
+  scope?: 'COURSE' | 'GLOBAL';
+  audience?: AssessmentAudience;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  globalPermissionId?: mongoose.Types.ObjectId;
+  courseId?: mongoose.Types.ObjectId | string;
+  createdById?: mongoose.Types.ObjectId | string;
   title: string;
   slug: string;
   description: string;
@@ -52,6 +59,16 @@ const contestProblemSchema = new Schema<IContestProblem>({
 
 const contestSchema = new Schema<IContest>(
   {
+    scope: { type: String, enum: ['COURSE', 'GLOBAL'], default: 'COURSE' },
+    audience: {
+      educationLevels: { type: [String], enum: ['SCHOOL', 'COLLEGE', 'UNIVERSITY'], default: [] },
+      departments: { type: [String], default: [] },
+      studentIds: { type: [String], default: [] },
+    },
+    approvalStatus: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
+    globalPermissionId: { type: Schema.Types.ObjectId, ref: 'GlobalAssessmentPermission' },
+    courseId: { type: Schema.Types.ObjectId, ref: 'Course' },
+    createdById: { type: Schema.Types.ObjectId, ref: 'User' },
     title: { type: String, required: true },
     slug: { type: String, required: true, unique: true, index: true },
     description: { type: String, required: true },

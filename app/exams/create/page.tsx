@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongoose';
 import Course from '@/models/Course';
+import { getAssessmentCreationContextAction } from '@/actions/assessment-management';
 import ExamCreateForm from '@/components/exam/ExamCreateForm';
 import { ChevronLeft } from 'lucide-react';
 
@@ -15,15 +16,9 @@ export default async function CreateExamPage() {
     redirect('/login');
   }
 
-  await dbConnect();
-  const rawCourses = await Course.find({ status: 'PUBLISHED' })
-    .select('_id title')
-    .lean();
-
-  const courses = rawCourses.map((c: any) => ({
-    id: c._id.toString(),
-    title: c.title,
-  }));
+  const context = await getAssessmentCreationContextAction('EXAM');
+  if (context.error) redirect('/exams');
+  const courses = context.courses;
 
   return (
     <div className="space-y-6 pb-12">
@@ -39,7 +34,7 @@ export default async function CreateExamPage() {
         <span className="text-slate-900 font-medium">নতুন পরীক্ষা তৈরি</span>
       </div>
 
-      <ExamCreateForm courses={courses} />
+      <ExamCreateForm courses={courses} canCreateGlobal={context.canCreateGlobal} />
     </div>
   );
 }

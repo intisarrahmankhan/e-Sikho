@@ -45,11 +45,12 @@ interface ContestItem {
 }
 
 interface ContestsListClientProps {
+  canCreate?: boolean;
   contests: ContestItem[];
   userBackground?: string;
 }
 
-export function ContestsListClient({ contests, userBackground = 'Computer Science & Engineering (CSE)' }: ContestsListClientProps) {
+export function ContestsListClient({ contests, userBackground = '', canCreate = false }: ContestsListClientProps) {
   const { language } = useLanguage();
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('ALL');
@@ -91,6 +92,7 @@ export function ContestsListClient({ contests, userBackground = 'Computer Scienc
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight">
             {language === 'en' ? 'Skill Contests & Dynamic Elo Battles' : 'স্কিল কনটেস্ট ও রিয়েল-টাইম ইলো রেটিং যুদ্ধ'}
           </h1>
+          {canCreate && <Link href="/contests/create" className="mt-3 inline-block rounded-lg border border-white/40 px-4 py-2 text-sm text-white">Create a contest</Link>}
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
             {language === 'en'

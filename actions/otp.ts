@@ -5,6 +5,7 @@ import User from '@/models/User';
 import VerificationCode from '@/models/VerificationCode';
 import { normalizePhone, isValidBDPhone, verifyPassword } from '@/lib/auth-helpers';
 import { sendOtpSms } from '@/lib/sms';
+import { randomInt } from 'crypto';
 
 export interface OtpActionResponse {
   success: boolean;
@@ -55,7 +56,7 @@ export async function requestSignupOtp(phone: string): Promise<OtpActionResponse
   }
 
   // Generate 6-digit OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = randomInt(100000, 1000000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
 
   // Remove existing pending signup OTPs for this phone to avoid clutter
@@ -71,6 +72,10 @@ export async function requestSignupOtp(phone: string): Promise<OtpActionResponse
 
   // Send SMS
   const smsResult = await sendOtpSms(cleanPhone, otp, 'SIGNUP');
+  if (!smsResult.success) {
+    await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'SIGNUP' });
+    return { success: false, error: smsResult.error || 'SMS delivery failed.' };
+  }
 
   return {
     success: true,
@@ -126,7 +131,7 @@ export async function verifyPasswordAndSendLoginOtp(params: {
 
   // 2. Resolve Mobile Number to send OTP
   let targetPhone = user.phone || (isValidBDPhone(cleanPhone) ? cleanPhone : '');
-  if (!targetPhone && phoneForMissing) {
+  if (!targetPhone && phoneForMissing && user.password && password) {
     const cleanMissing = normalizePhone(phoneForMissing);
     if (isValidBDPhone(cleanMissing)) {
       targetPhone = cleanMissing;
@@ -158,7 +163,7 @@ export async function verifyPasswordAndSendLoginOtp(params: {
   }
 
   // 4. Generate & Save OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = randomInt(100000, 1000000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
   await VerificationCode.deleteMany({ phone: targetPhone, purpose: 'LOGIN' });
@@ -172,6 +177,10 @@ export async function verifyPasswordAndSendLoginOtp(params: {
 
   // 5. Send SMS
   const smsResult = await sendOtpSms(targetPhone, otp, 'LOGIN');
+  if (!smsResult.success) {
+    await VerificationCode.deleteMany({ phone: targetPhone, purpose: 'LOGIN' });
+    return { success: false, error: smsResult.error || 'SMS delivery failed.' };
+  }
 
   return {
     success: true,
@@ -223,7 +232,7 @@ export async function requestLoginOtp(phone: string): Promise<OtpActionResponse>
   }
 
   // Generate 6-digit OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = randomInt(100000, 1000000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
 
   await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'LOGIN' });
@@ -236,6 +245,10 @@ export async function requestLoginOtp(phone: string): Promise<OtpActionResponse>
   });
 
   const smsResult = await sendOtpSms(cleanPhone, otp, 'LOGIN');
+  if (!smsResult.success) {
+    await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'LOGIN' });
+    return { success: false, error: smsResult.error || 'SMS delivery failed.' };
+  }
 
   return {
     success: true,

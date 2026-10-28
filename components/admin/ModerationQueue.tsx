@@ -33,7 +33,6 @@ import ModerationResolutionModal, {
   ModerationReportItem,
 } from '@/components/admin/ModerationResolutionModal';
 import {
-  seedDemoModerationReportsAction,
   updateReportStatus,
 } from '@/actions/admin';
 
@@ -48,7 +47,7 @@ export default function ModerationQueue({ initialReports }: ModerationQueueProps
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<ModerationReportItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
+
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -184,21 +183,7 @@ export default function ModerationQueue({ initialReports }: ModerationQueueProps
     }
   };
 
-  const handleSeedDemo = async () => {
-    setIsSeeding(true);
-    try {
-      const res = await seedDemoModerationReportsAction();
-      if (res.success) {
-        window.location.reload();
-      } else {
-        setNotification({ type: 'error', message: res.error || 'Failed to seed demo tickets.' });
-      }
-    } catch (err: any) {
-      setNotification({ type: 'error', message: err.message || 'Seeding error.' });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
+
 
   const getTypeBadge = (type: string) => {
     const t = type.toLowerCase();
@@ -430,16 +415,7 @@ export default function ModerationQueue({ initialReports }: ModerationQueueProps
           </div>
 
           {/* Seed demo data helper */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSeeding}
-            onClick={handleSeedDemo}
-            className="text-xs h-9 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50 flex items-center gap-1.5"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-            {isSeeding ? 'Seeding Reports...' : 'Seed Sample Flagged Tickets'}
-          </Button>
+
         </div>
 
         {/* Status Pills & Search */}
@@ -502,15 +478,7 @@ export default function ModerationQueue({ initialReports }: ModerationQueueProps
               >
                 Reset Filters
               </Button>
-              <Button
-                size="sm"
-                disabled={isSeeding}
-                onClick={handleSeedDemo}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                Seed Sample Flagged Tickets
-              </Button>
+
             </div>
           </div>
         ) : (

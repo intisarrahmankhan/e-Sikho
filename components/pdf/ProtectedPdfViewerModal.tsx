@@ -165,7 +165,7 @@ export function ProtectedPdfViewerModal({
                   key={i}
                   className="rotate-[-25deg] text-center font-mono text-xs sm:text-sm font-bold text-white tracking-widest my-8 px-6 select-none"
                 >
-                  <div>e-Shikho Protected DRM</div>
+                  <div>e-Shikho Course Resource</div>
                   <div>{watermark.studentName || 'Student'} ({watermark.studentEmail || 'Registered'})</div>
                   <div className="text-[10px]">{timestamp}</div>
                 </div>

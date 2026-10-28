@@ -410,7 +410,7 @@ describe('Task T-017 & T-018: Content Moderation Queue & Action Execution', () =
   });
 
   describe('seedDemoModerationReportsAction', () => {
-    it('creates demo moderation tickets across all 4 entity types', async () => {
+    it('refuses to create sample moderation tickets', async () => {
       mockUserFindOne.mockResolvedValue(null);
       mockUserCreate.mockResolvedValue({ _id: 'test-user-id' });
       mockCourseFindOne.mockReturnValue(null);
@@ -421,8 +421,8 @@ describe('Task T-017 & T-018: Content Moderation Queue & Action Execution', () =
       mockReportCreate.mockResolvedValue({ _id: 'seeded-report' });
 
       const res = await seedDemoModerationReportsAction();
-      expect(res.success).toBe(true);
-      expect(res.message).toContain('demo moderation reports');
+      expect(res.success).toBe(false);
+      expect(mockReportCreate).not.toHaveBeenCalled();
     });
   });
 });

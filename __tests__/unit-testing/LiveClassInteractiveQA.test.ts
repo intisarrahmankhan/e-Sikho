@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('@/actions/course-access', () => ({ getCourseAccessDetails: vi.fn(async () => ({ canAccessAll: true })) }));
+vi.mock('@/models/Course', () => ({ default: { exists: vi.fn(async () => ({ _id: 'course-id' })), findById: vi.fn(() => ({ lean: async () => ({ title: 'Course' }) })) } }));
+
 // Mock mongoose and models
 vi.mock('@/lib/mongoose', () => ({
   default: vi.fn().mockResolvedValue(true),
@@ -15,6 +18,9 @@ vi.mock('next/cache', () => ({
 
 import { auth } from '@/auth';
 import LiveQuestion from '@/models/LiveQuestion';
+import LiveSession from '@/models/LiveSession';
+import Course from '@/models/Course';
+import { getCourseAccessDetails } from '@/actions/course-access';
 import {
   submitLiveQuestionAction,
   toggleUpvoteLiveQuestionAction,
@@ -46,6 +52,9 @@ vi.mock('@/models/LiveSession', () => {
 describe('Interactive Live Class Streaming with Real-Time Student Questions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getCourseAccessDetails).mockResolvedValue({ canAccessAll: true } as any);
+    vi.mocked(LiveSession.findById).mockReturnValue({ lean: async () => ({ _id: '507f1f77bcf86cd799439010', courseId: 'fullstack-nextjs', title: 'Live class', scheduledTime: new Date(), status: 'LIVE_NOW', viewerCount: 0 }) } as any);
+    vi.mocked(Course.exists).mockResolvedValue({ _id: 'course-id' } as any);
   });
 
   describe('submitLiveQuestionAction', () => {
@@ -259,7 +268,7 @@ describe('Interactive Live Class Streaming with Real-Time Student Questions', ()
         }),
       } as any);
 
-      const res = await getLiveSessionDetailsAction('live-next-1');
+      const res = await getLiveSessionDetailsAction('507f1f77bcf86cd799439010');
 
       expect(res.success).toBe(true);
       expect(res.session).toBeDefined();
@@ -271,4 +280,26 @@ describe('Interactive Live Class Streaming with Real-Time Student Questions', ()
       expect(q2?.hasUpvoted).toBe(true);
     });
   });
+  it('prevents a student from answering or pinning questions', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'student-1', role: 'STUDENT' } } as any);
+    const question = { courseId: 'course-1', save: vi.fn() };
+    vi.mocked(LiveQuestion.findById).mockResolvedValue(question as any);
+    expect((await answerLiveQuestionAction({ questionId: 'q-1' })).success).toBe(false);
+    expect((await pinLiveQuestionAction('q-1')).success).toBe(false);
+    expect(question.save).not.toHaveBeenCalled();
+  });
+  it('prevents another instructor from modifying the course live questions', async () => {
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'other-instructor', role: 'INSTRUCTOR' } } as any);
+    vi.mocked(Course.exists).mockResolvedValue(null);
+    const question = { courseId: 'course-1', save: vi.fn() };
+    vi.mocked(LiveQuestion.findById).mockResolvedValue(question as any);
+    expect((await answerLiveQuestionAction({ questionId: 'q-1' })).success).toBe(false);
+    expect(question.save).not.toHaveBeenCalled();
+  });
+  it('does not create fake sessions or seed questions for missing sessions', async () => {
+    vi.mocked(LiveSession.findById).mockReturnValue({ lean: async () => null } as any);
+    expect((await getLiveSessionDetailsAction('507f1f77bcf86cd799439010')).success).toBe(false);
+    expect(LiveQuestion.create).not.toHaveBeenCalled();
+  });
+
 });

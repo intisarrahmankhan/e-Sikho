@@ -10,7 +10,8 @@ import {
   generateBunnySignedEmbedUrl,
   BUNNY_STREAM_LIBRARY_ID,
 } from '@/lib/bunny';
-import { COURSES_DATA } from '@/lib/courses-data';
+import Module from '@/models/Module';
+import { isValidMongoObjectId } from '@/lib/auth-helpers';
 
 export interface SignedPlaybackResult {
   success: boolean;
@@ -52,27 +53,17 @@ export async function getSignedVideoPlaybackAction(
     // 1. Verify access permissions (enrolled, free preview, or staff)
     const access = await getCourseAccessDetails(courseId);
 
-    // 2. Fetch lesson metadata
-    let lesson: any = null;
-    let fallbackVideoUrl = 'https://www.youtube.com/watch?v=wm5gMKuwSYk';
-
-    await dbConnect();
-    if (lessonId && lessonId.length === 24) {
-      lesson = await Lesson.findById(lessonId).lean();
+    // A course entitlement must only unlock lessons belonging to that course.
+    if (!isValidMongoObjectId(courseId) || !isValidMongoObjectId(lessonId)) {
+      return { success: false, error: 'Lesson not found.' };
     }
-
-    if (!lesson) {
-      // Check static course data
-      const staticCourse = COURSES_DATA.find((c) => c.id === courseId);
-      if (staticCourse) {
-        for (const mod of staticCourse.modules) {
-          const found = mod.lessons.find((l) => l.id === lessonId);
-          if (found) {
-            lesson = found;
-            break;
-          }
-        }
-      }
+    await dbConnect();
+    const lesson = await Lesson.findById(lessonId).lean();
+    const moduleRecord = lesson && await Module.findOne({ _id: lesson.moduleId, courseId }).lean();
+    if (!lesson || !moduleRecord) return { success: false, error: 'Lesson not found in this course.' };
+    const course = await Course.findById(courseId).lean();
+    if (!course || (course.status !== 'PUBLISHED' && !access.canAccessAll)) {
+      return { success: false, isLocked: true, error: 'Course is not published.' };
     }
 
     const isUnlocked = lesson?.isFree || access.canAccessAll;
@@ -84,7 +75,8 @@ export async function getSignedVideoPlaybackAction(
       };
     }
 
-    const rawUrl = lesson?.videoUrl || fallbackVideoUrl;
+    const rawUrl = lesson.videoUrl || '';
+    if (!rawUrl && !lesson.bunnyVideoId) return { success: false, error: 'No video has been added to this lesson.' };
     const bunnyParsed =
       (lesson?.bunnyVideoId && {
         libraryId: lesson?.bunnyLibraryId || BUNNY_STREAM_LIBRARY_ID,
@@ -106,14 +98,19 @@ export async function getSignedVideoPlaybackAction(
       playbackUrl = embedUrl;
     } else if (rawUrl.includes('youtube.com') || rawUrl.includes('youtu.be')) {
       videoType = 'youtube';
+      const url = new URL(rawUrl);
+      const videoId = url.hostname === 'youtu.be' ? url.pathname.slice(1) : url.searchParams.get('v') || url.pathname.split('/').pop();
+      playbackUrl = `https://www.youtube.com/embed/${encodeURIComponent(videoId || '')}`;
     } else if (rawUrl.includes('vimeo.com')) {
       videoType = 'vimeo';
+      const videoId = new URL(rawUrl).pathname.split('/').filter(Boolean).pop();
+      playbackUrl = `https://player.vimeo.com/video/${encodeURIComponent(videoId || '')}`;
     }
 
     // Generate anti-piracy student watermark
     const watermark = {
-      studentId: sessionUser.id || 'std-unknown',
-      studentEmail: sessionUser.email || 'student@e-shikho.com',
+      studentId: sessionUser.id || '',
+      studentEmail: sessionUser.email,
       studentName: sessionUser.name || 'Student',
       timestamp: new Date().toLocaleTimeString('bn-BD', {
         hour: '2-digit',

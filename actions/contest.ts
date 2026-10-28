@@ -15,350 +15,25 @@ import {
 } from '@/lib/elo';
 import { isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
+import { getAssessmentViewer, canAccessAssessment, filterVisibleAssessments, authorizeAssessmentCreation } from '@/lib/assessment-access';
+import { AssessmentAudience } from '@/lib/assessment-policy';
+import { randomUUID } from 'crypto';
+
+function currentContestStatus(contest: any) {
+  const start = new Date(contest.startTime).getTime(); const end = new Date(contest.endTime).getTime();
+  return Number.isFinite(start) && Number.isFinite(end) ? (Date.now() < start ? 'UPCOMING' : Date.now() >= end ? 'ENDED' : 'LIVE') : contest.status;
+}
 
 /**
  * High-quality seed data for problem-solving contests across different disciplines
  */
-const SAMPLE_CONTESTS = [
-  {
-    title: 'National Algorithmic & Complexity Grand Prix 2026',
-    slug: 'national-algorithmic-grand-prix-2026',
-    description:
-      'The premier competitive programming and algorithmic problem-solving arena. Test your skills against complex dynamic programming, graph flow, graph vertex coloring, and amortized asymptotic complexity proofs.',
-    shortSummary: 'High-stakes algorithmic duels, NP-hard approximations, and asymptotic optimizations.',
-    category: 'Computer Science & Algorithms',
-    targetBackgrounds: ['CSE', 'SWE'],
-    difficulty: 'GRANDMASTER' as const,
-    benchmarkRating: 1750,
-    durationMinutes: 45,
-    status: 'LIVE' as const,
-    featuredOnHome: true,
-    prizePool: '৳৫০,০০০ + Global Certificate',
-    rules: [
-      'LaTeX mathematical notation is used throughout questions.',
-      'Performance directly alters your dynamic Elo rating (+/-).',
-      'Time efficiency and minimal wrong attempts grant multiplier bonuses.',
-    ],
-    problems: [
-      {
-        id: 'p1',
-        title: 'Problem A: Maximum Flow & Minimum Cut Asymptotic Bounds',
-        statement:
-          'Consider a directed capacitated network $G = (V, E)$ with source $s$ and sink $t$. When applying the Edmonds-Karp algorithm with Breadth-First Search (BFS) augmentation, what is the tight asymptotic upper bound on the maximum number of augmenting iterations before reaching maximum flow?',
-        category: 'Graph Theory & Network Flow',
-        difficultyRating: 1650,
-        points: 100,
-        options: [
-          '$O(V \\cdot E)$ augmenting paths',
-          '$O(V^2 \\cdot E)$ augmenting paths',
-          '$O(E \\log V)$ augmenting paths',
-          '$O(V \\log E)$ augmenting paths',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'In the Edmonds-Karp algorithm, each shortest augmenting path is found via BFS. A critical edge cannot become critical more than $|V|/2$ times. Since there are $|E|$ edges, the maximum number of augmenting iterations is strictly bounded by $O(|V| \\cdot |E|)$. Overall time complexity is $O(|V| \\cdot |E|^2)$.',
-      },
-      {
-        id: 'p2',
-        title: 'Problem B: Dynamic Programming State Compression on Hamiltonian Graphs',
-        statement:
-          'Given a directed weighted graph with $n = 18$ vertices, you must find the minimum-cost Hamiltonian cycle visiting every vertex once. Which bitmask Dynamic Programming transition correctly represents reaching vertex $v$ with visited subset mask $S$ ($v \\in S$)?',
-        category: 'Bitmask DP & Combinatorics',
-        difficultyRating: 1800,
-        points: 200,
-        options: [
-          '$dp[S][v] = \\min_{u \\in S, u \\neq v} \\{ dp[S \\setminus \\{v\\}][u] + \\text{weight}(u, v) \\}$',
-          '$dp[S][v] = \\max_{u \\notin S} \\{ dp[S \\cup \\{u\\}][v] + \\text{weight}(u, v) \\}$',
-          '$dp[S][v] = \\sum_{u \\in S} dp[S \\oplus 2^v][u] \\times \\text{weight}(u, v)$',
-          '$dp[S][v] = dp[S][v-1] + \\min_{u \\in S} \\text{weight}(u, v)$',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'The classic Held-Karp dynamic programming formulation for TSP uses $dp[S][v]$ denoting the minimum weight path visiting all vertices in mask $S$ ending at $v$. The previous state had visited set $S \\setminus \\{v\\}$ ending at some $u \\in S \\setminus \\{v\\}$. Thus: $dp[S][v] = \\min_{u \\in S, u \\neq v} \\{ dp[S \\setminus \\{v\\}][u] + \\text{weight}(u, v) \\}$.',
-      },
-      {
-        id: 'p3',
-        title: 'Problem C: Segment Tree with Lazy Propagation & Range Matrix Multiplications',
-        statement:
-          'You have an array of $2 \\times 2$ matrices. You need to support range matrix multiplication queries $[L, R]$ and range matrix affine update tags in $O(\\log N)$ time. Why is matrix multiplication valid for Segment Tree lazy propagation?',
-        category: 'Advanced Data Structures',
-        difficultyRating: 1950,
-        points: 300,
-        options: [
-          'Because matrix multiplication is associative: $(A \\times B) \\times C = A \\times (B \\times C)$, allowing hierarchical tree merge and tag composition.',
-          'Because matrix multiplication is commutative: $A \\times B = B \\times A$, so node order in the tree does not matter.',
-          'Because every $2 \\times 2$ real matrix has non-zero determinant $\\det(M) \\neq 0$.',
-          'Because Segment Trees only support scalar addition and multiplication.',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'Matrix multiplication is strictly associative, which allows parent nodes to aggregate child answers $(L \\times R)$ correctly and lazy tags to be composed sequentially. It is NOT commutative, so ordering must be preserved during merges.',
-      },
-    ],
-  },
-  {
-    title: 'Distributed Systems & High-Throughput Concurrency Battle',
-    slug: 'distributed-systems-concurrency-battle',
-    description:
-      'Solve architectural bottleneck puzzles, Raft consensus split-brain mitigations, distributed locking race conditions, and vector clock ordering.',
-    shortSummary: 'Raft consensus, vector clocks, Redis distributed locks, and database isolation levels.',
-    category: 'Systems & Backend Architecture',
-    targetBackgrounds: ['CSE', 'SWE', 'DATA_SCIENCE'],
-    difficulty: 'ADVANCED' as const,
-    benchmarkRating: 1600,
-    durationMinutes: 40,
-    status: 'LIVE' as const,
-    featuredOnHome: true,
-    prizePool: '৳৩৫,০০০ + Cloud Voucher',
-    rules: [
-      'Scenario-based systems design and edge-case detection.',
-      'Scoring weighs correct latency minimization and failure mode tolerance.',
-    ],
-    problems: [
-      {
-        id: 'p1',
-        title: 'Problem A: Raft Consensus Election Split & Quorum Preservation',
-        statement:
-          'In a 5-node Raft cluster, a network partition isolates Nodes $\{A, B\}$ from Nodes $\{C, D, E\}$. If a client submits a write request to Node $A$ (which was the previous Leader), what happens in Raft?',
-        category: 'Distributed Consensus',
-        difficultyRating: 1550,
-        points: 120,
-        options: [
-          'Node $A$ accepts the write but cannot commit it because it cannot reach a majority quorum ($2 < 3$). Meanwhile, $\{C, D, E\}$ elect a new leader and commit new writes.',
-          'Node $A$ immediately commits the write locally and sends an acknowledgment to the client.',
-          'The entire cluster deadlocks and crashes until all 5 nodes regain full connectivity.',
-          'Nodes $C, D, E$ step down and wait for Node $A$ to rejoin.',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'In Raft, a leader must replicate log entries to a strict majority quorum (for $N=5$, quorum $\\lfloor 5/2 \\rfloor + 1 = 3$). Partition $\{A, B\}$ has size 2, so it cannot achieve consensus. The partition $\{C, D, E\}$ has size 3 and elects a new valid leader.',
-      },
-      {
-        id: 'p2',
-        title: 'Problem B: Snapshot Isolation vs Serializable Anomaly Detection',
-        statement:
-          'Consider two concurrent transactions under standard Snapshot Isolation (PostgreSQL repeatable read): Transaction 1 reads table $T$ where count of black balls $> 0$ and writes a white ball. Transaction 2 reads count of white balls $> 0$ and writes a black ball. What classic anomaly can occur?',
-        category: 'Database Concurrency & ACID',
-        difficultyRating: 1650,
-        points: 180,
-        options: [
-          'Write Skew anomaly (each transaction fulfills integrity invariant independently, but serialized state violates it).',
-          'Dirty Read anomaly (reading uncommitted memory buffer pages).',
-          'Lost Update anomaly on identical primary key row lock.',
-          'Phantom Deadlock cascade causing table corruption.',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'Write Skew is the quintessential anomaly permitted by Snapshot Isolation that is disallowed under true Serializability. Both transactions read committed snapshots and update disjoint sets of rows based on overlapping premises.',
-      },
-    ],
-  },
-  {
-    title: 'Applied Data Science & Machine Learning Optimization Arena',
-    slug: 'applied-data-science-ml-arena',
-    description:
-      'Tackle high-dimensional regularization, gradient descent convergence proofs, eigenvalues in PCA dimensionality reduction, and transformer self-attention mechanisms.',
-    shortSummary: 'Mathematical foundations of Deep Learning, Loss manifolds, and Attention complexity.',
-    category: 'Data Science & AI',
-    targetBackgrounds: ['DATA_SCIENCE', 'CSE', 'EEE'],
-    difficulty: 'ADVANCED' as const,
-    benchmarkRating: 1550,
-    durationMinutes: 35,
-    status: 'LIVE' as const,
-    featuredOnHome: true,
-    prizePool: '৳৩০,০০০ + GPU Credits',
-    rules: [
-      'Mathematical rigor in linear algebra and multivariate calculus.',
-      'Elo points directly correlated with analytical derivation correctness.',
-    ],
-    problems: [
-      {
-        id: 'p1',
-        title: 'Problem A: Scaled Dot-Product Attention Complexity Derivation',
-        statement:
-          'In the standard Transformer architecture with sequence length $N$ and embedding dimension $d_{model}$, why is the raw attention matrix computation $QK^T$ scaled by $\\frac{1}{\\sqrt{d_k}}$ before applying Softmax?',
-        category: 'Deep Learning & NLP',
-        difficultyRating: 1500,
-        points: 150,
-        options: [
-          'To prevent dot products from growing excessively large for large $d_k$, which would push softmax into regions with vanishingly small gradients.',
-          'To ensure the resulting attention matrix has determinant exactly equal to 1.',
-          'To enforce orthogonal weight symmetry between Query and Value projections.',
-          'To reduce matrix multiplication time complexity from $O(N^2)$ to $O(N \\log N)$.',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'If $q$ and $k$ are independent random variables with mean 0 and variance 1, their dot product $q \\cdot k = \\sum_{i=1}^{d_k} q_i k_i$ has mean 0 and variance $d_k$. As $d_k$ grows large, values explode, causing softmax gradients to vanish (saturation). Dividing by $\\sqrt{d_k}$ normalizes variance to 1.',
-      },
-    ],
-  },
-  {
-    title: 'FinTech Quantitative Analytics & Algorithmic Optimization',
-    slug: 'fintech-quantitative-analytics-optimization',
-    description:
-      'Quantitative modeling, capital asset pricing (CAPM), Black-Scholes partial differential equations, portfolio variance minimization, and algorithmic risk hedges.',
-    shortSummary: 'Portfolio optimization, Sharpe ratio maximization, and derivative hedging.',
-    category: 'FinTech & Quantitative Business',
-    targetBackgrounds: ['BUSINESS', 'FINANCE', 'CSE'],
-    difficulty: 'INTERMEDIATE' as const,
-    benchmarkRating: 1450,
-    durationMinutes: 30,
-    status: 'LIVE' as const,
-    featuredOnHome: true,
-    prizePool: '৳২৫,০০০ + Certificate',
-    rules: [
-      'Financial quantitative optimization problems.',
-      'Open to all business and quantitative students.',
-    ],
-    problems: [
-      {
-        id: 'p1',
-        title: 'Problem A: Markowitz Mean-Variance Efficient Frontier Tangency',
-        statement:
-          'In modern portfolio theory, the portfolio on the efficient frontier that maximizes the Sharpe Ratio $S = \\frac{E[R_p] - R_f}{\\sigma_p}$ represents which fundamental economic concept?',
-        category: 'Quantitative Finance & Portfolio Theory',
-        difficultyRating: 1420,
-        points: 150,
-        options: [
-          'The Tangency (Market) Portfolio formed by combining risk-free lending/borrowing with risky assets.',
-          'The Global Minimum Variance Portfolio with zero covariance.',
-          'The Maximum Beta portfolio on the Capital Asset Pricing line.',
-          'A risk-neutral arbitrage butterfly spread position.',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'Under the Capital Allocation Line (CAL), the optimal risky portfolio is the point of tangency between the CAL and the efficient frontier. It maximizes the slope (Sharpe ratio) and represents the Market Portfolio.',
-      },
-    ],
-  },
-  {
-    title: 'National Logic Deduction & Algorithmic Aptitude Olympiad',
-    slug: 'national-logic-deduction-olympiad',
-    description:
-      'Foundational problem-solving arena for students of ALL academic backgrounds. Tests discrete logic, combinatorics, pattern inference, and algorithmic reasoning without requiring prior programming experience.',
-    shortSummary: 'General analytical reasoning, logical deduction, and discrete math puzzles.',
-    category: 'General Logic & Analytical Deduction',
-    targetBackgrounds: ['GENERAL', 'CSE', 'EEE', 'BUSINESS'],
-    difficulty: 'BEGINNER' as const,
-    benchmarkRating: 1300,
-    durationMinutes: 30,
-    status: 'LIVE' as const,
-    featuredOnHome: true,
-    prizePool: '৳২০,০০০ + Verified Skill Badge',
-    rules: [
-      'Open to students from every department and discipline.',
-      'Universal logical reasoning and step-by-step deduplication.',
-    ],
-    problems: [
-      {
-        id: 'p1',
-        title: 'Problem A: Pigeonhole Principle & Parity Invariant Deduction',
-        statement:
-          'In a room of 15 people, each person shakes hands with an arbitrary number of other people. Is it guaranteed that there exist at least two individuals who have shaken hands with the exact same number of people in the room?',
-        category: 'Discrete Mathematics & Logic',
-        difficultyRating: 1280,
-        points: 100,
-        options: [
-          'Yes, by the Pigeonhole Principle, because possible degree counts {0 to 14} cannot simultaneously contain both 0 and 14.',
-          'No, because 15 is an odd number and odd graphs cannot have equal degrees.',
-          'Only if the graph is a complete bipartite tree.',
-          'Only if everyone shakes hands at least twice.',
-        ],
-        correctAnswer: 0,
-        explanation:
-          'A person can shake between 0 and 14 hands. However, it is impossible for one person to have shaken 0 hands (isolated) while another person has shaken 14 hands (connected to everyone). Therefore, there are at most 14 distinct possible handshakes for 15 people. By the Pigeonhole Principle, at least two must match.',
-      },
-    ],
-  },
-];
+
 
 /**
  * Seeds sample problem-solving contests and prioritized notifications
  */
 export async function seedContestsAndNotificationsAction() {
-  try {
-    await dbConnect();
-
-    // 1. Check or seed contests
-    const existingContestsCount = await Contest.countDocuments();
-    if (existingContestsCount === 0) {
-      const now = new Date();
-      const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      for (const contestData of SAMPLE_CONTESTS) {
-        await Contest.create({
-          ...contestData,
-          startTime: now,
-          endTime: inSevenDays,
-          totalParticipants: Math.floor(Math.random() * 45) + 12,
-        });
-      }
-    }
-
-    // 2. Seed notifications for current user if logged in
-    const session = await auth();
-    const userId = (session?.user as any)?.id;
-    const userEmail = (session?.user as any)?.email;
-
-    if (userId || userEmail) {
-      let userQuery: any = null;
-      if (isValidMongoObjectId(userId)) {
-        userQuery = { _id: userId };
-      } else if (typeof userId === 'string' && userId.includes('@')) {
-        userQuery = { email: userId };
-      } else if (userEmail) {
-        userQuery = { email: userEmail };
-      }
-      const user = userQuery ? await User.findOne(userQuery) : null;
-
-      if (user) {
-        const notifCount = await Notification.countDocuments({ recipientId: user._id });
-        if (notifCount === 0) {
-          const userBg = user.academicBackground || 'Computer Science & Engineering (CSE)';
-          const userNormBg = normalizeBackground(userBg);
-
-          const contests = await Contest.find().lean();
-          for (const c of contests) {
-            const priorityInfo = calculateBackgroundPriority(userBg, c.targetBackgrounds);
-            const isCsStudent = userNormBg === 'CSE';
-            const isCsContest = c.targetBackgrounds.includes('CSE') || c.targetBackgrounds.includes('SWE');
-
-            let notifTitle = '';
-            let notifMessage = '';
-
-            if (priorityInfo.priority === 'HIGH') {
-              notifTitle = `🔥 Priority Contest Alert: ${c.title}`;
-              notifMessage = `This arena is prioritized at the top of your list as a top match for your ${userBg} curriculum. Register and boost your Elo!`;
-            } else if (priorityInfo.priority === 'NORMAL') {
-              notifTitle = `🌐 Open Arena Challenge: ${c.title}`;
-              notifMessage = `A general problem-solving competition is live. Open for all backgrounds. Test your logical aptitude.`;
-            } else {
-              notifTitle = `📌 Open Contest Track: ${c.title}`;
-              notifMessage = `This contest belongs to a different track (${c.category}), but you are welcome to participate in this open problem-solving challenge.`;
-            }
-
-            await Notification.create({
-              recipientId: user._id,
-              title: notifTitle,
-              message: notifMessage,
-              type: 'CONTEST_ANNOUNCEMENT',
-              priority: priorityInfo.priority,
-              priorityWeight: priorityInfo.priority === 'HIGH' ? 3 : priorityInfo.priority === 'NORMAL' ? 2 : 1,
-              targetBackgrounds: c.targetBackgrounds,
-              actionUrl: `/contests/${c.slug}`,
-              badgeLabel: priorityInfo.badgeTextEn,
-              isRead: false,
-            });
-          }
-        }
-      }
-    }
-
-    return { success: true };
-  } catch (err: any) {
-    console.error('Error in seedContestsAndNotificationsAction:', err);
-    return { error: err.message };
-  }
+  return { success: false, error: 'Sample data creation has been removed.', message: undefined };
 }
 
 /**
@@ -368,7 +43,6 @@ export async function seedContestsAndNotificationsAction() {
 export async function getHomepageContestsAction(userBackground?: string) {
   try {
     await dbConnect();
-    await seedContestsAndNotificationsAction();
 
     // If userBackground not provided directly, try resolving from authenticated session
     let effectiveBg = userBackground;
@@ -386,9 +60,9 @@ export async function getHomepageContestsAction(userBackground?: string) {
           userQuery = { email: userEmail };
         }
         if (userQuery) {
-          const user = await User.findOne(userQuery).select('academicBackground').lean() as any;
-          if (user?.academicBackground) {
-            effectiveBg = user.academicBackground;
+          const user = await User.findOne(userQuery).select('academicBackground department').lean() as any;
+          if (user?.department || user?.academicBackground) {
+            effectiveBg = user.department || user.academicBackground;
           }
         }
       }
@@ -399,7 +73,9 @@ export async function getHomepageContestsAction(userBackground?: string) {
       .lean();
 
     // Map contests with background matching and priority scores
-    const enrichedContests = contests.map((c: any) => {
+    const visibleContests = await filterVisibleAssessments(contests, await getAssessmentViewer());
+
+    const enrichedContests = visibleContests.filter((contest) => currentContestStatus(contest) !== 'ENDED').map((c: any) => {
       const match = calculateBackgroundPriority(effectiveBg, c.targetBackgrounds);
       return {
         id: c._id.toString(),
@@ -412,7 +88,7 @@ export async function getHomepageContestsAction(userBackground?: string) {
         difficulty: c.difficulty,
         benchmarkRating: c.benchmarkRating,
         durationMinutes: c.durationMinutes,
-        status: c.status,
+        status: currentContestStatus(c),
         totalParticipants: c.totalParticipants,
         prizePool: c.prizePool,
         problemCount: c.problems?.length || 0,
@@ -436,41 +112,12 @@ export async function getHomepageContestsAction(userBackground?: string) {
 
     return {
       success: true,
-      userBackground: effectiveBg || 'Computer Science & Engineering (CSE)',
+      userBackground: effectiveBg || '',
       contests: enrichedContests,
     };
   } catch (error: any) {
-    console.warn('DB warning in getHomepageContestsAction, returning fallback sample contests:', error?.message);
-    const enrichedSample = SAMPLE_CONTESTS.filter((c) => c.featuredOnHome).map((c: any, index: number) => {
-      const match = calculateBackgroundPriority(userBackground, c.targetBackgrounds);
-      return {
-        id: `sample-contest-${index}`,
-        title: c.title,
-        slug: c.slug,
-        description: c.description,
-        shortSummary: c.shortSummary,
-        category: c.category,
-        targetBackgrounds: c.targetBackgrounds,
-        difficulty: c.difficulty,
-        benchmarkRating: c.benchmarkRating,
-        durationMinutes: c.durationMinutes,
-        status: c.status,
-        totalParticipants: 35,
-        prizePool: c.prizePool,
-        problemCount: c.problems?.length || 0,
-        priority: match.priority,
-        priorityScore: match.priorityScore,
-        badgeTextEn: match.badgeTextEn,
-        badgeTextBn: match.badgeTextBn,
-        isDirectMatch: match.isDirectMatch,
-        matchReason: match.matchReason,
-      };
-    });
-    return {
-      success: true,
-      userBackground: userBackground || 'Computer Science & Engineering (CSE)',
-      contests: enrichedSample,
-    };
+    console.warn('Failed to load homepage contests.');
+    return { success: false, contests: [], userBackground: userBackground || '' };
   }
 }
 
@@ -480,7 +127,6 @@ export async function getHomepageContestsAction(userBackground?: string) {
 export async function getContestsListAction(filterCategory?: string, userBackground?: string) {
   try {
     await dbConnect();
-    await seedContestsAndNotificationsAction();
 
     let query: any = {};
     if (filterCategory && filterCategory !== 'ALL') {
@@ -489,7 +135,9 @@ export async function getContestsListAction(filterCategory?: string, userBackgro
 
     const contests = await Contest.find(query).lean();
 
-    const enriched = contests.map((c: any) => {
+    const visibleContests = await filterVisibleAssessments(contests, await getAssessmentViewer());
+
+    const enriched = visibleContests.map((c: any) => {
       const match = calculateBackgroundPriority(userBackground, c.targetBackgrounds);
       return {
         id: c._id.toString(),
@@ -502,7 +150,7 @@ export async function getContestsListAction(filterCategory?: string, userBackgro
         difficulty: c.difficulty,
         benchmarkRating: c.benchmarkRating,
         durationMinutes: c.durationMinutes,
-        status: c.status,
+        status: currentContestStatus(c),
         totalParticipants: c.totalParticipants,
         prizePool: c.prizePool,
         problemCount: c.problems?.length || 0,
@@ -532,12 +180,13 @@ export async function getContestsListAction(filterCategory?: string, userBackgro
 export async function getContestBySlugAction(slug: string, forSolving: boolean = false) {
   try {
     await dbConnect();
-    await seedContestsAndNotificationsAction();
 
     const contest = await Contest.findOne({ slug }).lean() as any;
     if (!contest) {
       return { error: 'কনটেস্টটি পাওয়া যায়নি।' };
     }
+
+    if (!await canAccessAssessment(contest, await getAssessmentViewer())) return { error: 'This contest is unavailable for your enrollment or audience profile.' };
 
     const session = await auth();
     const userId = (session?.user as any)?.id;
@@ -563,6 +212,9 @@ export async function getContestBySlugAction(slug: string, forSolving: boolean =
         }
       }
     }
+
+    // Solutions are public only after the contest has ended.
+    forSolving = forSolving || !contest.endTime || new Date(contest.endTime).getTime() > Date.now();
 
     const formattedProblems = (contest.problems || []).map((p: any, idx: number) => ({
       id: p.id || `p_${idx}`,
@@ -596,7 +248,7 @@ export async function getContestBySlugAction(slug: string, forSolving: boolean =
         difficulty: contest.difficulty,
         benchmarkRating: contest.benchmarkRating,
         durationMinutes: contest.durationMinutes,
-        status: contest.status,
+        status: currentContestStatus(contest),
         totalParticipants: contest.totalParticipants,
         prizePool: contest.prizePool,
         rules: contest.rules || [],
@@ -665,6 +317,9 @@ export async function submitContestAction({
     if (!contest) {
       return { error: 'কনটেস্টটি পাওয়া যায়নি।' };
     }
+
+    if (!await canAccessAssessment(contest, await getAssessmentViewer())) return { error: 'You are not eligible to participate in this contest.' };
+    if (new Date(contest.startTime).getTime() > Date.now() || new Date(contest.endTime).getTime() <= Date.now()) return { error: 'This contest is not currently open.' };
 
     // Evaluate problems
     let calculatedScore = 0;
@@ -836,4 +491,29 @@ export async function submitContestAction({
     console.error('Error submitting contest:', error);
     return { error: error.message || 'কনটেস্ট সাবমিট করতে সমস্যা হয়েছে।' };
   }
+}
+
+export async function createContestAction(data: {
+  title: string; description: string; courseId?: string; scope: 'COURSE' | 'GLOBAL';
+  audience?: AssessmentAudience; startTime: string; endTime: string; durationMinutes: number;
+  problems: { title: string; statement: string; options: string[]; correctAnswer: number; points: number; explanation?: string }[];
+}) {
+  try {
+    const actor = await getAssessmentViewer();
+    if (!actor) return { error: 'Sign in as an instructor.' };
+    const publication = await authorizeAssessmentCreation('CONTEST', data, actor);
+    const start = new Date(data.startTime); const end = new Date(data.endTime);
+    if (!data.title?.trim() || data.title.length > 180 || !data.description?.trim()) return { error: 'Provide a title and description.' };
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start || end.getTime() <= Date.now() || !Number.isInteger(data.durationMinutes) || data.durationMinutes < 1 || data.durationMinutes > 480 || data.durationMinutes * 60000 > end.getTime() - start.getTime()) return { error: 'Choose a valid future contest window and a duration within that window (1–480 minutes).' };
+    if (!Array.isArray(data.problems) || !data.problems.length || data.problems.length > 100 || data.problems.some((problem) => !problem.title?.trim() || !problem.statement?.trim() || !Array.isArray(problem.options) || problem.options.length < 2 || problem.options.some((option) => typeof option !== 'string' || !option.trim()) || !Number.isInteger(problem.correctAnswer) || problem.correctAnswer < 0 || problem.correctAnswer >= problem.options.length || !Number.isFinite(problem.points) || problem.points <= 0)) return { error: 'Complete every problem, its answer options, correct answer, and positive points.' };
+    const baseSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'contest';
+    const slug = baseSlug + '-' + randomUUID().slice(0, 8);
+    await Contest.create({ ...publication, title: data.title.trim(), description: data.description.trim(), slug, shortSummary: data.description.trim().slice(0, 180), createdById: actor.id,
+      startTime: start, endTime: end, durationMinutes: data.durationMinutes, status: start.getTime() > Date.now() ? 'UPCOMING' : 'LIVE',
+      targetBackgrounds: publication.audience.departments.map((department) => department.toUpperCase()), featuredOnHome: true,
+      problems: data.problems.map((problem, index) => ({ ...problem, id: `p${index + 1}`, title: problem.title.trim(), statement: problem.statement.trim(), options: problem.options.map((option) => option.trim()) })),
+    });
+    revalidatePath('/contests'); revalidatePath('/');
+    return { success: true, slug };
+  } catch (error: any) { return { error: error.message || 'Contest creation failed.' }; }
 }

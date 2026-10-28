@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
-export function ExamsListClient({ exams }: { exams: any[] }) {
+export function ExamsListClient({ exams, canCreate = false }: { exams: any[]; canCreate?: boolean }) {
   const { language } = useLanguage();
 
   return (
@@ -43,12 +43,12 @@ export function ExamsListClient({ exams }: { exams: any[] }) {
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Link href="/exams/create">
+            {canCreate && <Link href="/exams/create">
               <Button className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl gap-2 shadow-sm">
                 <PlusCircle className="w-4 h-4" />
                 <span>{language === 'en' ? 'Create New Exam' : 'নতুন পরীক্ষা তৈরি করুন'}</span>
               </Button>
-            </Link>
+            </Link>}
 
             <a href="#latex-playground">
               <Button
@@ -86,7 +86,7 @@ export function ExamsListClient({ exams }: { exams: any[] }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href="/exams/create">
+            {canCreate && <Link href="/exams/create">
               <Button
                 variant="outline"
                 className="text-xs rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 gap-1.5"
@@ -94,7 +94,7 @@ export function ExamsListClient({ exams }: { exams: any[] }) {
                 <PlusCircle className="w-3.5 h-3.5 text-primary-600" />
                 <span>{language === 'en' ? 'Author Question Paper' : 'প্রশ্নপত্র প্রণয়ন'}</span>
               </Button>
-            </Link>
+            </Link>}
           </div>
         </div>
 
@@ -109,11 +109,11 @@ export function ExamsListClient({ exams }: { exams: any[] }) {
                 ? 'Click the button above to create the first exam.'
                 : 'প্রথম পরীক্ষা তৈরি করতে উপরের বাটনে ক্লিক করুন।'}
             </p>
-            <Link href="/exams/create">
+            {canCreate && <Link href="/exams/create">
               <Button className="bg-primary-600 hover:bg-primary-700 text-white text-xs mt-2 rounded-xl">
                 {language === 'en' ? 'Create Exam' : 'পরীক্ষা তৈরি করুন'}
               </Button>
-            </Link>
+            </Link>}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

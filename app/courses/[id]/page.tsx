@@ -72,13 +72,6 @@ function parseArrayField(val: unknown): string[] {
   return [];
 }
 
-const DEFAULT_CATEGORY_VIDEOS: Record<string, string> = {
-  'fullstack-nextjs': 'https://www.youtube.com/watch?v=wm5gMKuwSYk',
-  'python-machine-learning': 'https://www.youtube.com/watch?v=7eh4d6sabA0',
-  'dsa-in-bangla': 'https://www.youtube.com/watch?v=8hly31xKli0',
-  'system-design-architecture': 'https://www.youtube.com/watch?v=m8Icp_Cid5o',
-};
-
 export default function CourseDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -399,11 +392,11 @@ export default function CourseDetailsPage() {
       }
     }
 
-    const fallbackUrl = DEFAULT_CATEGORY_VIDEOS[course?.id || ''] || course?.previewVideoUrl || 'https://www.youtube.com/watch?v=wm5gMKuwSYk';
+
     setActiveVideo({
       lessonId: lesson.id,
       title: lesson.title,
-      videoUrl: lesson.videoUrl || fallbackUrl,
+      videoUrl: lesson.videoUrl || '',
     });
   }
 
@@ -622,8 +615,8 @@ export default function CourseDetailsPage() {
                     if (firstVideoLesson?.videoUrl) {
                       setActiveVideo({ title: firstVideoLesson.title, videoUrl: firstVideoLesson.videoUrl });
                     } else {
-                      const fallback = DEFAULT_CATEGORY_VIDEOS[course?.id || ''] || 'https://www.youtube.com/watch?v=wm5gMKuwSYk';
-                      setActiveVideo({ title: displayTitle, videoUrl: fallback });
+
+                      setActiveVideo({ title: displayTitle, videoUrl: course.previewVideoUrl || '' });
                     }
                   }}
                   className="absolute inset-0 bg-slate-900/40 flex items-center justify-center cursor-pointer"

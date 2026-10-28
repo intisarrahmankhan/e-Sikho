@@ -6,6 +6,8 @@ import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import '@/models/Instructor';
 import { COURSES_DATA } from '@/lib/courses-data';
+import { getCourseAccessDetails } from '@/actions/course-access';
+import { parseBunnyVideoUrl, generateBunnySignedEmbedUrl } from '@/lib/bunny';
 
 function parseStringList(val: any): string[] {
   if (Array.isArray(val)) return val.map(String).filter(Boolean);
@@ -45,6 +47,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
+    if (course.status !== 'PUBLISHED') {
+      const access = await getCourseAccessDetails(courseId);
+      if (!access.canAccessAll) return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
     const courseModules = await Module.find({ courseId: course._id }).sort({ order: 1 }).lean();
     const modulesWithLessons = await Promise.all(
       courseModules.map(async (m: any) => {
@@ -58,7 +65,13 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
             title: l.title,
             duration: l.duration || '',
             isFree: !!l.isFree,
-            videoUrl: l.videoUrl || '',
+            type: l.type || 'VIDEO',
+            quizId: l.quizId?.toString(),
+            projectInstructions: l.projectInstructions || '',
+            maxMarks: l.maxMarks,
+            passMarks: l.passMarks,
+            githubRequired: l.githubRequired,
+            liveUrlRequired: l.liveUrlRequired,
           })),
         };
       })
@@ -83,15 +96,14 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
           bio: '',
         };
 
-    const modules =
-      modulesWithLessons.length > 0
-        ? modulesWithLessons
-        : Array.isArray(course.modules)
-        ? course.modules
-        : staticCourse?.modules || [];
+    const modules = modulesWithLessons;
+
+    const preview = parseBunnyVideoUrl(course.previewVideoUrl);
+    const previewVideoUrl = preview ? generateBunnySignedEmbedUrl(preview.libraryId, preview.videoId, 600).embedUrl : course.previewVideoUrl || '';
 
     return NextResponse.json({
       ...course,
+      previewVideoUrl,
       id: course._id.toString(),
       learningOutcomes: parseStringList(course.learningOutcomes),
       prerequisites: parseStringList(course.prerequisites),
