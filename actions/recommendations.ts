@@ -47,11 +47,11 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
     const sessionUserId = (session?.user as any)?.id;
 
     let profile: StudentProfileForRecommendation = {
-      targetTrack: 'Fullstack Web Development',
-      academicBackground: 'Computer Science & Engineering (CSE)',
+      targetTrack: '',
+      academicBackground: '',
       elo: 1200,
-      interests: ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms'],
-      skills: ['JavaScript', 'React', 'TypeScript'],
+      interests: [],
+      skills: [],
       completedCoursesCount: 0,
     };
 
@@ -82,7 +82,7 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
           id: userDoc._id.toString(),
           targetTrack: userDoc.targetTrack || profile.targetTrack,
           academicBackground: userDoc.academicBackground || profile.academicBackground,
-          elo: userDoc.elo || profile.elo,
+          elo: userDoc.elo ?? profile.elo,
           interests: Array.isArray(userDoc.interests) && userDoc.interests.length > 0
             ? userDoc.interests
             : profile.interests,
@@ -135,7 +135,7 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
 
     // 2. DB published courses
     try {
-      const dbCourses = await Course.find({ approvalStatus: 'APPROVED' })
+      const dbCourses = await Course.find({ status: 'PUBLISHED', approvalStatus: 'APPROVED' })
         .populate('instructor')
         .lean() as any[];
 
@@ -151,10 +151,10 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
           category: dc.category,
           categoryBangla: dc.categoryBangla,
           level: dc.level,
-          rating: dc.rating || 4.8,
-          totalRatings: dc.totalRatings || 40,
-          studentsEnrolled: dc.studentsEnrolled || 200,
-          duration: dc.duration || '৪০ ঘণ্টা',
+          rating: dc.rating ?? 0,
+          totalRatings: dc.totalRatings ?? 0,
+          studentsEnrolled: dc.studentsEnrolled ?? 0,
+          duration: dc.duration || '',
           price: dc.price,
           originalPrice: dc.originalPrice,
           thumbnailUrl: dc.thumbnailUrl,
@@ -213,11 +213,11 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
       success: true,
       recommendations: limited,
       studentProfile: {
-        targetTrack: profile.targetTrack || 'Fullstack Web Development',
-        elo: profile.elo || 1200,
+        targetTrack: profile.targetTrack || '',
+        elo: profile.elo ?? 1200,
         interests: profile.interests || [],
         skills: profile.skills || [],
-        academicBackground: profile.academicBackground || 'Computer Science & Engineering (CSE)',
+        academicBackground: profile.academicBackground || '',
       },
     };
   } catch (err: any) {
@@ -226,7 +226,7 @@ export async function getPersonalizedRecommendationsAction(limit: number = 4): P
       success: false,
       recommendations: [],
       studentProfile: {
-        targetTrack: 'Fullstack Web Development',
+        targetTrack: '',
         elo: 1200,
         interests: [],
         skills: [],

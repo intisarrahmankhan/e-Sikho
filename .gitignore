@@ -54,3 +54,4 @@ next-env.d.ts
 
 # Isolated production verification builds.
 /.next-assessment-audit/
+/.next-final-readiness/

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCourseAccessDetails, getCourseResourcesAction, getCourseLiveSessionsAction, toggleLessonProgressAction, trackLessonHeartbeatAction } from '@/actions/course-access';
+import { getCourseAccessDetails, getCourseResourcesAction, getCourseLiveSessionsAction, getCourseLearningDetailsAction, toggleLessonProgressAction, trackLessonHeartbeatAction } from '@/actions/course-access';
 import { auth } from '@/auth';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
@@ -87,5 +87,32 @@ describe('Course entitlement and real progress', () => {
     vi.mocked(Enrollment.findOne).mockReturnValue(lean(null) as any);
     expect((await getCourseLiveSessionsAction(courseId)).liveSessions).toEqual([]);
     expect(LiveSession.find).not.toHaveBeenCalled();
+  });
+  it('loads learning tabs with one authenticated entitlement check', async () => {
+    vi.mocked(Lesson.find).mockReturnValue(lean([{ _id: lessonId, title: 'Notes', pdfUrl: '/paid.pdf', isFree: false }]) as any);
+    const result = await getCourseLearningDetailsAction(courseId);
+    expect(result.access.canAccessAll).toBe(true);
+    expect(result.resources.resources).toEqual([expect.objectContaining({ downloadUrl: '/paid.pdf' })]);
+    expect(auth).toHaveBeenCalledTimes(1);
+    expect(Enrollment.findOne).toHaveBeenCalledTimes(1);
+    expect(Course.findById).toHaveBeenCalledTimes(1);
+  });
+  it('keeps private resources and meetings protected in the combined read', async () => {
+    vi.mocked(Enrollment.findOne).mockReturnValue(lean(null) as any);
+    vi.mocked(Lesson.find).mockReturnValue(lean([
+      { _id: lessonId, title: 'Private', pdfUrl: '/paid.pdf', isFree: false },
+      { _id: 'preview', title: 'Preview', pdfUrl: '/preview.pdf', isFree: true },
+    ]) as any);
+    const result = await getCourseLearningDetailsAction(courseId);
+    expect(result.access.canAccessAll).toBe(false);
+    expect(result.resources.resources.map((r) => r.downloadUrl)).toEqual(['/preview.pdf']);
+    expect(result.liveSessions.liveSessions).toEqual([]);
+    expect(LiveSession.find).not.toHaveBeenCalled();
+  });
+  it('does not reuse an enrolled viewer permission for a later signed-out request', async () => {
+    expect((await getCourseLearningDetailsAction(courseId)).access.canAccessAll).toBe(true);
+    vi.mocked(auth).mockResolvedValue(null as any);
+    expect((await getCourseLearningDetailsAction(courseId)).access.canAccessAll).toBe(false);
+    expect(auth).toHaveBeenCalledTimes(2);
   });
 });

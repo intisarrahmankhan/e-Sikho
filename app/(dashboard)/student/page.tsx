@@ -1,4 +1,5 @@
 import { getExamsAction } from '@/actions/exam';
+import { getCourseAccessDetails } from '@/actions/course-access';
 import React from "react";
 import { auth } from '@/auth';
 import dbConnect from "@/lib/mongoose";
@@ -30,18 +31,19 @@ export default async function StudentDashboardPage() {
   let enrollments: any[] = [];
   let instructorRequest: any = null;
   let completedQuizzesCount = 0;
-  let earnedCertificatesCount = 0;
+  let passedExamAttemptsCount = 0;
   let upcomingExams: any[] = [];
   let topStudents: any[] = [];
   let enrolledCourses: any[] = [];
   let totalRoutineLectures = 0;
   let totalCompletedLectures = 0;
+  let remainingCourseLessons = 0;
 
   try {
     await dbConnect();
 
     // Resolve user document for accurate stats, elo, and streak
-    const userSelect = '_id name role elo competitiveElo problemsSolved completedCoursesCount streak academicBackground eloHistory';
+    const userSelect = '_id name role elo competitiveElo problemsSolved completedCoursesCount streak academicBackground department eloHistory';
     const isObjectId = typeof rawUserId === 'string' && /^[0-9a-fA-F]{24}$/.test(rawUserId);
 
     if (isObjectId) {
@@ -60,34 +62,45 @@ export default async function StudentDashboardPage() {
 
     safeUserId = /^[0-9a-fA-F]{24}$/.test(userId) ? userId : '';
 
+    // These sections are independent once the current user ID is resolved.
+    const dashboardResults = await Promise.allSettled([
+      Enrollment.find({
+        userId: safeUserId,
+        paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
+      }).lean(),
+      InstructorRequest.findOne({ userId: safeUserId }).lean(),
+      ExamSubmission.countDocuments({ studentId: safeUserId }),
+      ExamSubmission.countDocuments({ studentId: safeUserId, passed: true }),
+      getExamsAction(),
+      User.find({ role: 'STUDENT', status: 'APPROVED' })
+        .sort({ elo: -1 })
+        .limit(5)
+        .select('_id name elo')
+        .lean(),
+    ]);
+    for (const result of dashboardResults) {
+      if (result.status === 'rejected') console.warn('Student dashboard section unavailable:', result.reason);
+    }
+    const [enrollmentsResult, requestResult, quizCountResult, passedCountResult, examsResult, topUsersResult] = dashboardResults;
+
     // 1. Live Enrollments
-    const enrollmentsList = await Enrollment.find({
-      userId: safeUserId,
-      paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
-    }).lean();
+    const enrollmentsList = enrollmentsResult.status === 'fulfilled' ? enrollmentsResult.value : [];
     enrollments = enrollmentsList || [];
 
     // 2. Instructor request status
-    const rawInstructorRequest = await InstructorRequest.findOne({ userId: safeUserId }).lean();
+    const rawInstructorRequest = requestResult.status === 'fulfilled' ? requestResult.value : null;
     instructorRequest = rawInstructorRequest ? JSON.parse(JSON.stringify(rawInstructorRequest)) : null;
 
-    // 3. Real Quiz Submissions & Certificate Stats
-    completedQuizzesCount = await ExamSubmission.countDocuments({ studentId: safeUserId });
-    earnedCertificatesCount = await ExamSubmission.countDocuments({
-      studentId: safeUserId,
-      passed: true,
-    });
+    // 3. Real quiz submissions and passed attempts
+    completedQuizzesCount = quizCountResult.status === 'fulfilled' ? quizCountResult.value : 0;
+    passedExamAttemptsCount = passedCountResult.status === 'fulfilled' ? passedCountResult.value : 0;
 
     // 4. Live Upcoming Exams
-    const availableExams = await getExamsAction();
+    const availableExams = examsResult.status === 'fulfilled' ? examsResult.value : { exams: [] };
     upcomingExams = (availableExams.exams || []).slice(0, 4).map((exam) => ({ id: exam.id, title: exam.title, date: '', daysLeft: 0 }));
 
     // 5. Live Top Students Leaderboard from MongoDB
-    const topUsers = await User.find({ role: 'STUDENT', status: 'APPROVED' })
-      .sort({ elo: -1 })
-      .limit(5)
-      .select('_id name elo')
-      .lean();
+    const topUsers = topUsersResult.status === 'fulfilled' ? topUsersResult.value : [];
 
     if (topUsers && topUsers.length > 0) {
       topStudents = topUsers.map((u: any) => {
@@ -115,7 +128,7 @@ export default async function StudentDashboardPage() {
   const competitiveElo = userDoc?.competitiveElo || 1200;
   const problemsSolved = userDoc?.problemsSolved || 0;
   const completedCoursesCount = userDoc?.completedCoursesCount || 0;
-  const academicBackground = userDoc?.academicBackground || 'Computer Science & Engineering (CSE)';
+  const academicBackground = userDoc?.department || userDoc?.academicBackground || '';
   const eloHistory = (userDoc?.eloHistory || []).slice(-5).reverse();
   const streak = userDoc?.streak || 0;
   const name = userDoc?.name || session.user.name || 'শিক্ষার্থী';
@@ -134,11 +147,11 @@ export default async function StudentDashboardPage() {
               userRoutine = await CourseRoutine.findOne({ userId: safeUserId, courseId: courseIdStr }).lean();
             } catch {}
 
-            let targetCompletionDate = new Date(new Date().setMonth(new Date().getMonth() + 2))
-              .toISOString()
-              .split('T')[0];
+            let targetCompletionDate = '';
             let paceMode: string | undefined = undefined;
-            let progressPercentage = 25;
+            const courseAccess = await getCourseAccessDetails(courseIdStr);
+            remainingCourseLessons += Math.max(0, courseAccess.totalLessons - courseAccess.completedLessonIds.length);
+            let progressPercentage = courseAccess.progressPercentage;
 
             if (userRoutine) {
               if (userRoutine.targetCompletionDate) {
@@ -148,13 +161,13 @@ export default async function StudentDashboardPage() {
               }
               paceMode = userRoutine.paceMode;
               const items = userRoutine.items || [];
-              const totalItems = items.length || 1;
+              const totalItems = items.length;
               const completedItems = items.filter((i: any) => i.completed).length;
 
               totalRoutineLectures += items.filter((i: any) => i.itemType === 'LECTURE').length;
               totalCompletedLectures += items.filter((i: any) => i.itemType === 'LECTURE' && i.completed).length;
 
-              if (totalItems > 0 && completedItems > 0) {
+              if (totalItems > 0) {
                 progressPercentage = Math.round((completedItems / totalItems) * 100);
               }
             }
@@ -200,25 +213,20 @@ export default async function StudentDashboardPage() {
     0,
     totalRoutineLectures > 0
       ? totalRoutineLectures - totalCompletedLectures
-      : enrolledCourses.length * 6
+      : remainingCourseLessons
   );
 
-  // Load contests prioritized for student background
+  // Load both personalized sections together, retaining independent fallbacks.
   let prioritizedContests: any[] = [];
-  try {
-    const contestsRes = await getHomepageContestsAction(academicBackground);
-    prioritizedContests = contestsRes?.contests || [];
-  } catch (e) {
-    console.warn('Error loading contests in StudentDashboardPage:', e);
-  }
-
-  // Personalized Course Recommendations
   let recommendationsRes: any = { recommendations: [], studentProfile: null };
-  try {
-    recommendationsRes = await getPersonalizedRecommendationsAction(4);
-  } catch (e) {
-    console.warn('Error loading recommendations in StudentDashboardPage:', e);
-  }
+  const [contestsResult, recommendationsResult] = await Promise.allSettled([
+    getHomepageContestsAction(academicBackground),
+    getPersonalizedRecommendationsAction(4),
+  ]);
+  if (contestsResult.status === 'fulfilled') prioritizedContests = contestsResult.value?.contests || [];
+  else console.warn('Error loading contests in StudentDashboardPage:', contestsResult.reason);
+  if (recommendationsResult.status === 'fulfilled') recommendationsRes = recommendationsResult.value;
+  else console.warn('Error loading recommendations in StudentDashboardPage:', recommendationsResult.reason);
 
   const isInstructor = userDoc?.role === 'INSTRUCTOR' || (session?.user as any)?.role === 'INSTRUCTOR';
 
@@ -240,7 +248,7 @@ export default async function StudentDashboardPage() {
       streak={streak}
       ongoingLessonsCount={ongoingLessonsCount}
       completedQuizzesCount={completedQuizzesCount}
-      earnedCertificatesCount={earnedCertificatesCount}
+      passedExamAttemptsCount={passedExamAttemptsCount}
       recommendedCourses={recommendationsRes?.recommendations || []}
       studentProfile={recommendationsRes?.studentProfile}
     />

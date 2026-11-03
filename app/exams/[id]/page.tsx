@@ -195,7 +195,7 @@ export default function ExamTakingPage() {
               </div>
 
               {/* Retake Policy & Attempt Tracking Banner */}
-              {exam.canAttempt === false ? (
+              {exam.attemptsCount >= (exam.maxAttempts ?? 3) ? (
                 <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
                   <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
                   <div>

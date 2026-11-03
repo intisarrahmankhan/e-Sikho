@@ -36,11 +36,12 @@ export default async function AdminDashboardPage() {
   let pendingCourses: any[] = [];
   let instructorRequests: any[] = [];
   let courseReviews: any[] = [];
-  let totalCourses = 12;
-  let totalStudents = 1450;
-  let totalFaculty = 48;
-  let finStats = { totalRevenue: 125000, platformCommission: 25000, instructorEarnings: 100000 };
+  let totalCourses = 0;
+  let totalStudents = 0;
+  let totalFaculty = 0;
+  let finStats = { totalRevenue: 0, platformCommission: 0, instructorEarnings: 0 };
   let payoutRequests: any[] = [];
+  let dataUnavailable = false;
 
   try {
     await dbConnect();
@@ -96,7 +97,8 @@ export default async function AdminDashboardPage() {
     const rawPayouts = await PayoutRequest.find().sort({ createdAt: -1 }).lean();
     payoutRequests = JSON.parse(JSON.stringify(rawPayouts || [])).map((r: any) => ({ ...r, id: r._id, userId: String(r.userId) }));
   } catch (err) {
-    console.warn('MongoDB connection/query warning in AdminDashboardPage, using fallback defaults:', err);
+    dataUnavailable = true;
+    console.warn('Admin dashboard data could not be loaded:', err);
   }
 
   const totalPending = pendingUsers.length;
@@ -144,6 +146,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8 pb-16 max-w-7xl mx-auto">
+      {dataUnavailable && (
+        <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Some dashboard data could not be loaded. Refresh the page before using these figures or approval queues.
+        </p>
+      )}
 
       {/* ── Header ── */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-7 py-7 text-white shadow-xl border border-slate-700">

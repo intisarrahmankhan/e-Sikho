@@ -1,0 +1,370 @@
+﻿File,Test,Status,Duration milliseconds
+__tests__/login.test.tsx,LoginPage renders the login page correctly,passed,85.951
+__tests__/login.test.tsx,LoginPage calls loginWithGoogle with correct provider when clicked,passed,377.362
+__tests__/login.test.tsx,LoginPage passes the callbackUrl to loginWithGoogle if provided,passed,171.947
+__tests__/login.test.tsx,LoginPage allows user to switch between sign up and login tabs,passed,313.32
+__tests__/login.test.tsx,LoginPage submits phone signup with valid information,passed,173.042
+__tests__/login.test.tsx,LoginPage submits phone login with phone and password,passed,238.66
+__tests__/login.test.tsx,LoginPage does not expose developer login shortcuts,passed,102.38
+__tests__/unit-testing/AcademicProfile.test.ts,saves the current student education level and department,passed,3.655
+__tests__/unit-testing/AcademicProfile.test.ts,rejects unsupported education levels and oversized departments,passed,1.102
+__tests__/unit-testing/AcademicProfile.test.ts,can clear a previously selected education level without inventing a university default,passed,0.466
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy normalizes department labels without assuming an education level,passed,3.837
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy supports SCHOOL learners,passed,0.477
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy supports COLLEGE learners,passed,0.252
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy supports UNIVERSITY learners,passed,0.213
+__tests__/unit-testing/AssessmentAccess.test.ts,"Assessment audience and publishing policy combines level, department, and explicit student selection using AND",passed,0.66
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy does not expose even unrestricted global assessments to anonymous viewers,passed,0.28
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy rejects malformed filters,passed,1.44
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy permits course owners and explicitly assigned instructors,passed,0.583
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy rejects student publishing regardless of submitted scope,passed,1.726
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy requires superadmin-approved hosting permission for global publishing,passed,1.793
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy validates explicit student IDs against real approved student accounts,passed,0.803
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy allows created draft courses in the authoring flow,passed,0.416
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy rejects another instructor course even when a forged course ID is submitted,passed,0.782
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy blocks direct access and discovery for excluded departments,passed,0.744
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy hides unapproved and legacy unscoped global assessments,passed,0.292
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy allows an instructor to inspect their own assessment,passed,0.229
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy requires an active course entitlement and a published course,passed,0.313
+__tests__/unit-testing/AssessmentAccess.test.ts,Assessment audience and publishing policy loads audience attributes and role from the database,passed,0.473
+__tests__/unit-testing/AssessmentConfidentiality.test.ts,Assessment answer confidentiality does not expose exam answers when an anonymous caller requests preview mode,passed,2.699
+__tests__/unit-testing/AssessmentConfidentiality.test.ts,Assessment answer confidentiality lets the exam author inspect answers,passed,1.708
+__tests__/unit-testing/AssessmentConfidentiality.test.ts,Assessment answer confidentiality does not let another instructor inspect exam answers,passed,0.918
+__tests__/unit-testing/AssessmentConfidentiality.test.ts,Assessment answer confidentiality does not expose active contest solutions using a client preview flag,passed,1.044
+__tests__/unit-testing/AssessmentSubmissionAuthorization.test.ts,rejects a forged exam submission from an excluded student before grading or saving,passed,3.032
+__tests__/unit-testing/AssessmentSubmissionAuthorization.test.ts,rejects a forged contest submission from an excluded student before scoring or changing ratings,passed,1.47
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security never signs in using role alone: STUDENT,passed,2.34
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security never signs in using role alone: INSTRUCTOR,passed,0.342
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security never signs in using role alone: ADMIN,passed,0.296
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security never signs in using role alone: SUPERADMIN,passed,0.21
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security does not impersonate an existing account using only its email,passed,0.32
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security does not auto-create users from unauthenticated email requests,passed,0.35
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security verifies stored email passwords and takes the role from the database,passed,97.238
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security requires proof of identity for phone login,passed,0.566
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security requires an OTP for new phone registration,passed,3.125
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security rejects invalid signup OTPs before creating an account,passed,0.833
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security preserves existing OAuth roles and does not overwrite account status,passed,1.063
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security does not invent user IDs or recreate deleted accounts during session refresh,passed,0.896
+__tests__/unit-testing/AuthenticationSecurity.test.ts,Authentication security revokes existing sessions when the database account is suspended,passed,0.357
+__tests__/unit-testing/BilingualCourse.test.tsx,Bilingual Course Display & Fallback Rules displays Bangla title and thumbnail in Bangla mode even when English exists,passed,521.957
+__tests__/unit-testing/BilingualCourse.test.tsx,Bilingual Course Display & Fallback Rules displays English title and thumbnail when language is toggled to English,passed,142.887
+__tests__/unit-testing/BilingualCourse.test.tsx,Bilingual Course Display & Fallback Rules falls back to Bangla title and thumbnail in English mode if instructor did not provide English versions,passed,57.597
+__tests__/unit-testing/BilingualCourse.test.tsx,"Bilingual Course Display & Fallback Rules correctly translates durations, categories, and levels via bilingual helpers",passed,5.512
+__tests__/unit-testing/BilingualCourse.test.tsx,Bilingual Course Display & Fallback Rules renders LatexPlayground in English when language is toggled to en,passed,520.947
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback parses https://iframe.mediadelivery.net/embed/12345/video-guid,passed,3.411
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback parses https://video.bunnycdn.com/play/12345/video-guid,passed,0.707
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback parses bunny:12345:video-guid,passed,0.717
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback rejects invalid provider URL https://attacker.test/mediadelivery.net/embed/123/video,passed,0.747
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback rejects invalid provider URL https://iframe.mediadelivery.net.attacker.test/embed/123/video,passed,0.481
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback rejects invalid provider URL javascript:mediadelivery.net/embed/123/video,passed,0.314
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback rejects invalid provider URL ,passed,0.273
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback rejects invalid provider URL https://youtube.com/watch?v=video,passed,0.257
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback signs the provider-defined SHA256 payload with an expiry,passed,1.467
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback refuses to sign with missing or public demo secrets,passed,1.713
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback does not fabricate a successful upload without credentials,passed,1.048
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback uploads through both provider requests when configured,passed,2.359
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback requires a signed-in viewer,passed,2.399
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback blocks non-enrolled viewers of paid lessons,passed,0.731
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback does not let enrollment in one course unlock another course lesson,passed,0.732
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback returns a signed URL and viewer watermark for an entitled viewer,passed,21.674
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback does not substitute unrelated videos for a missing lesson,passed,0.543
+__tests__/unit-testing/BunnyDrmStreaming.test.ts,Bunny signed playback converts watch URLs to an embeddable player URL,passed,0.855
+__tests__/unit-testing/Button.test.tsx,Button component should render the button with provided text,passed,39.7
+__tests__/unit-testing/CourseDetailsView.test.tsx,CourseDetailsPage with Dynamic / Database Courses renders successfully when learningOutcomes and prerequisites are JSON strings from DB,passed,382.219
+__tests__/unit-testing/CourseDetailsView.test.tsx,CourseDetailsPage with Dynamic / Database Courses handles empty or malformed learning outcomes without crashing,passed,103.909
+__tests__/unit-testing/CourseForm.test.tsx,CourseForm renders the form correctly,passed,473.282
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions addCourseModule rejects unauthorized users or non-instructors,passed,2.736
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions addCourseModule creates a new module for authorized instructors,passed,0.771
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions addCourseLecture creates a video lecture with optional PDF attachment,passed,2.669
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions addCourseLecture creates a quiz lesson item linked to an exam,passed,0.874
+__tests__/unit-testing/CurriculumBuilder.test.ts,"Curriculum Builder & Lecture Actions updateCourseLecture updates lesson title, duration, and pdf notes",passed,1.268
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions deleteCourseLecture deletes lesson and recalibrates course lesson counter,passed,1.572
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions getCourseCurriculum fetches curriculum modules with populated lessons for a course,passed,1.166
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions getCourseCurriculum does not fabricate a curriculum for removed sample courses,passed,0.66
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions getCourseQuizzes retrieves exam assessments linked to the course,passed,0.927
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions prevents instructors from modifying another instructor course,passed,1.544
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions does not delete lessons that belong to a different course,passed,0.517
+__tests__/unit-testing/CurriculumBuilder.test.ts,Curriculum Builder & Lecture Actions does not expose the instructor curriculum and media URLs to students,passed,0.467
+__tests__/unit-testing/DiscussionBoard.test.tsx,DiscussionBoard UI Component renders correctly with initial comments,passed,86.837
+__tests__/unit-testing/DiscussionBoard.test.tsx,DiscussionBoard UI Component allows posting a new question,passed,51.016
+__tests__/unit-testing/DiscussionBoard.test.tsx,DiscussionBoard UI Component allows liking a comment,passed,30.837
+__tests__/unit-testing/DiscussionBoard.test.tsx,DiscussionBoard UI Component allows flagging as solution,passed,30.201
+__tests__/unit-testing/ExamRetakePolicy.test.ts,Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Exam Creation with Configurable Max Attempts should default maxAttempts to 3 when not specified,passed,4.164
+__tests__/unit-testing/ExamRetakePolicy.test.ts,"Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Exam Creation with Configurable Max Attempts should allow instructor to configure custom attempts (e.g., 1 attempt [Strict], or 5 attempts)",passed,0.919
+__tests__/unit-testing/ExamRetakePolicy.test.ts,Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Attempt Tracking via getExamByIdAction should report canAttempt: true with 3 remaining attempts for fresh student,passed,1.153
+__tests__/unit-testing/ExamRetakePolicy.test.ts,Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Attempt Tracking via getExamByIdAction should report canAttempt: true with 1 remaining attempt after 2 submissions,passed,0.797
+__tests__/unit-testing/ExamRetakePolicy.test.ts,Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Attempt Tracking via getExamByIdAction should report canAttempt: false and 0 remaining attempts when cap of 3 is reached,passed,0.614
+__tests__/unit-testing/ExamRetakePolicy.test.ts,"Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should allow attempt 1 of 3, recording attemptNumber: 1 and canRetake: true",passed,1.549
+__tests__/unit-testing/ExamRetakePolicy.test.ts,"Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should allow attempt 3 of 3, recording canRetake: false because cap is reached",passed,0.717
+__tests__/unit-testing/ExamRetakePolicy.test.ts,Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should reject attempt 4 with error when maxAttempts of 3 has already been reached,passed,0.94
+__tests__/unit-testing/ExamRetakePolicy.test.ts,Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should respect custom instructor maxAttempts limit (e.g. 1 attempt strict cap),passed,0.567
+__tests__/unit-testing/ExamScoring.test.ts,Exam grading logic calculates perfect score when all answers are correct,passed,2.062
+__tests__/unit-testing/ExamScoring.test.ts,Exam grading logic handles partial answers and wrong answers correctly,passed,0.661
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,submits an application as pending without granting itself approval,passed,4.158
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,prevents duplicate pending requests,passed,0.704
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,prevents STUDENT from reviewing a global application,passed,0.489
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,prevents ADMIN from reviewing a global application,passed,0.278
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,prevents INSTRUCTOR from reviewing a global application,passed,0.262
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,requires rejection feedback and only changes pending applications,passed,0.62
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,lists draft and assigned courses without a published-only restriction,passed,0.943
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,requires global approval before student search,passed,0.557
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,escapes search patterns instead of accepting regular expressions,passed,0.815
+__tests__/unit-testing/GlobalAssessmentApplications.test.ts,does not let an instructor assign themselves to another course,passed,0.509
+__tests__/unit-testing/InstructorApplicationReview.test.ts,"Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) approves application: sets approval_status=""Approved"", remarks, and promotes user role to ""INSTRUCTOR""",passed,6.621
+__tests__/unit-testing/InstructorApplicationReview.test.ts,"Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) rejects application: sets approval_status=""Rejected"", stores feedback remarks, and does NOT promote role",passed,0.836
+__tests__/unit-testing/InstructorApplicationReview.test.ts,"Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) supports uppercase ""APPROVE"" and ""REJECT"" decisions seamlessly",passed,0.475
+__tests__/unit-testing/InstructorApplicationReview.test.ts,Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) returns error when profile is not found,passed,0.513
+__tests__/unit-testing/InstructorApplicationReview.test.ts,Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) blocks unauthorized non-admin users from reviewing applications,passed,6.074
+__tests__/unit-testing/InstructorApplicationReview.test.ts,"Task T-015 & T-016: Instructor Application Review & Role Transition getInstructorApplicationsAction (Task T-015) returns formatted applications with applicant credentials, institution, qualifications, and verification data",passed,1.307
+__tests__/unit-testing/InstructorApplicationReview.test.ts,Task T-015 & T-016: Instructor Application Review & Role Transition getInstructorApplicationsAction (Task T-015) filters applications by search query,passed,0.649
+__tests__/unit-testing/InstructorApplicationReview.test.ts,Task T-015 & T-016: Instructor Application Review & Role Transition seedDemoInstructorApplicationsAction refuses to create sample applications,passed,0.401
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,"ExamCreateForm - True/False Removal & Add Question Fix renders without True/False format option and has MCQ, Short Answer, and Code options",passed,295.88
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,ExamCreateForm - True/False Removal & Add Question Fix adds a new question when clicking the top Add New Question button,passed,191.238
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,ExamCreateForm - True/False Removal & Add Question Fix provides a bottom Add Another Question button that also adds questions,passed,108.001
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,"InstructorSettingsClient - Tailored Profile for Instructor renders instructor header stats, badges, and metrics",passed,117.249
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,InstructorSettingsClient - Tailored Profile for Instructor allows navigating to Teaching & Expertise tab and toggles chips,passed,483.716
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,InstructorSettingsClient - Tailored Profile for Instructor allows navigating to Payouts & Banking tab and displays financial setup,passed,238.702
+__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx,InstructorSettingsClient - Tailored Profile for Instructor calls updateInstructorProfileAction when saving profile,passed,119.798
+__tests__/unit-testing/LanguageContext.test.tsx,LanguageContext and LanguageToggle defaults to Bangla (bn) and translates navigation keys,passed,59.635
+__tests__/unit-testing/LanguageContext.test.tsx,LanguageContext and LanguageToggle switches to English when toggled and updates translations,passed,13.648
+__tests__/unit-testing/LanguageContext.test.tsx,LanguageContext and LanguageToggle switches language using setLanguage directly and via LanguageToggle component,passed,29.197
+__tests__/unit-testing/LatexRenderer.test.tsx,LatexRenderer component renders plain Bengali text properly,passed,18.903
+__tests__/unit-testing/LatexRenderer.test.tsx,LatexRenderer component renders inline math with KaTeX,passed,125.991
+__tests__/unit-testing/LatexRenderer.test.tsx,LatexRenderer component renders display block math correctly,passed,48.635
+__tests__/unit-testing/LatexRenderer.test.tsx,LatexRenderer component handles invalid or unclosed math gracefully without crashing,passed,35.587
+__tests__/unit-testing/LatexRenderer.test.tsx,LatexRenderer component renders formula toolbar with quick insert shortcuts,passed,67.732
+__tests__/unit-testing/LeaderboardAndPercentile.test.ts,Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Global Leaderboard with Elo & Percentile Calculation should rank students globally by Elo and calculate accurate mathematical percentiles,passed,4.597
+__tests__/unit-testing/LeaderboardAndPercentile.test.ts,"Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Global Leaderboard with Elo & Percentile Calculation should filter global leaderboard by academic track (e.g., CSE)",passed,0.852
+__tests__/unit-testing/LeaderboardAndPercentile.test.ts,Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Local (Course-Level) Cohort Leaderboard should rank enrolled students locally by course exam score and calculate cohort percentile,passed,1.793
+__tests__/unit-testing/LeaderboardAndPercentile.test.ts,Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Local (Course-Level) Cohort Leaderboard should return empty list gracefully when course has no enrolled students,passed,1.066
+__tests__/unit-testing/LeaderboardAndPercentile.test.ts,Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Course Selector for Leaderboard should list available courses with their enrolled counts,passed,0.838
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions submitLiveQuestionAction rejects question submission when user is not authenticated,passed,3.117
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions submitLiveQuestionAction rejects question when text length is less than 5 characters,passed,0.531
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions submitLiveQuestionAction successfully persists question and returns live question item,passed,0.973
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions toggleUpvoteLiveQuestionAction adds student upvote when student has not yet upvoted,passed,1.868
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions toggleUpvoteLiveQuestionAction removes student upvote when student already upvoted (toggle off),passed,0.998
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions answerLiveQuestionAction marks question as answered and saves instructor reply,passed,0.816
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions pinLiveQuestionAction toggles question pinned status for instructor highlight,passed,0.535
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions getLiveSessionDetailsAction loads live session and questions sorted by votes and pinned state,passed,17.333
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions prevents a student from answering or pinning questions,passed,0.581
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions prevents another instructor from modifying the course live questions,passed,0.435
+__tests__/unit-testing/LiveClassInteractiveQA.test.ts,Interactive Live Class Streaming with Real-Time Student Questions does not create fake sessions or seed questions for missing sessions,passed,0.326
+__tests__/unit-testing/LoginIdentifier.test.tsx,Login identifier entry preserves hyphens in email local parts and domains,passed,354.739
+__tests__/unit-testing/LoginIdentifier.test.tsx,Login identifier entry still normalizes formatting in phone numbers,passed,125.53
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,"Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes ""Warning"" penalty: resolves ticket, writes audit into MODERATOR_ACTION",passed,4.632
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,"Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes ""Remove"" penalty on Comment: soft-deletes/hides comment, updates report, and writes to MODERATOR_ACTION",passed,1.048
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,"Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes ""Remove"" penalty on Course: unpublishes course to DRAFT and REJECTED",passed,0.605
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,"Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes ""Ban"" penalty: invokes suspension state on target user (status: ""SUSPENDED"")",passed,0.772
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) returns error when ticket is not found,passed,0.566
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) blocks unauthorized regular student accounts from resolving tickets,passed,6.899
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,Task T-017 & T-018: Content Moderation Queue & Action Execution getModerationTicketsAction (Task T-017) returns flagged tickets categorized by reported_type with in-context preview and reporter rationale,passed,1.312
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,Task T-017 & T-018: Content Moderation Queue & Action Execution getModerationTicketsAction (Task T-017) filters tickets by search term across rationale and preview,passed,0.557
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,"Task T-017 & T-018: Content Moderation Queue & Action Execution updateReportStatus updates report status to ""In Review""",passed,0.709
+__tests__/unit-testing/ModerationQueueAndActions.test.ts,Task T-017 & T-018: Content Moderation Queue & Action Execution seedDemoModerationReportsAction refuses to create sample moderation tickets,passed,0.544
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should correctly accept exact match,passed,3.454
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should accept case-insensitive variations,passed,0.414
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should trim surrounding whitespace and trailing sentence punctuation,passed,0.387
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should match Bengali alternative synonyms,passed,0.288
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should match numeric equivalence,passed,0.362
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should reject incorrect answers,passed,0.311
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should grade code as correct when all test cases pass,passed,48.523
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should fail when code produces wrong answer on test cases,passed,34.696
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should catch runtime errors gracefully without crashing,passed,12.799
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should protect against infinite loops with timeout limit,passed,315.484
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should normalize JSON arrays and structural data,passed,23.754
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should evaluate console.log outputs if function return is not used,passed,31.071
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine runSampleCodeAction should execute sample code and return outcome,passed,26.215
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine submitExamAction with Multi-Format Auto-Grading should auto-grade all formats and calculate score accurately when all are correct,passed,24.973
+__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts,Multi-Format Exam & Auto-Grading Engine submitExamAction with Multi-Format Auto-Grading should correctly award 0 marks when code fails test cases,passed,44.776
+__tests__/unit-testing/NegativeMarking.test.ts,Configurable Fractional Negative Marking Engine Exam Creation with Configurable Negative Marking should create an exam with negative marking enabled and custom fractional rate,passed,7.059
+__tests__/unit-testing/NegativeMarking.test.ts,Configurable Fractional Negative Marking Engine Exam Creation with Configurable Negative Marking should support other configurable negative marking rates such as -0.33 or -0.50,passed,0.869
+__tests__/unit-testing/NegativeMarking.test.ts,"Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should deduct fractional marks only for attempted wrong answers, leaving skipped questions at 0 penalty",passed,14.849
+__tests__/unit-testing/NegativeMarking.test.ts,Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should clamp the final score at zero when negative deductions exceed earned marks,passed,1.137
+__tests__/unit-testing/NegativeMarking.test.ts,Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should not deduct negative marks when hasNegativeMarking is disabled,passed,1.832
+__tests__/unit-testing/NegativeMarking.test.ts,Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should correctly handle custom negative marking values like -0.50,passed,0.949
+__tests__/unit-testing/NotesAndResources.test.tsx,NotesAndResources UI Component renders empty state correctly,passed,95.426
+__tests__/unit-testing/NotesAndResources.test.tsx,NotesAndResources UI Component allows adding a new note,passed,114.137
+__tests__/unit-testing/PaymentVerification.test.ts,Unverified payment confirmation requires authentication,passed,5.512
+__tests__/unit-testing/PaymentVerification.test.ts,Unverified payment confirmation never grants enrollment without a verified payment provider,passed,1.026
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 1. Payout Request Initiation (requestPayout) rejects invalid or non-positive payout amounts,passed,4.601
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 1. Payout Request Initiation (requestPayout) rejects requests when instructor has insufficient available balance,passed,18.445
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 1. Payout Request Initiation (requestPayout) places funds on hold in FinancialLedger and creates PENDING payout request upon valid submission,passed,2.413
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 2. Payout Approval Workflow (approvePayoutRequestAction) blocks unauthorized regular student accounts from approving payouts,passed,3.224
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 2. Payout Approval Workflow (approvePayoutRequestAction) blocks approving payouts that are already disbursed or rejected,passed,1.286
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 2. Payout Approval Workflow (approvePayoutRequestAction) transitions status from PENDING to APPROVED and logs approval metadata,passed,3.144
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 3. Payout Disbursement via Financial Ledger (disbursePayoutRequestAction) requires a valid transaction reference for disbursal,passed,1.487
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 3. Payout Disbursement via Financial Ledger (disbursePayoutRequestAction) blocks disbursing already disbursed or rejected payouts,passed,0.716
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 3. Payout Disbursement via Financial Ledger (disbursePayoutRequestAction) records immutable CLEARED entry in FinancialLedger and marks payout as DISBURSED,passed,1.458
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 4. Payout Rejection & Wallet Refund (rejectPayoutRequestAction) requires a rejection reason to be specified,passed,0.905
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 4. Payout Rejection & Wallet Refund (rejectPayoutRequestAction) prevents rejecting an already disbursed payout,passed,0.693
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 4. Payout Rejection & Wallet Refund (rejectPayoutRequestAction) refunds held funds back to instructor availableBalance and logs compensating PAYOUT_REFUND ledger entry,passed,0.867
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 5. Instructor Self-Cancellation (cancelPayoutRequestAction) allows owner to cancel their own pending payout request and restores wallet balance,passed,0.79
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 5. Instructor Self-Cancellation (cancelPayoutRequestAction) prevents non-owner regular user from cancelling someone elses payout,passed,0.354
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 6. Payout Queries & Ledger Aggregation (getPayoutRequestsAction & getFinancialLedgerAction) aggregates live KPI counts and financial amounts across lifecycle statuses,passed,1.048
+__tests__/unit-testing/PayoutRequestWorkflows.test.ts,Payout Request Workflows & Financial Ledger Engine 6. Payout Queries & Ledger Aggregation (getPayoutRequestsAction & getFinancialLedgerAction) fetches Financial Ledger entries and computes outflow summary stats,passed,0.828
+__tests__/unit-testing/PersonalizedRecommendations.test.ts,Personalized Course Recommendation Engine gives high score to fullstack course when student track is Fullstack Web Development,passed,2.823
+__tests__/unit-testing/PersonalizedRecommendations.test.ts,Personalized Course Recommendation Engine prioritizes Machine Learning & AI course when student has data science interests,passed,1.252
+__tests__/unit-testing/PersonalizedRecommendations.test.ts,Personalized Course Recommendation Engine calibrates difficulty and rewards Advanced System Design course for high-Elo students,passed,0.412
+__tests__/unit-testing/PersonalizedRecommendations.test.ts,Personalized Course Recommendation Engine rewards student skills synergy when course builds upon known technologies,passed,0.403
+__tests__/unit-testing/PersonalizedRecommendations.test.ts,Personalized Course Recommendation Engine caps recommendation score at 99% and maintains reasonable minimum floor,passed,0.963
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) Commission Rules Configuration establishes the default 10% commission rule with 90% instructor share,passed,2.076
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) Commission Rules Configuration establishes the 5% Early Bird promotional commission rule with 95% instructor share,passed,0.333
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when explicitly requested in options,passed,0.306
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns DEFAULT when explicitly requested in options,passed,0.178
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course has isEarlyBird flag set to true,passed,0.171
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course has an active future earlyBirdUntil date,passed,0.153
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns DEFAULT when course earlyBirdUntil date has expired and no other criteria match,passed,0.14
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD for early cohort enrollments (first 20 students enrolled),passed,0.144
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course is in promotional discounted launch phase (price < originalPrice),passed,0.178
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course was launched recently (within 30 days of creation),passed,0.261
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns DEFAULT when course does not qualify for any early bird criteria,passed,0.167
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly calculates 10% platform commission and 90% instructor earnings under DEFAULT rule,passed,0.392
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly calculates 5% platform commission and 95% instructor earnings under EARLY_BIRD rule,passed,0.292
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly handles fractional prices and rounds cleanly to 2 decimal places,passed,0.174
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly handles zero price (free courses),passed,0.117
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine safely clamps negative price to 0,passed,0.141
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) processEnrollmentCommission Atomic Server Action & Tracking does not let anonymous callers or students generate instructor earnings,passed,0.874
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) processEnrollmentCommission Atomic Server Action & Tracking creates PLATFORM_COMMISSION entity with DEFAULT 10% rule tracking,passed,1.79
+__tests__/unit-testing/PlatformCommissionRules.test.ts,Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) processEnrollmentCommission Atomic Server Action & Tracking creates PLATFORM_COMMISSION entity with EARLY_BIRD 5% rule tracking when early bird applies,passed,0.829
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,"Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) awards high score when repository, live URL, deliverables, and docs are complete",passed,4.097
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) penalizes when GitHub URL is invalid or missing when required,passed,0.702
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) penalizes when live deployment URL is missing or insecure (HTTP),passed,0.373
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) fails evaluation when overall score is below passMarks,passed,0.349
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,Project Submission & Automated Evaluation Engine submitProjectAndEvaluateAction (Server Action) prevents submission if student is not authenticated,passed,0.723
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,"Project Submission & Automated Evaluation Engine submitProjectAndEvaluateAction (Server Action) evaluates and saves project submission, updates progress if passed",passed,0.967
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,Project Submission & Automated Evaluation Engine Instructor Actions blocks non-instructor users from accessing submissions,passed,0.464
+__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts,Project Submission & Automated Evaluation Engine Instructor Actions allows instructors to grade and override submission scores,passed,0.662
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Approval atomically updates payment to Refunded and revokes enrollment to Cancelled,passed,5.913
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Approval handles refund approval when no commission document exists by looking up course instructor,passed,0.937
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Approval supports MODERATOR and SUPERADMIN roles,passed,0.528
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Rejection records rejection rationale and keeps student enrollment active,passed,1.177
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation Security & Validation blocks unauthenticated requests,passed,0.584
+__tests__/unit-testing/RefundProcessingEngine.test.ts,"Task T-019: Refund Request Processing Engine & Reconciliation Security & Validation blocks unauthorized roles (STUDENT, INSTRUCTOR)",passed,0.412
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation Security & Validation returns error when payment record is not found and cannot be created,passed,0.606
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation getRefundRequestsAction fetches and filters serialized payments for authorized admins,passed,2.159
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation getRefundRequestsAction filters by search term correctly,passed,1.179
+__tests__/unit-testing/RefundProcessingEngine.test.ts,Task T-019: Refund Request Processing Engine & Reconciliation seedDemoRefundRequestsAction refuses to create sample financial records,passed,0.717
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review queues an expired enrollment without granting access,passed,5.534
+__tests__/unit-testing/RevisionAccess.test.ts,"Revision access review rejects invalid request details: {""examDate"":""2000-01-01""}",passed,1.052
+__tests__/unit-testing/RevisionAccess.test.ts,"Revision access review rejects invalid request details: {""examDate"":""2099-02-30""}",passed,0.514
+__tests__/unit-testing/RevisionAccess.test.ts,"Revision access review rejects invalid request details: {""reason"":""too short""}",passed,0.492
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review requires an expired paid enrollment,passed,0.554
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review requires an expired paid enrollment,passed,0.375
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review rejects duplicate pending requests,passed,0.466
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review uses the course revision duration and a pending-only update on approval,passed,1.622
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review allows a current ADMIN to review,passed,0.642
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review allows a current SUPERADMIN to review,passed,0.514
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review denies a non-owner STUDENT,passed,0.432
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review denies a non-owner INSTRUCTOR,passed,0.236
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review rejects a stale session whose current account is blocked,passed,0.31
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review requires rejection feedback and leaves access disabled,passed,0.444
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review does not approve when revision is disabled on the course,passed,0.295
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review reports a concurrent or already completed review,passed,0.232
+__tests__/unit-testing/RevisionAccess.test.ts,Revision access review limits the instructor queue to owned courses,passed,0.653
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 1. Student Instructor Application Submission allows a regular student to submit an instructor application and updates InstructorProfile,passed,4.963
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 1. Student Instructor Application Submission rejects an application from a user who is already an approved instructor,passed,0.725
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 1. Student Instructor Application Submission rejects an application if the reason is shorter than 20 characters,passed,0.594
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,"Student-to-Instructor Role Upgrade & Instructor Course Enrollment 2. Admin Approval & Student Data Preservation promotes user role to INSTRUCTOR and preserves all student progress, elo, and enrollment data",passed,1.652
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention allows an approved instructor to enroll in an eligible course created by another instructor,passed,1.421
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention blocks an instructor from enrolling in their own course (self-enrollment prevention),passed,0.523
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention prevents duplicate enrollment if user is already enrolled in the course,passed,0.5
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention returns payment checkout URL for paid course enrollment by instructor,passed,0.504
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 4. Superadmin Course Assignment Logic prevents superadmin from assigning a course to its own creator/instructor,passed,1.084
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 4. Superadmin Course Assignment Logic prevents duplicate assignment if learner is already enrolled,passed,0.674
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Unified Enrolled Courses Retrieval for Instructors retrieves all courses enrolled when user was a student without having to go back to student profile,passed,2.114
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Unified Enrolled Courses Retrieval for Instructors aggregates both student-enrolled courses and newly instructor-enrolled courses in the enrolled courses list,passed,1.245
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Unified Enrolled Courses Retrieval for Instructors revalidates both student and instructor dashboard paths when enrolling,passed,0.537
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Admin Role Promotion and Auto-Revalidation for Instructors promotes user role to INSTRUCTOR and revalidates all student and instructor dashboard paths,passed,0.987
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment does not enroll students in DRAFT courses,passed,0.465
+__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts,Student-to-Instructor Role Upgrade & Instructor Course Enrollment does not enroll students in PENDING_REVIEW courses,passed,0.242
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions assignCourseToStudent successfully assigns a course to a student when not already enrolled,passed,3.992
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions assignCourseToStudent rejects assignment if student is already enrolled,passed,0.602
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions removeCourseFromStudent successfully revokes course enrollment,passed,0.633
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions blockUser & unblockUser blocks a user successfully,passed,0.748
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions blockUser & unblockUser prevents blocking a superadmin account,passed,0.376
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions blockUser & unblockUser unblocks a user successfully,passed,0.421
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions deleteUser permanently removes student account and their enrollments,passed,0.576
+__tests__/unit-testing/SuperadminActions.test.ts,Superadmin Actions deleteUser prevents deleting another superadmin,passed,0.286
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,Superadmin User & Course Management Actions createUser creates a new student successfully,passed,51.943
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,Superadmin User & Course Management Actions createUser creates an instructor and registers Instructor document,passed,81.593
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,Superadmin User & Course Management Actions createUser rejects duplicate email,passed,0.726
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,Superadmin User & Course Management Actions editUser updates user properties successfully,passed,0.96
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,Superadmin User & Course Management Actions createCourseByAdmin creates a course and initial module/lesson,passed,1.222
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,Superadmin User & Course Management Actions updateCourseByAdmin updates course details,passed,1.731
+__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts,"Superadmin User & Course Management Actions deleteCourseByAdmin deletes course and associated modules, lessons, enrollments",passed,1.125
+__tests__/unit-testing/Wishlist.test.ts,Wishlist Server Actions rejects toggle when user is not authenticated,passed,3.107
+__tests__/unit-testing/Wishlist.test.ts,Wishlist Server Actions adds course to wishlist if not previously saved,passed,0.879
+__tests__/unit-testing/Wishlist.test.ts,Wishlist Server Actions removes course from wishlist if already present,passed,1.323
+__tests__/unit-testing/Wishlist.test.ts,Wishlist Server Actions returns empty wishlistIds when not logged in,passed,0.63
+__tests__/unit-testing/Wishlist.test.ts,Wishlist Server Actions fetches wishlist IDs for logged-in user,passed,0.664
+__tests__/unit-testing/admin- status.test.ts,updateUserStatus updates status and returns success,passed,2.89
+__tests__/unit-testing/admin.test.ts,Admin Server Actions updateUserStatus should successfully update user status,passed,3.77
+__tests__/unit-testing/admin.test.ts,Admin Server Actions updateUserStatus should handle errors gracefully,passed,4.47
+__tests__/unit-testing/admin.test.ts,Admin Server Actions updateUserRole should successfully update user role,passed,0.875
+__tests__/unit-testing/admin.test.ts,Admin Server Actions updateUserRole should handle errors gracefully,passed,1.04
+__tests__/unit-testing/admin.test.ts,Admin Server Actions approveCourse should successfully approve a course,passed,0.727
+__tests__/unit-testing/admin.test.ts,Admin Server Actions approveCourse should handle errors gracefully,passed,0.834
+__tests__/unit-testing/admin.test.ts,Admin Server Actions rejectCourse should successfully reject a course,passed,0.471
+__tests__/unit-testing/admin.test.ts,Admin Server Actions toggleUserSuspend should successfully suspend an active user,passed,0.457
+__tests__/unit-testing/admin.test.ts,Admin Server Actions toggleUserSuspend should successfully approve a suspended user,passed,0.497
+__tests__/unit-testing/admin.test.ts,Admin Server Actions reviewInstructorRequest should successfully approve an instructor request and update user role,passed,1.059
+__tests__/unit-testing/admin.test.ts,Admin Server Actions reviewInstructorRequest should successfully reject an instructor request without updating user role,passed,0.656
+__tests__/unit-testing/admin.test.ts,Admin Server Actions reviewInstructorRequest should return error if request is not found,passed,0.266
+__tests__/unit-testing/admin.test.ts,Admin Server Actions reviewCourse should successfully approve a course,passed,0.438
+__tests__/unit-testing/admin.test.ts,Admin Server Actions reviewCourse should successfully reject a course,passed,0.296
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers normalizePhone normalizes local 11-digit Bangladeshi number,passed,2.277
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers normalizePhone normalizes numbers starting with +880 or 880,passed,0.312
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers isValidBDPhone validates correct Bangladeshi phone numbers,passed,0.569
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers isValidBDPhone rejects invalid phone numbers,passed,0.346
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers hashPassword and verifyPassword hashes and securely verifies matching passwords,passed,148.731
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers isValidMongoObjectId accepts valid 24-character hexadecimal MongoDB ObjectIds,passed,0.537
+__tests__/unit-testing/auth-helpers.test.ts,auth-helpers isValidMongoObjectId rejects UUID strings and prevents Mongoose CastError,passed,4.25
+__tests__/unit-testing/contests.test.ts,Contest Prioritization & Elo System identifies discipline match accurately and assigns priority weights,passed,2.034
+__tests__/unit-testing/contests.test.ts,Contest Prioritization & Elo System sorts contests by priority score so CS students see CS contests first,passed,0.441
+__tests__/unit-testing/contests.test.ts,Contest Prioritization & Elo System demonstrates two-way Elo fluctuation: drops on poor performance and climbs on high performance,passed,0.663
+__tests__/unit-testing/contests.test.ts,Contest Prioritization & Elo System calculates composite Elo with course completion bonus and solved problems bonus,passed,0.359
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress denies access without a session,passed,4.749
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress counts actual lessons rather than a hardcoded course total,passed,1.226
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress denies access after enrollment expiration,passed,0.613
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress honors a current revision grant,passed,0.787
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress prevents progress writes without enrollment,passed,1.185
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress rejects progress for a lesson belonging to a different course,passed,0.504
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress records completion for an entitled student and matching lesson,passed,0.979
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress rejects invalid video timestamps,passed,0.693
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress does not invent resources for an empty course,passed,1.171
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress withholds paid PDF URLs from non-enrolled students,passed,0.705
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress returns only existing live sessions,passed,0.599
+__tests__/unit-testing/course-access.test.ts,Course entitlement and real progress withholds meeting links from non-enrolled students,passed,0.397
+__tests__/unit-testing/course-routine.test.tsx,"Course Routine Reschedule Modal & CourseCard renders RescheduleModal with presets: 1-month fast track, catch-up rebalance, and custom",passed,202.987
+__tests__/unit-testing/course-routine.test.tsx,Course Routine Reschedule Modal & CourseCard allows switching to Catch-up mode (missed live classes & exams) and displays elapsed slider,passed,43.669
+__tests__/unit-testing/course-routine.test.tsx,Course Routine Reschedule Modal & CourseCard successfully applies rescheduled routine and calls onSuccess,passed,77.342
+__tests__/unit-testing/course-routine.test.tsx,Course Routine Reschedule Modal & CourseCard renders CourseCard with adjust routine button and opens RescheduleModal,passed,151.449
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic calculates logistic expected score correctly,passed,2.834
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic adjusts dynamic K-factor based on player experience and rating,passed,0.615
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic strictly decreases Elo rating when contest performance drops or fails,passed,0.663
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic increases Elo rating when performance beats benchmark expectation,passed,0.341
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic calculates composite Elo with course completion and solved problem bonuses,passed,0.41
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic correctly categorizes rating tiers,passed,0.386
+__tests__/unit-testing/elo.test.ts,Elo Engine & Mathematical Logic prioritizes CS contests for CS students with HIGH priority and deprioritizes for other backgrounds,passed,0.694
+__tests__/unit-testing/login.test.tsx,LoginPage renders the login page correctly,passed,104.552
+__tests__/unit-testing/login.test.tsx,LoginPage calls loginWithGoogle with correct provider when clicked,passed,465.295
+__tests__/unit-testing/login.test.tsx,LoginPage passes the callbackUrl to loginWithGoogle if provided,passed,146.948
+__tests__/unit-testing/login.test.tsx,LoginPage allows user to switch between sign up and login tabs,passed,243.233
+__tests__/unit-testing/login.test.tsx,LoginPage submits phone signup with valid information,passed,142.041
+__tests__/unit-testing/login.test.tsx,LoginPage submits phone login with phone and password,passed,160.473
+__tests__/unit-testing/otp.test.ts,OTP Authentication System requestSignupOtp rejects invalid or too short phone numbers,passed,2.445
+__tests__/unit-testing/otp.test.ts,OTP Authentication System requestSignupOtp rejects phone numbers that are already registered,passed,0.766
+__tests__/unit-testing/otp.test.ts,OTP Authentication System requestSignupOtp enforces 60-second rate-limiting between OTP requests,passed,0.386
+__tests__/unit-testing/otp.test.ts,OTP Authentication System requestSignupOtp successfully generates and stores OTP for a valid new phone,passed,1.375
+__tests__/unit-testing/otp.test.ts,OTP Authentication System verifyPasswordAndSendLoginOtp (2FA flow) rejects login when password is incorrect,passed,47.657
+__tests__/unit-testing/otp.test.ts,OTP Authentication System verifyPasswordAndSendLoginOtp (2FA flow) verifies password and sends login OTP to user mobile number,passed,50.665
+__tests__/unit-testing/otp.test.ts,OTP Authentication System verifyPasswordAndSendLoginOtp (2FA flow) works for Admin logging in with email and password,passed,46.82
+__tests__/unit-testing/otp.test.ts,OTP Authentication System requestLoginOtp rejects un-registered phone numbers during login,passed,0.451
+__tests__/unit-testing/otp.test.ts,OTP Authentication System requestLoginOtp sends login OTP for existing users,passed,0.385
+__tests__/unit-testing/routine-scheduler.test.ts,Course Routine Scheduler Engine generates 1-month accelerated schedule shrinking 4-month deadline,passed,3.477
+__tests__/unit-testing/routine-scheduler.test.ts,Course Routine Scheduler Engine reschedules course after 2 months of falling behind (Catch-up Mode),passed,0.767
+__tests__/unit-testing/routine-scheduler.test.ts,Course Routine Scheduler Engine correctly handles already completed lessons and only re-allocates remaining,passed,1.49
+__tests__/unit-testing/routine-scheduler.test.ts,Course Routine Scheduler Engine handles course without explicit modules by generating fallback lessons,passed,0.659
+__tests__/unit-testing/student.test.ts,student actions should have basic tests,passed,2.005
+__tests__/unit-testing/users.test.ts,Users Server Actions getPaginatedUsers should return paginated users without search parameters,passed,4.14
+__tests__/unit-testing/users.test.ts,Users Server Actions getPaginatedUsers should correctly apply search logic when searchEmail is provided,passed,0.602

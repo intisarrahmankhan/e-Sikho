@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/auth';
+import { requestCourseRevisionAction } from '@/actions/revision-access';
 import dbConnect from '@/lib/mongoose';
 import Enrollment from '@/models/Enrollment';
 import LessonProgress from '@/models/LessonProgress';
@@ -12,7 +13,6 @@ import Lesson from '@/models/Lesson';
 import LiveSession from '@/models/LiveSession';
 import { isValidMongoObjectId } from '@/lib/auth-helpers';
 import { revalidatePath } from 'next/cache';
-import { sendRealtimeNotification } from '@/lib/realtime-notifications';
 
 export interface CourseAccessResult {
   isLoggedIn: boolean;
@@ -31,6 +31,7 @@ export interface CourseAccessResult {
   revisionRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
   revisionExamDate?: string;
   revisionReason?: string;
+  revisionReviewNotes?: string;
 }
 
 export interface CourseResourceItem {
@@ -194,6 +195,7 @@ export async function getCourseAccessDetails(courseId: string): Promise<CourseAc
       revisionRequestStatus,
       revisionExamDate,
       revisionReason,
+      revisionReviewNotes: enrollment?.revisionReviewNotes || '',
     };
   } catch (error) {
     console.error('Error fetching course access details:', error);
@@ -281,9 +283,13 @@ export async function getCourseResourcesAction(courseId: string): Promise<{
   success: boolean;
   resources: CourseResourceItem[];
 }> {
+  return loadCourseResources(courseId, await getCourseAccessDetails(courseId));
+}
+
+// Access comes only from the server-side check, never from a client argument.
+async function loadCourseResources(courseId: string, access: CourseAccessResult) {
   const list: CourseResourceItem[] = [];
 
-  const access = await getCourseAccessDetails(courseId);
   try {
     if (courseId && courseId.length === 24) {
       await dbConnect();
@@ -327,9 +333,15 @@ export async function getCourseLiveSessionsAction(courseId: string): Promise<{
   success: boolean;
   liveSessions: LiveSessionItem[];
 }> {
+  return loadCourseLiveSessions(courseId, await getCourseAccessDetails(courseId));
+}
+
+async function loadCourseLiveSessions(courseId: string, access: CourseAccessResult): Promise<{
+  success: boolean;
+  liveSessions: LiveSessionItem[];
+}> {
   try {
     await dbConnect();
-    const access = await getCourseAccessDetails(courseId);
     if (!access.canAccessAll) return { success: true, liveSessions: [] };
     const sessions = await LiveSession.find({ courseId }).sort({ scheduledTime: -1 }).lean();
     return { success: true, liveSessions: sessions.map((session) => ({
@@ -343,107 +355,22 @@ export async function getCourseLiveSessionsAction(courseId: string): Promise<{
   }
 }
 
+/** One request and one entitlement check for the course learning tabs. */
+export async function getCourseLearningDetailsAction(courseId: string) {
+  const access = await getCourseAccessDetails(courseId);
+  const [resources, liveSessions] = await Promise.all([
+    loadCourseResources(courseId, access),
+    loadCourseLiveSessions(courseId, access),
+  ]);
+  return { access, resources, liveSessions };
+}
+
 /**
- * Requests or activates temporary revision access to course videos and PDFs after course ends
+ * Submits a revision request for instructor or administrator review after access expires.
  * so students can revise before their final exams.
  */
-export async function requestRevisionAccessAction({
-  courseId,
-  examDate,
-  reason,
-}: {
-  courseId: string;
-  examDate: string;
-  reason: string;
-}): Promise<{
-  success: boolean;
-  message?: string;
-  revisionAccessExpiresAt?: string;
-  error?: string;
-}> {
-  try {
-    const session = await auth();
-    const sessionUser = session?.user as { id?: string; email?: string } | undefined;
-    if (!sessionUser?.id) {
-      return { success: false, error: 'রিভিশন এক্সেস অনুরোধ করতে অনুগ্রহ করে লগইন করুন।' };
-    }
-
-    await dbConnect();
-
-    let userId = sessionUser.id;
-    if (typeof userId === 'string' && userId.includes('@')) {
-      const u = await User.findOne({ email: userId }).select('_id').lean() as any;
-      if (u) userId = u._id.toString();
-    }
-
-    const enrollment = await Enrollment.findOne({
-      userId,
-      courseId,
-      paymentStatus: { $in: ['success', 'GRANTED', 'granted'] },
-    });
-
-    if (!enrollment) {
-      return { success: false, error: 'এই কোর্সে আপনার কোনো সক্রিয় রেজিস্ট্রেশন রেকর্ড পাওয়া যায়নি।' };
-    }
-
-    let revisionDays = 14;
-    try {
-      const course = await Course.findById(courseId).select('revisionAccessDays allowRevisionAccess').lean() as any;
-      if (course?.allowRevisionAccess === false) {
-        return { success: false, error: 'এই কোর্সের ইন্সট্রাক্টর কোর্স পরবর্তী অতিরিক্ত রিভিশন এক্সেস অনুমোদন করেননি।' };
-      }
-      if (course?.revisionAccessDays) revisionDays = course.revisionAccessDays;
-    } catch {}
-
-    const expiresAt = new Date(Date.now() + revisionDays * 24 * 60 * 60 * 1000);
-
-    enrollment.isRevisionGranted = true;
-    enrollment.revisionAccessExpiresAt = expiresAt;
-    enrollment.revisionRequestStatus = 'APPROVED';
-    enrollment.revisionReason = reason?.trim() || 'Final exam preparation';
-    enrollment.revisionExamDate = examDate?.trim() || '';
-    await enrollment.save();
-
-    // Create notification for student
-    try {
-      const Notification = (await import('@/models/Notification')).default;
-      await Notification.create({
-        recipientId: userId,
-        title: 'কোর্স রিভিশন এক্সেস অনুমোদিত হয়েছে',
-        message: `আপনার ফাইনাল পরীক্ষার প্রস্তুতির সুবিধার্থে পরবর্তী ${revisionDays} দিনের জন্য কোর্স ভিডিও এবং লেকচার PDF এক্সেস চালু করা হয়েছে।`,
-        type: 'REVISION_ACCESS_UPDATE',
-        priority: 'HIGH',
-        priorityWeight: 3,
-        actionUrl: `/courses/${courseId}`,
-        badgeLabel: 'Revision Active',
-      });
-
-      // Push real-time alert via SSE
-      sendRealtimeNotification(userId.toString(), {
-        title: 'কোর্স রিভিশন এক্সেস অনুমোদিত হয়েছে',
-        message: `আপনার ফাইনাল পরীক্ষার প্রস্তুতির সুবিধার্থে পরবর্তী ${revisionDays} দিনের জন্য কোর্স ভিডিও এবং লেকচার PDF এক্সেস চালু করা হয়েছে।`,
-        type: 'REVISION_ACCESS_UPDATE',
-        priority: 'HIGH',
-        actionUrl: `/courses/${courseId}`,
-        badgeLabel: 'Revision Active',
-        createdAt: new Date().toISOString(),
-      });
-    } catch (notifErr) {
-      console.warn('Could not dispatch revision notification:', notifErr);
-    }
-
-    revalidatePath(`/courses/${courseId}`);
-    revalidatePath('/student');
-
-    return {
-      success: true,
-      message: `আপনার পরীক্ষার প্রস্তুতির জন্য সফলভাবে ${revisionDays} দিনের রিভিশন এক্সেস প্রদান করা হয়েছে।`,
-      revisionAccessExpiresAt: expiresAt.toISOString(),
-    };
-  } catch (error: any) {
-    console.error('Error requesting revision access:', error);
-    return { success: false, error: error.message || 'রিভিশন এক্সেস অনুরোধ করতে ব্যর্থ হয়েছে।' };
-  }
+export async function requestRevisionAccessAction(input: { courseId: string; examDate: string; reason: string }) {
+  return requestCourseRevisionAction(input);
 }
 
 /**

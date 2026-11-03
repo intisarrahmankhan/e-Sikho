@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { notFound, useRouter, useParams } from "next/navigation";
 import {
   BookOpen,
@@ -40,23 +41,23 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Course, getCourseById } from "@/lib/courses-data";
 import { useLanguage, formatBilingualDuration, translateCategory, translateLevel } from "@/context/LanguageContext";
 import { CourseRoutineBanner } from "@/components/courses/CourseRoutineBanner";
-import DiscussionBoard from "@/components/courses/DiscussionBoard";
-import NotesAndResources from "@/components/courses/NotesAndResources";
 import SecureVideoPlayer from "@/components/video/SecureVideoPlayer";
-import { CourseCohortLeaderboard } from "@/components/course/CourseCohortLeaderboard";
-import { ProtectedPdfViewerModal } from "@/components/pdf/ProtectedPdfViewerModal";
 import { WishlistButton } from "@/components/courses/WishlistButton";
-import { ProjectSubmissionPortal } from "@/components/project/ProjectSubmissionPortal";
 import {
   getCourseAccessDetails,
   toggleLessonProgressAction,
-  getCourseResourcesAction,
-  getCourseLiveSessionsAction,
+  getCourseLearningDetailsAction,
   requestRevisionAccessAction,
   CourseAccessResult,
   CourseResourceItem,
   LiveSessionItem,
 } from "@/actions/course-access";
+
+const DiscussionBoard = dynamic(() => import('@/components/courses/DiscussionBoard'));
+const NotesAndResources = dynamic(() => import('@/components/courses/NotesAndResources'));
+const CourseCohortLeaderboard = dynamic(() => import('@/components/course/CourseCohortLeaderboard').then((m) => m.CourseCohortLeaderboard));
+const ProtectedPdfViewerModal = dynamic(() => import('@/components/pdf/ProtectedPdfViewerModal').then((m) => m.ProtectedPdfViewerModal), { ssr: false });
+const ProjectSubmissionPortal = dynamic(() => import('@/components/project/ProjectSubmissionPortal').then((m) => m.ProjectSubmissionPortal), { ssr: false });
 
 function parseArrayField(val: unknown): string[] {
   if (Array.isArray(val)) return val.map(String).filter(Boolean);
@@ -77,7 +78,9 @@ export default function CourseDetailsPage() {
   const params = useParams();
   const courseId = params?.id as string;
   const { language } = useLanguage();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
+  const accessUserId = (session?.user as any)?.id;
+  const accessUserRole = (session?.user as any)?.role;
 
   // Tab state: syllabus, live, resources, qa, notes, leaderboard
   const [courseTab, setCourseTab] = useState<'syllabus' | 'live' | 'resources' | 'qa' | 'notes' | 'leaderboard'>('syllabus');
@@ -148,13 +151,8 @@ export default function CourseDetailsPage() {
       if (res.error) {
         alert(res.error);
       } else {
-        setRevisionSuccessMsg(res.message || 'রিভিশন এক্সেস অনুমোদিত হয়েছে!');
-        setAccessDetails((prev) => ({
-          ...prev,
-          canAccessAll: true,
-          isRevisionAccessActive: true,
-          revisionAccessExpiresAt: res.revisionAccessExpiresAt,
-        }));
+        setRevisionSuccessMsg(res.message || 'রিভিশন এক্সেস অনুরোধ জমা হয়েছে।');
+        setAccessDetails(await getCourseAccessDetails(courseId));
         setTimeout(() => setIsRevisionModalOpen(false), 2200);
       }
     } catch (err: any) {
@@ -194,10 +192,15 @@ export default function CourseDetailsPage() {
 
   // 1. Fetch Course Details from DB or API
   useEffect(() => {
-    if (course && Array.isArray(course.learningOutcomes)) return;
-
+    if (!courseId) return;
     let isMounted = true;
-    fetch(`/api/courses/${courseId}`)
+    const controller = new AbortController();
+    setCourse(null);
+    setActiveLessonId('');
+    setActiveModuleId('');
+    setCourseTab('syllabus');
+    setLoading(true);
+    fetch(`/api/courses/${courseId}`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (!isMounted) return;
@@ -212,6 +215,7 @@ export default function CourseDetailsPage() {
         }
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error('Failed to load course details:', err);
       })
       .finally(() => {
@@ -220,21 +224,24 @@ export default function CourseDetailsPage() {
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
-  }, [course, courseId]);
+  }, [courseId]);
 
   // 2. Fetch User Enrollment Access & Lesson Progress
   useEffect(() => {
     let isMounted = true;
-    if (!courseId) return;
+    setAccessDetails({ isLoggedIn: false, isEnrolled: false, canAccessAll: false, completedLessonIds: [], totalLessons: 0, progressPercentage: 0 });
+    setResources([]);
+    setLiveSessions([]);
+    setActiveVideo(null);
+    setPdfModalState({ isOpen: false, pdfUrl: '', title: '', isDownloadable: false });
+    setActiveProjectPortal({ isOpen: false, lessonId: '', title: '' });
+    if (!courseId || sessionStatus === 'loading') return;
 
     async function loadAccess() {
       try {
-        const [accessRes, resRes, liveRes] = await Promise.all([
-          getCourseAccessDetails(courseId),
-          getCourseResourcesAction(courseId),
-          getCourseLiveSessionsAction(courseId),
-        ]);
+        const { access: accessRes, resources: resRes, liveSessions: liveRes } = await getCourseLearningDetailsAction(courseId);
 
         if (isMounted) {
           setAccessDetails(accessRes);
@@ -250,7 +257,7 @@ export default function CourseDetailsPage() {
     return () => {
       isMounted = false;
     };
-  }, [courseId, session]);
+  }, [courseId, sessionStatus, accessUserId, accessUserRole]);
 
   if (loading) {
     return (
@@ -282,13 +289,13 @@ export default function CourseDetailsPage() {
       : (course.instructor?.role || (language === 'en' ? 'Instructor' : 'ইন্সট্রাক্টর')),
     avatar:
       course.instructor?.avatar ||
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+      '/images/avatar-placeholder.svg',
     bio: (language === 'en' && course.instructor?.bioEn)
       ? course.instructor.bioEn
       : (course.instructor?.bio ||
         (language === 'en'
-          ? 'Experienced course instructor and industry mentor.'
-          : 'অভিজ্ঞ কোর্স ইন্সট্রাক্টর ও ইন্ডাস্ট্রি মেন্টর।')),
+          ? 'The instructor has not added a biography yet.'
+          : 'ইন্সট্রাক্টর এখনও পরিচিতি যোগ করেননি।')),
   };
 
   const originalPrice = Number(course.originalPrice) || Number(course.price) || 0;
@@ -500,13 +507,16 @@ export default function CourseDetailsPage() {
                     </h4>
                     <p className="text-xs text-amber-800">
                       {language === 'en'
-                        ? 'Need to review lectures for your upcoming final exams? You can request a 14-day temporary revision extension.'
-                        : 'সামনে ফাইনাল পরীক্ষা? লেকচার ভিডিও ও স্লাইডগুলো রিভিশন দেওয়ার জন্য ১৪ দিনের অস্থায়ী এক্সেস নিতে পারেন।'}
+                        ? 'Request temporary revision access. Your course instructor or an administrator must approve it before access is restored.'
+                        : 'অস্থায়ী রিভিশন এক্সেসের জন্য অনুরোধ করুন। কোর্স ইন্সট্রাক্টর বা প্রশাসক অনুমোদন করলে এক্সেস চালু হবে।'}
                     </p>
+                    {accessDetails.revisionRequestStatus === 'PENDING' && <p role="status" className="mt-2 text-sm font-semibold">{language === 'en' ? 'Revision request pending review.' : 'রিভিশন অনুরোধ পর্যালোচনার অপেক্ষায় আছে।'}</p>}
+                    {accessDetails.revisionReviewNotes && <p className="mt-2 text-sm">{language === 'en' ? 'Review: ' : 'পর্যালোচনা: '}{accessDetails.revisionReviewNotes}</p>}
                   </div>
                 </div>
                 <Button
                   onClick={() => setIsRevisionModalOpen(true)}
+                  disabled={!accessDetails.canRequestRevision || accessDetails.revisionRequestStatus === 'PENDING'}
                   size="sm"
                   className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 rounded-xl shadow-xs gap-1.5"
                 >
@@ -554,7 +564,7 @@ export default function CourseDetailsPage() {
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-slate-600 pt-2 border-t border-slate-200">
               <div className="flex items-center gap-1.5 font-semibold text-amber-600">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span>{course.rating || 5.0}</span>
+                <span>{course.rating ?? 0}</span>
                 <span className="text-slate-400 font-normal">
                   {language === 'en' ? `(${course.totalRatings || 0} reviews)` : `(${course.totalRatings || 0} রিভিউ)`}
                 </span>
@@ -1268,7 +1278,7 @@ export default function CourseDetailsPage() {
                   <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(accessDetails.progressPercentage, 5)}%` }}
+                      style={{ width: `${Math.max(0, Math.min(100, accessDetails.progressPercentage))}%` }}
                     />
                   </div>
                   <p className="text-[11px] text-slate-400">
@@ -1325,7 +1335,7 @@ export default function CourseDetailsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span>{language === 'en' ? 'Chapter quizzes & certificate on pass' : 'কুইজ ও সমাপনী সার্টিফিকেট'}</span>
+                      <span>{language === 'en' ? 'Chapter quizzes & assessment results' : 'কুইজ ও মূল্যায়নের ফলাফল'}</span>
                     </div>
                   </div>
                 </div>
@@ -1411,7 +1421,7 @@ export default function CourseDetailsPage() {
                     <div className="flex items-center gap-2.5">
                       <Award className="h-4 w-4 text-primary-600" />
                       <span>
-                        {language === 'en' ? 'Verified Certificate of Completion' : 'ভেরিফায়েড কোর্স সমাপ্তি সার্টিফিকেট'}
+                        {language === 'en' ? 'Lesson completion tracking' : 'লেসন সম্পন্নের অগ্রগতি ট্র্যাকিং'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5">
@@ -1575,7 +1585,7 @@ export default function CourseDetailsPage() {
       )}
 
       {/* Protected PDF Viewer Modal (View-Only by default) */}
-      <ProtectedPdfViewerModal
+      {pdfModalState.isOpen && <ProtectedPdfViewerModal
         isOpen={pdfModalState.isOpen}
         onClose={() => setPdfModalState((p) => ({ ...p, isOpen: false }))}
         pdfUrl={pdfModalState.pdfUrl}
@@ -1585,7 +1595,7 @@ export default function CourseDetailsPage() {
           studentEmail: session?.user?.email || undefined,
         }}
         isDownloadable={pdfModalState.isDownloadable}
-      />
+      />}
 
       {/* Exam Revision Access Request Modal */}
       {isRevisionModalOpen && (
@@ -1613,15 +1623,15 @@ export default function CourseDetailsPage() {
                 <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
                 <p className="font-bold text-sm text-emerald-900">{revisionSuccessMsg}</p>
                 <p className="text-xs text-emerald-700">
-                  {language === 'en' ? 'Your temporary revision access is now activated!' : 'আপনার রিভিশন এক্সেস সফলভাবে সক্রিয় করা হয়েছে!'}
+                  {language === 'en' ? 'Your request is awaiting review. Access will reopen after approval.' : 'আপনার অনুরোধ পর্যালোচনার অপেক্ষায় আছে। অনুমোদনের পর এক্সেস চালু হবে।'}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleRequestRevisionAccess} className="space-y-4">
                 <p className="text-xs text-slate-600 leading-relaxed">
                   {language === 'en'
-                    ? 'Get 14-day temporary access to all course videos, slides, and learning materials to prepare for your upcoming semester/final exams.'
-                    : 'আপনার আসন্ন ফাইনাল পরীক্ষার প্রস্তুতির জন্য কোর্সের সমস্ত ভিডিও এবং স্লাইড দেখতে ১৪ দিনের অস্থায়ী রিভিশন অনুমোদনের জন্য নিচের তথ্য পূরণ করুন।'}
+                    ? 'Request temporary revision access for your upcoming exam. Your instructor or an administrator will review your request and apply the course revision period after approval.'
+                    : 'আপনার আসন্ন পরীক্ষার জন্য অস্থায়ী রিভিশন এক্সেসের অনুরোধ করুন। প্রশিক্ষক বা প্রশাসক পর্যালোচনা করে অনুমোদন দিলে কোর্সের নির্ধারিত সময়ের জন্য এক্সেস চালু হবে।'}
                 </p>
 
                 <div className="space-y-1.5">
@@ -1643,6 +1653,9 @@ export default function CourseDetailsPage() {
                   </label>
                   <textarea
                     rows={3}
+                    required
+                    minLength={20}
+                    maxLength={2000}
                     placeholder={language === 'en' ? 'e.g. Final exam revision for CSE 314...' : 'যেমন: ফাইনাল সেমিস্টার পরীক্ষার প্রস্তুতি...'}
                     value={revisionReason}
                     onChange={(e) => setRevisionReason(e.target.value)}
@@ -1667,7 +1680,7 @@ export default function CourseDetailsPage() {
                     {isSubmittingRevision ? (
                       <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                     ) : (
-                      <span>{language === 'en' ? 'Grant Access' : 'এক্সেস অনুমোদন করুন'}</span>
+                      <span>{language === 'en' ? 'Submit revision request' : 'রিভিশন অনুরোধ জমা দিন'}</span>
                     )}
                   </Button>
                 </div>

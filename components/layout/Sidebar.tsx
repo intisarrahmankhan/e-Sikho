@@ -13,6 +13,7 @@ export function Sidebar() {
   const { t } = useLanguage();
   const isLoggedIn = status === 'authenticated' && !!session?.user;
   const role = (session?.user as any)?.role;
+  const isAdmin = role === 'ADMIN' || role === 'SUPERADMIN';
 
   const userDashboardUrl =
     role === 'ADMIN' || role === 'SUPERADMIN'
@@ -24,6 +25,7 @@ export function Sidebar() {
   const userSettingsUrl = role === 'INSTRUCTOR' ? '/instructor/settings' : '/student/settings';
 
   const navItems = [
+    ...(['ADMIN', 'SUPERADMIN'].includes(role) ? [{ name: 'Course revision requests', href: '/admin/revision-requests', icon: BookOpen }] : []),
     ...(role === 'SUPERADMIN' ? [{ name: 'Global assessment approvals', href: '/admin/assessments', icon: BookOpen }] : []),
     { name: t('sidebar.home', 'হোম পেজ'), href: '/', icon: Home, matchExact: true },
     { name: t('sidebar.courses', 'কোর্সসমূহ'), href: '/courses', icon: BookOpen },
@@ -32,9 +34,14 @@ export function Sidebar() {
         ? [
             { name: 'ইন্সট্রাক্টর স্টুডিও', href: '/instructor', icon: LayoutDashboard },
             { name: 'Assessment hosting access', href: '/instructor/assessments', icon: BookOpen },
+            { name: 'Course revision requests', href: '/instructor/revision-requests', icon: BookOpen },
             { name: 'আমার এনরোল্ড কোর্সসমূহ', href: '/instructor?tab=enrolled', icon: GraduationCap },
             { name: t('sidebar.goals', 'গোলস ও ট্র্যাকিং'), href: '/student/goals', icon: Target },
             { name: t('sidebar.settings', 'সেটিংস'), href: userSettingsUrl, icon: Settings },
+          ]
+        : isAdmin
+        ? [
+            { name: t('sidebar.dashboard', 'ড্যাশবোর্ড'), href: userDashboardUrl, icon: LayoutDashboard },
           ]
         : [
             { name: t('sidebar.dashboard', 'ড্যাশবোর্ড'), href: userDashboardUrl, icon: LayoutDashboard },

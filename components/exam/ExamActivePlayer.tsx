@@ -460,16 +460,19 @@ export function ExamActivePlayer({
                     {language === 'en' ? 'Select the correct option:' : 'সঠিক উত্তরটি নির্বাচন করুন:'}
                   </span>
 
-                  <div className="space-y-2.5">
+                  <div className="space-y-2.5" role="group" aria-label={language === 'en' ? 'Answer options' : 'উত্তরের বিকল্পসমূহ'}>
                     {(currentQuestion.options || []).map((option, optIdx) => {
                       const isSelected = answers[currentIndex]?.selectedOption === optIdx;
                       const optionLetter = String.fromCharCode(65 + optIdx); // A, B, C, D
 
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={optIdx}
                           onClick={() => handleSelectOption(optIdx)}
-                          className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${
+                          aria-pressed={isSelected}
+                          aria-label={`${optionLetter}: ${option}`}
+                          className={`w-full text-left flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 ${
                             isSelected
                               ? 'bg-primary-50/80 border-primary-500 text-primary-950 ring-1 ring-primary-500/50 shadow-xs'
                               : 'bg-white border-slate-200/90 hover:bg-slate-50/80 text-slate-700 hover:border-slate-300'
@@ -488,7 +491,7 @@ export function ExamActivePlayer({
                           <div className="text-sm sm:text-base flex-1 pt-0.5 leading-snug">
                             <LatexRenderer content={option} />
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

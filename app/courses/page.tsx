@@ -3,8 +3,6 @@ import { CoursesCatalog } from "@/components/courses/CoursesCatalog";
 import { Course as CourseType } from "@/lib/courses-data";
 import dbConnect from '@/lib/mongoose';
 import Course from '@/models/Course';
-import Module from '@/models/Module';
-import Lesson from '@/models/Lesson';
 import Instructor from '@/models/Instructor';
 import { getPersonalizedRecommendationsAction } from '@/actions/recommendations';
 import { getUserWishlistIdsAction } from '@/actions/wishlist';
@@ -20,36 +18,19 @@ export default async function CoursesPage() {
     // Try fetching from MongoDB
     await dbConnect();
 
-    // Fetch recommendations and wishlist for current user
-    const [recRes, wishlistRes] = await Promise.all([
+    // Load the independent catalog and user-specific sections together.
+    const [submittedCourses, recRes, wishlistRes] = await Promise.all([
+      Course.find({ approvalStatus: 'APPROVED', status: 'PUBLISHED' })
+        .populate('instructor')
+        .lean(),
       getPersonalizedRecommendationsAction(4),
       getUserWishlistIdsAction(),
     ]);
     recommendationsRes = recRes;
     userWishlistIds = wishlistRes.wishlistIds || [];
 
-    const submittedCourses = await Course.find({ approvalStatus: 'APPROVED', status: 'PUBLISHED' })
-      .populate('instructor')
-      .lean();
-
-    // In Mongoose, we have to fetch modules and lessons separately if we didn't setup virtual populates
-    additionalCourses = await Promise.all(submittedCourses.map(async (course: any) => {
-      const courseModules = await Module.find({ courseId: course._id }).sort({ order: 1 }).lean();
-      const modulesWithLessons = await Promise.all(courseModules.map(async (m: any) => {
-        const lessons = await Lesson.find({ moduleId: m._id }).sort({ order: 1 }).lean();
-        return {
-          id: m._id.toString(),
-          title: m.title,
-          duration: m.duration,
-          lessons: lessons.map((l: any) => ({
-            id: l._id.toString(),
-            title: l.title,
-            duration: l.duration,
-            isFree: l.isFree,
-          }))
-        };
-      }));
-
+    // Cards use course-level metadata; curriculum is loaded on the detail page.
+    additionalCourses = submittedCourses.map((course: any) => {
       return {
         id: course._id.toString(),
         title: course.title,
@@ -75,14 +56,14 @@ export default async function CoursesPage() {
           id: course.instructor._id.toString(),
           name: course.instructor.name,
           role: course.instructor.role || "ইন্সট্রাক্টর",
-          avatar: course.instructor.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+          avatar: course.instructor.avatar || "/images/avatar-placeholder.svg",
           bio: course.instructor.bio || "",
         } : { id: '', name: 'Unknown', role: 'Instructor', avatar: '', bio: '' },
         learningOutcomes: typeof course.learningOutcomes === 'string' ? JSON.parse(course.learningOutcomes) : (course.learningOutcomes || []),
         prerequisites: typeof course.prerequisites === 'string' ? JSON.parse(course.prerequisites) : (course.prerequisites || []),
-        modules: modulesWithLessons,
+        modules: [],
       };
-    }));
+    });
   } catch (error) {
     // Graceful fallback when MongoDB is unavailable
     console.warn("Notice: MongoDB unavailable. Displaying static course catalog.");

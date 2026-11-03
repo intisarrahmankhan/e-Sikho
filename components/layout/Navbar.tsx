@@ -53,6 +53,7 @@ export function Navbar() {
   };
 
   const role = (session?.user as any)?.role;
+  const isAdmin = role === 'ADMIN' || role === 'SUPERADMIN';
   const userDashboardUrl =
     role === 'ADMIN' || role === 'SUPERADMIN'
       ? '/admin'
@@ -211,9 +212,9 @@ export function Navbar() {
               {/* User Avatar & Logout Container */}
               <div className="flex items-center gap-1 sm:gap-1.5 border-l border-gray-200 pl-1.5 sm:pl-2 shrink-0">
                 <Link
-                  href={`${userDashboardUrl}/settings`}
+                  href={isAdmin ? userDashboardUrl : `${userDashboardUrl}/settings`}
                   className="flex items-center gap-1.5 hover:bg-gray-50 rounded-xl p-1 transition cursor-pointer shrink-0"
-                  title={language === 'en' ? 'Account Settings' : 'অ্যাকাউন্ট সেটিংস'}
+                  title={isAdmin ? (language === 'en' ? 'Dashboard' : 'ড্যাশবোর্ড') : (language === 'en' ? 'Account Settings' : 'অ্যাকাউন্ট সেটিংস')}
                 >
                   <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-tr from-primary-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
                     {session.user.name ? session.user.name.charAt(0).toUpperCase() : <User className="h-3.5 w-3.5" />}

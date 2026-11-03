@@ -271,7 +271,7 @@ function LoginForm() {
     setError(null);
     setSuccess(null);
 
-    const cleanIdentifier = phone.replace(/[\s\-\(\)]/g, '').trim();
+    const cleanIdentifier = phone.includes('@') ? phone.trim() : phone.replace(/[\s\-\(\)]/g, '').trim();
     if (!cleanIdentifier) {
       setError(language === 'en' ? 'Please enter your phone number or email.' : 'অনুগ্রহ করে আপনার মোবাইল নম্বর বা ইমেইল দিন।');
       return;

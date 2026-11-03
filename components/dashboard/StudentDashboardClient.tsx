@@ -50,7 +50,7 @@ interface StudentDashboardClientProps {
   streak: number;
   ongoingLessonsCount?: number;
   completedQuizzesCount?: number;
-  earnedCertificatesCount?: number;
+  passedExamAttemptsCount?: number;
   recommendedCourses?: RecommendedCourseItem[];
   studentProfile?: {
     targetTrack: string;
@@ -72,13 +72,13 @@ export function StudentDashboardClient({
   competitiveElo = 1200,
   problemsSolved = 0,
   completedCoursesCount = 0,
-  academicBackground = 'Computer Science & Engineering (CSE)',
+  academicBackground = '',
   eloHistory = [],
   prioritizedContests = [],
   streak,
   ongoingLessonsCount = 0,
   completedQuizzesCount = 0,
-  earnedCertificatesCount = 0,
+  passedExamAttemptsCount = 0,
   recommendedCourses = [],
   studentProfile,
 }: StudentDashboardClientProps) {
@@ -118,8 +118,8 @@ export function StudentDashboardClient({
       border: 'border-emerald-100',
     },
     {
-      label: language === 'en' ? 'Earned Certificates' : 'অর্জিত সার্টিফিকেট',
-      value: earnedCertificatesCount,
+      label: language === 'en' ? 'Passed Exam Attempts' : 'উত্তীর্ণ পরীক্ষার প্রচেষ্টা',
+      value: passedExamAttemptsCount,
       icon: Award,
       bg: 'bg-amber-50',
       iconColor: 'text-amber-600',
@@ -435,17 +435,11 @@ export function StudentDashboardClient({
           </div>
           <div>
             <h4 className="text-sm font-bold">
-              {language === 'en' ? "Today's Study Goal" : 'আজকের পড়ার লক্ষ্যমাত্রা'}
+              {language === 'en' ? 'Your study routine' : 'আপনার পড়ার রুটিন'}
             </h4>
             <p className="text-xs text-indigo-200 mt-0.5">
-              {language === 'en' ? '30 of 45 minutes completed' : '৪৫ মিনিটের মধ্যে ৩০ মিনিট সম্পন্ন হয়েছে'}
+              {language === 'en' ? 'Plan your next session. Course progress comes from your completed lessons and routine.' : 'পরবর্তী পড়ার সময় পরিকল্পনা করুন। কোর্সের অগ্রগতি আপনার সম্পন্ন লেসন ও রুটিন থেকে দেখানো হয়।'}
             </p>
-            <div className="mt-2 flex items-center gap-2">
-              <div className="h-2 flex-1 bg-white/20 rounded-full overflow-hidden max-w-[180px]">
-                <div className="h-full w-[67%] bg-white rounded-full" />
-              </div>
-              <span className="text-xs font-bold text-white">67%</span>
-            </div>
           </div>
         </div>
         <Link href="/student/goals">

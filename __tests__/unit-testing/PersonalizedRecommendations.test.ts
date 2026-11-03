@@ -144,4 +144,20 @@ describe('Personalized Course Recommendation Engine', () => {
     expect(result.score).toBeGreaterThanOrEqual(40);
     expect(result.matchPercentage).toEqual(result.score);
   });
+
+  it('does not invent rating or enrollment evidence for a new course', () => {
+    const result = calculateCourseRecommendationScore({
+      title: 'New course', rating: 0, studentsEnrolled: 0,
+    }, {});
+    expect(result.socialScore).toBe(0);
+  });
+
+  it('does not infer a track or interests from an empty student profile', () => {
+    const result = calculateCourseRecommendationScore(sampleCourses.fullstack, {
+      targetTrack: '', interests: [], skills: [],
+    });
+    expect(result.matchedInterests).toEqual([]);
+    expect(result.matchedSkills).toEqual([]);
+    expect(result.matchReasons.some((reason) => reason.en.startsWith('Aligned with your target track:'))).toBe(false);
+  });
 });

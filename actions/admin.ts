@@ -1099,10 +1099,10 @@ export async function reviewInstructorApplication(
         const user = await User.findById(userId);
         profile = await InstructorProfile.create({
           userId: req.userId,
-          institution: 'Institutional Applicant',
-          qualifications: ['Bachelor / Master Degree'],
-          experienceYears: 3,
-          subjectSpecialization: 'Software Engineering & IT',
+          institution: 'Not provided',
+          qualifications: [],
+          experienceYears: 0,
+          subjectSpecialization: 'Not provided',
           bio: req.reason,
           approval_status: 'Pending',
           submissionDate: req.createdAt || new Date(),

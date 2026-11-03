@@ -63,11 +63,9 @@ export function calculateCourseRecommendationScore(
   },
   profile: StudentProfileForRecommendation
 ): RecommendationScoreResult {
-  const targetTrack = profile.targetTrack || 'Fullstack Web Development';
-  const elo = profile.elo || 1200;
-  const interests = (profile.interests && profile.interests.length > 0)
-    ? profile.interests
-    : ['Web Development', 'Machine Learning & AI', 'Data Structures & Algorithms'];
+  const targetTrack = profile.targetTrack || '';
+  const elo = profile.elo ?? 1200;
+  const interests = profile.interests || [];
   const skills = profile.skills || [];
 
   const courseText = [
@@ -182,8 +180,8 @@ export function calculateCourseRecommendationScore(
   }
 
   // 5. Social Proof & Rating (up to 10 pts)
-  const rating = Number(course.rating) || 4.5;
-  const enrolled = Number(course.studentsEnrolled) || 100;
+  const rating = Math.max(0, Number(course.rating) || 0);
+  const enrolled = Math.max(0, Number(course.studentsEnrolled) || 0);
   const ratingPts = Math.min(6, Math.round((rating / 5) * 6));
   const enrolledPts = Math.min(4, Math.round((enrolled / 250) * 4));
   const socialScore = ratingPts + enrolledPts;

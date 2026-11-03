@@ -53,9 +53,17 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     }
 
     const courseModules = await Module.find({ courseId: course._id }).sort({ order: 1 }).lean();
-    const modulesWithLessons = await Promise.all(
-      courseModules.map(async (m: any) => {
-        const lessons = await Lesson.find({ moduleId: m._id }).sort({ order: 1 }).lean();
+    const courseLessons = courseModules.length
+      ? await Lesson.find({ moduleId: { $in: courseModules.map((m) => m._id) } }).sort({ order: 1 }).lean()
+      : [];
+    const lessonsByModule = new Map<string, typeof courseLessons>();
+    for (const lesson of courseLessons) {
+      const key = String(lesson.moduleId);
+      if (!lessonsByModule.has(key)) lessonsByModule.set(key, []);
+      lessonsByModule.get(key)!.push(lesson);
+    }
+    const modulesWithLessons = courseModules.map((m: any) => {
+        const lessons = lessonsByModule.get(String(m._id)) || [];
         return {
           id: m._id.toString(),
           title: m.title,
@@ -74,8 +82,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
             liveUrlRequired: l.liveUrlRequired,
           })),
         };
-      })
-    );
+      });
 
     const formattedInstructor = course.instructor
       ? {
@@ -84,7 +91,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
           role: course.instructor.role || 'ইন্সট্রাক্টর',
           avatar:
             course.instructor.avatar ||
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+            '/images/avatar-placeholder.svg',
           bio: course.instructor.bio || '',
         }
       : {
@@ -92,7 +99,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
           name: 'e-Shikho Faculty',
           role: 'ইন্সট্রাক্টর',
           avatar:
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+            '/images/avatar-placeholder.svg',
           bio: '',
         };
 

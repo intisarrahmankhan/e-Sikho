@@ -229,7 +229,7 @@ export function ContestDetailClient({ contest, hasSubmitted, submission }: Conte
               </div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <span className="text-slate-500">{language === 'en' ? 'Active Competitors' : 'প্রতিযোগী সংখ্যা'}</span>
-                <span className="font-bold text-slate-800">{contest.totalParticipants || 15} Students</span>
+                <span className="font-bold text-slate-800">{contest.totalParticipants ?? 0} Students</span>
               </div>
               {contest.prizePool && (
                 <div className="flex items-center justify-between pt-1">

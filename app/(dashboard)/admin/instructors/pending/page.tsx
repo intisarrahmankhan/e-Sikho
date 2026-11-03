@@ -13,7 +13,6 @@ import {
 import dbConnect from '@/lib/mongoose';
 import InstructorProfile from '@/models/InstructorProfile';
 import InstructorRequest from '@/models/InstructorRequest';
-import User from '@/models/User';
 import InstructorApplicationQueue from '@/components/admin/InstructorApplicationQueue';
 
 export const dynamic = 'force-dynamic';
@@ -37,8 +36,9 @@ export default async function PendingInstructorsPage() {
 
   await dbConnect();
 
-  // Fetch applications
-  let rawProfiles = await InstructorProfile.find({})
+  // Reading the queue never creates profiles or invents applicant credentials.
+  const [rawProfiles, rawRequests] = await Promise.all([
+    InstructorProfile.find({})
     .populate({
       path: 'userId',
       select: 'name email phone role image academicBackground elo createdAt',
@@ -48,54 +48,32 @@ export default async function PendingInstructorsPage() {
       select: 'name email',
     })
     .sort({ submissionDate: -1, createdAt: -1 })
-    .lean();
-
-  // If no profiles exist yet, check if there are pending InstructorRequests to sync or seed
-  if (rawProfiles.length === 0) {
-    const pendingReqs = await InstructorRequest.find({})
+    .lean(),
+    InstructorRequest.find({})
       .populate({
         path: 'userId',
         select: 'name email phone role image academicBackground elo createdAt',
       })
-      .lean();
-
-    if (pendingReqs.length > 0) {
-      for (const req of pendingReqs) {
-        if (req.userId) {
-          const userObj: any = req.userId;
-          await InstructorProfile.findOneAndUpdate(
-            { userId: userObj._id },
-            {
-              userId: userObj._id,
-              institution: userObj.academicBackground || 'University Graduate / Specialist',
-              qualifications: ['Bachelor Degree', 'Professional Teaching Certificate'],
-              experienceYears: 3,
-              subjectSpecialization: 'Computer Science & Software Development',
-              bio: req.reason || 'Passionate educator looking to teach online courses.',
-              approval_status: req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending',
-              submissionDate: req.createdAt || new Date(),
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
-        }
-      }
-
-      rawProfiles = await InstructorProfile.find({})
-        .populate({
-          path: 'userId',
-          select: 'name email phone role image academicBackground elo createdAt',
-        })
-        .populate({
-          path: 'reviewedBy',
-          select: 'name email',
-        })
-        .sort({ submissionDate: -1, createdAt: -1 })
-        .lean();
-    }
-  }
+      .lean(),
+  ]);
+  const profileUserIds = new Set(rawProfiles.map((p: any) => String(p.userId?._id || p.userId)));
+  const requestApplications = rawRequests
+    .filter((req: any) => req.userId && !profileUserIds.has(String(req.userId?._id || req.userId)))
+    .map((req: any) => ({
+      _id: req._id,
+      userId: req.userId,
+      institution: '',
+      qualifications: [],
+      experienceYears: 0,
+      subjectSpecialization: '',
+      bio: req.reason || '',
+      approval_status: req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending',
+      submissionDate: req.createdAt,
+      createdAt: req.createdAt,
+    }));
 
   // Plain JSON serialization to avoid RSC serialization warnings
-  const serializedApplications = JSON.parse(JSON.stringify(rawProfiles)).map((p: any) => ({
+  const serializedApplications = JSON.parse(JSON.stringify([...rawProfiles, ...requestApplications])).map((p: any) => ({
     id: p._id,
     userId: p.userId?._id || p.userId,
     user: p.userId && typeof p.userId === 'object' ? p.userId : null,
@@ -104,7 +82,7 @@ export default async function PendingInstructorsPage() {
       ? p.qualifications
       : [p.qualifications].filter(Boolean),
     experienceYears: p.experienceYears || 0,
-    subjectSpecialization: p.subjectSpecialization || 'Computer Science & Engineering',
+    subjectSpecialization: p.subjectSpecialization || 'Not provided',
     bio: p.bio || '',
     credentials: p.credentials || '',
     cvUrl: p.cvUrl || '',

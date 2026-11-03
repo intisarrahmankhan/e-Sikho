@@ -125,12 +125,12 @@ export function InstructorSettingsClient({ initialProfile }: InstructorSettingsC
   // Basic & Professional Profile States
   const [name, setName] = useState(initialProfile.name || '');
   const [phone, setPhone] = useState(initialProfile.phone || '');
-  const [headline, setHeadline] = useState(initialProfile.headline || initialProfile.instructorTitle || 'Senior Software Engineer & Lead Instructor');
+  const [headline, setHeadline] = useState(initialProfile.headline || initialProfile.instructorTitle || '');
   const [bio, setBio] = useState(initialProfile.bio || '');
-  const [organization, setOrganization] = useState(initialProfile.organization || 'Tech Academy / Independent');
-  const [experienceYears, setExperienceYears] = useState<number>(initialProfile.experienceYears || 3);
+  const [organization, setOrganization] = useState(initialProfile.organization || '');
+  const [experienceYears, setExperienceYears] = useState<number>(initialProfile.experienceYears ?? 0);
   const [academicBackground, setAcademicBackground] = useState(
-    initialProfile.academicBackground || 'Computer Science & Engineering (CSE)'
+    initialProfile.academicBackground || ''
   );
 
   // Social & Online Presence
@@ -140,18 +140,10 @@ export function InstructorSettingsClient({ initialProfile }: InstructorSettingsC
   const [twitter, setTwitter] = useState(initialProfile.twitter || '');
 
   // Teaching & Expertise States
-  const [targetTrack, setTargetTrack] = useState(initialProfile.targetTrack || 'Fullstack Web Development');
+  const [targetTrack, setTargetTrack] = useState(initialProfile.targetTrack || '');
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(initialProfile.weeklyGoalHours || 12);
-  const [expertise, setExpertise] = useState<string[]>(
-    initialProfile.expertise && initialProfile.expertise.length > 0
-      ? initialProfile.expertise
-      : ['Fullstack Web Development', 'System Design & Distributed Systems', 'Data Structures & Algorithms']
-  );
-  const [skills, setSkills] = useState<string[]>(
-    initialProfile.skills && initialProfile.skills.length > 0
-      ? initialProfile.skills
-      : ['JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js']
-  );
+  const [expertise, setExpertise] = useState<string[]>(initialProfile.expertise || []);
+  const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
 
   const [availableExpertise, setAvailableExpertise] = useState<string[]>(() => {
     return Array.from(new Set([...DEFAULT_EXPERTISE_DOMAINS, ...(initialProfile.expertise || [])]));
@@ -784,6 +776,7 @@ export function InstructorSettingsClient({ initialProfile }: InstructorSettingsC
                     onChange={(e) => setTargetTrack(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 outline-none bg-white focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition"
                   >
+                    <option value="">{language === 'en' ? 'Select your teaching track' : 'আপনার শিক্ষণ ট্র্যাক নির্বাচন করুন'}</option>
                     <option value="Fullstack Web Development">Fullstack Web Development (React & Node.js)</option>
                     <option value="Competitive Programming & DSA">Competitive Programming & Data Structures</option>
                     <option value="Machine Learning & AI">Artificial Intelligence & Machine Learning</option>

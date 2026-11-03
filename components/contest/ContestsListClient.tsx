@@ -222,7 +222,7 @@ export function ContestsListClient({ contests, userBackground = '', canCreate = 
               <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between gap-3">
                 <span className="text-[11px] text-slate-500 flex items-center gap-1">
                   <Users className="h-3.5 w-3.5 text-slate-400" />
-                  <span>{c.totalParticipants || 18} {language === 'en' ? 'Competitors' : 'জন প্রতিযোগী'}</span>
+                  <span>{c.totalParticipants ?? 0} {language === 'en' ? 'Competitors' : 'জন প্রতিযোগী'}</span>
                 </span>
 
                 <Link href={`/contests/${c.slug}`}>

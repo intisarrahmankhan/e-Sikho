@@ -106,7 +106,7 @@ export const translations: Translations = {
   'home.login': { bn: 'লগইন করুন', en: 'Log In' },
   'home.heroCheck1': { bn: 'প্রজেক্ট ভিত্তিক পাঠ্যক্রম', en: 'Project-based curriculum' },
   'home.heroCheck2': { bn: 'লাইফটাইম অ্যাক্সেস', en: 'Lifetime access' },
-  'home.heroCheck3': { bn: 'ইন্ডাস্ট্রি সার্টিফিকেট', en: 'Industry certificate' },
+  'home.heroCheck3': { bn: 'শেখার অগ্রগতি ট্র্যাকিং', en: 'Learning progress tracking' },
   'home.liveDashboard': { bn: 'লাইভ লার্নিং ড্যাশবোর্ড', en: 'Live Learning Dashboard' },
   'home.realtimeProgress': { bn: 'রিয়েল-টাইম প্রোগ্রেস ও কুইজ', en: 'Real-time progress & quizzes' },
   'home.completed': { bn: 'সম্পন্ন', en: 'completed' },

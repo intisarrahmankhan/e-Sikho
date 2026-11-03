@@ -1,5 +1,7 @@
 # Assessment hosting, audience rules, and real-data setup
 
+The later [test fix verification](TEST_FIX_VERIFICATION.md) records the 29 October fixes, revision approval workflow, real Bunny media checks and remaining external blockers. It supersedes the earlier validation counts below; those counts are historical.
+
 Updated 28 October 2026 (Asia/Dhaka). Changes remain on `codex/project-audit` without commits or pushes. Existing course, exam, and contest components/actions were extended; the application architecture and contributor history are preserved.
 
 ## Instructor workflow
@@ -87,6 +89,8 @@ Local evidence is under `audit-local/` and is ignored by Git:
 Legacy seed commands now stop with an explicit error, including the old hardcoded-superadmin seeder. `scripts/courses-data.json` was removed from project source. Historical cleanup fingerprints and isolated test fixtures remain as maintenance/test evidence; they are not inserted into the application database by normal page requests.
 
 ## Validation and running locally
+
+For team documentation and hands-on verification, use the [manual test plan](MANUAL_TEST_PLAN.md) and [results sheet](MANUAL_TEST_RESULTS.csv). Manual cases start as Not Run; prior automated results do not automatically count as manual passes.
 
 - 350 unit tests passed across 48 files, including publishing authorization, superadmin-only reviews, course ownership/assignment, education/department/student filtering, profile updates, and rejected forged submissions.
 - 8 authenticated browser workflow scenarios passed against a uniquely named temporary database, covering approvals, targeted publishing/banners, excluded students/direct links, instructor assignment, course enrollment, and profile changes. The temporary database was deleted afterward. Test fixture records were never inserted into the project database.

@@ -110,7 +110,7 @@ export function CourseCard({ course }: { course: CourseProps }) {
               <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-primary-500 to-indigo-600 transition-all duration-500 rounded-full"
-                  style={{ width: `${Math.max(course.progressPercentage, 5)}%` }}
+                  style={{ width: `${Math.max(0, Math.min(100, course.progressPercentage))}%` }}
                 />
               </div>
             </div>
@@ -124,11 +124,11 @@ export function CourseCard({ course }: { course: CourseProps }) {
                 <span>
                   {language === 'en' ? 'Target: ' : 'টার্গেট: '}
                   <strong className="text-slate-800">
-                    {new Date(targetDate).toLocaleDateString(language === 'en' ? 'en-US' : 'bn-BD', {
+                    {targetDate ? new Date(targetDate).toLocaleDateString(language === 'en' ? 'en-US' : 'bn-BD', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
-                    })}
+                    }) : (language === 'en' ? 'Not set' : 'নির্ধারিত নয়')}
                   </strong>
                 </span>
               </span>

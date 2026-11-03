@@ -237,7 +237,7 @@ export function HomeContestsSection() {
                 <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                   <div className="text-[11px] text-slate-500 flex items-center gap-1">
                     <Users className="h-3.5 w-3.5 text-slate-400" />
-                    <span>{c.totalParticipants || 24} {language === 'en' ? 'competing' : 'অংশগ্রহণকারী'}</span>
+                    <span>{c.totalParticipants ?? 0} {language === 'en' ? 'competing' : 'অংশগ্রহণকারী'}</span>
                   </div>
 
                   <Link href={`/contests/${c.slug}`}>

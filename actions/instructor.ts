@@ -129,7 +129,7 @@ export async function createCourse(formData: FormData) {
       instructor = await Instructor.create({
         name: user.name || 'Instructor',
         role: 'Instructor',
-        avatar: user.image || '',
+        avatar: user.image || '/images/avatar-placeholder.svg',
         bio: 'e-Shikho অনুমোদিত ইন্সট্রাক্টর',
       });
     }
@@ -861,23 +861,17 @@ export async function getInstructorProfileAction() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        headline: user.headline || user.instructorTitle || 'Senior Tech Instructor',
-        instructorTitle: user.instructorTitle || user.headline || 'Senior Tech Instructor',
+        headline: user.headline || user.instructorTitle || '',
+        instructorTitle: user.instructorTitle || user.headline || '',
         bio: user.bio || '',
         organization: user.organization || '',
-        experienceYears: user.experienceYears || 3,
-        academicBackground: user.academicBackground || 'Computer Science & Engineering (CSE)',
-        targetTrack: user.targetTrack || 'Fullstack Web Development',
+        experienceYears: user.experienceYears ?? 0,
+        academicBackground: user.academicBackground || '',
+        targetTrack: user.targetTrack || '',
         expertise:
-          Array.isArray(user.expertise) && user.expertise.length > 0
-            ? user.expertise
-            : Array.isArray(user.interests) && user.interests.length > 0
-            ? user.interests
-            : ['Web Development', 'System Design', 'Data Structures & Algorithms', 'Cloud & DevOps'],
+          Array.isArray(user.expertise) ? user.expertise : [],
         skills:
-          Array.isArray(user.skills) && user.skills.length > 0
-            ? user.skills
-            : ['JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js', 'Python'],
+          Array.isArray(user.skills) ? user.skills : [],
         weeklyGoalHours: user.weeklyGoalHours || 12,
         website: user.website || '',
         github: user.github || '',

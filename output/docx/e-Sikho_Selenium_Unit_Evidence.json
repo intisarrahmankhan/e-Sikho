@@ -1,0 +1,3044 @@
+{
+  "date": "29 October 2026 Asia/Dhaka",
+  "selenium": {
+    "runId": "selenium-2026-10-28T19-29-37-865Z",
+    "startedAt": "2026-10-28T19:29:37.866Z",
+    "timezone": "Asia/Dhaka",
+    "framework": "Selenium WebDriver",
+    "seleniumVersion": "4.51.0",
+    "method": "Headless Chrome controlled by real Selenium WebDriver. UI interactions use WebDriver. Real Auth.js credentials endpoints prepare fixture sessions; delivered SMS/OTP login is not claimed. MongoDB reads verify persistence. No application/network mocks.",
+    "branch": "main",
+    "baseCommit": "0737cb19640f826390dba2b457971217d9eab6bf",
+    "uncommittedFixes": true,
+    "nodeVersion": "v24.19.0",
+    "platform": "win32",
+    "baseURL": "http://localhost:3106",
+    "results": [
+      {
+        "id": "SEL-01",
+        "title": "Anonymous protected routes",
+        "planIds": [
+          "AUTH-04"
+        ],
+        "expected": "All protected routes redirect to login.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:41.251Z",
+        "actual": "Student, instructor and admin pages redirected signed-out Chrome to login.",
+        "finishedAt": "2026-10-28T19:29:42.039Z",
+        "durationSeconds": 0.79,
+        "screenshot": "SEL-01.png"
+      },
+      {
+        "id": "SEL-02",
+        "title": "Wrong password in the login form",
+        "planIds": [
+          "AUTH-02"
+        ],
+        "expected": "Invalid credentials show an error and create no session.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:42.129Z",
+        "actual": "Real login-form submission rejected a wrong password; Chrome remained signed out. No SMS/OTP delivery was performed.",
+        "finishedAt": "2026-10-28T19:29:43.531Z",
+        "durationSeconds": 1.4,
+        "screenshot": "SEL-02.png"
+      },
+      {
+        "id": "SEL-03",
+        "title": "Authenticated identity and reload",
+        "planIds": [
+          "AUTH-01"
+        ],
+        "expected": "Real fixture identity and role persist across reload.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:43.623Z",
+        "actual": "Credentials-endpoint fixture session displayed the correct student dashboard and survived reload. Complete delivered-OTP UI login is outside this check.",
+        "finishedAt": "2026-10-28T19:29:47.964Z",
+        "durationSeconds": 4.34,
+        "screenshot": "SEL-03.png"
+      },
+      {
+        "id": "SEL-04",
+        "title": "Student and instructor role boundaries",
+        "planIds": [
+          "AUTH-05"
+        ],
+        "expected": "Student author/admin and instructor admin routes are denied.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:48.145Z",
+        "actual": "Selenium navigation denied all four student privileged routes and the instructor superadmin review route.",
+        "finishedAt": "2026-10-28T19:29:53.804Z",
+        "durationSeconds": 5.66,
+        "screenshot": "SEL-04.png"
+      },
+      {
+        "id": "SEL-05",
+        "title": "Owned course selector and empty exam builder",
+        "planIds": [
+          "HOST-01",
+          "EXAM-01"
+        ],
+        "expected": "Owned drafts/published courses appear; foreign courses and global permission do not.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:53.950Z",
+        "actual": "Owned draft/published options and blank question verified; foreign course absent and global option disabled.",
+        "finishedAt": "2026-10-28T19:29:54.538Z",
+        "durationSeconds": 0.59,
+        "screenshot": "SEL-05.png"
+      },
+      {
+        "id": "SEL-06",
+        "title": "Global exam request and approval",
+        "planIds": [
+          "HOST-03",
+          "HOST-05"
+        ],
+        "expected": "Request stays pending until the superadmin approves it.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:54.612Z",
+        "actual": "Teacher request persisted PENDING; superadmin UI approval unlocked the global exam option.",
+        "finishedAt": "2026-10-28T19:29:58.478Z",
+        "durationSeconds": 3.87,
+        "screenshot": "SEL-06.png"
+      },
+      {
+        "id": "SEL-07",
+        "title": "Publish a targeted global exam",
+        "planIds": [
+          "AUD-02",
+          "AUD-08"
+        ],
+        "expected": "Education, department and selected-student filters persist.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:29:58.537Z",
+        "actual": "Selenium created a global exam; MongoDB persisted SCHOOL + normalized science + the selected student ID.",
+        "finishedAt": "2026-10-28T19:30:01.275Z",
+        "durationSeconds": 2.74,
+        "screenshot": "SEL-07.png"
+      },
+      {
+        "id": "SEL-08",
+        "title": "Targeted exam discovery and direct access",
+        "planIds": [
+          "AUD-02",
+          "AUD-07"
+        ],
+        "expected": "Only an eligible student can discover and open the exam.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:01.387Z",
+        "actual": "Selected School learner saw the banner and exam. College learner saw neither listing nor private detail through the copied URL.",
+        "finishedAt": "2026-10-28T19:30:04.179Z",
+        "durationSeconds": 2.79,
+        "screenshot": "SEL-08.png"
+      },
+      {
+        "id": "SEL-09",
+        "title": "Contest permission is independent",
+        "planIds": [
+          "HOST-06",
+          "HOST-07"
+        ],
+        "expected": "Exam approval does not grant contest hosting.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:04.225Z",
+        "actual": "Contest global option remained locked after exam approval, then unlocked after a separate request and superadmin approval.",
+        "finishedAt": "2026-10-28T19:30:07.902Z",
+        "durationSeconds": 3.68,
+        "screenshot": "SEL-09.png"
+      },
+      {
+        "id": "SEL-10",
+        "title": "Targeted contest creation and exclusions",
+        "planIds": [
+          "AUD-03",
+          "CONTEST-01"
+        ],
+        "expected": "University CSE sees the contest; EEE cannot open it.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:07.950Z",
+        "actual": "Teacher published a real targeted contest; University CSE listing/detail succeeded and EEE listing/direct access were denied.",
+        "finishedAt": "2026-10-28T19:30:13.029Z",
+        "durationSeconds": 5.08,
+        "screenshot": "SEL-10.png"
+      },
+      {
+        "id": "SEL-11",
+        "title": "Administrator assigns an existing course",
+        "planIds": [
+          "HOST-08"
+        ],
+        "expected": "Assigned instructor can select the course without changing its owner.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:13.088Z",
+        "actual": "Superadmin UI assignment added the existing course to the teacher’s assessment selector; MongoDB owner was unchanged.",
+        "finishedAt": "2026-10-28T19:30:15.266Z",
+        "durationSeconds": 2.18,
+        "screenshot": "SEL-11.png"
+      },
+      {
+        "id": "SEL-12",
+        "title": "Profile changes immediately update eligibility",
+        "planIds": [
+          "AUD-01",
+          "AUD-07"
+        ],
+        "expected": "A saved department change removes stale exam eligibility.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:15.330Z",
+        "actual": "Selenium changed Science to Humanities, verified persistence and immediate direct-link exclusion, then restored Science.",
+        "finishedAt": "2026-10-28T19:30:19.140Z",
+        "durationSeconds": 3.81,
+        "screenshot": "SEL-12.png"
+      },
+      {
+        "id": "SEL-13",
+        "title": "Create a course with no profile image",
+        "planIds": [
+          "COURSE-01"
+        ],
+        "expected": "Image-less approved instructor can create and reopen curriculum.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:19.206Z",
+        "actual": "Real course form created the course, module and lesson without a profile image; ownership and reopened curriculum passed.",
+        "finishedAt": "2026-10-28T19:30:22.668Z",
+        "durationSeconds": 3.46,
+        "screenshot": "SEL-13.png"
+      },
+      {
+        "id": "SEL-14",
+        "title": "Draft course direct link",
+        "planIds": [
+          "COURSE-02"
+        ],
+        "expected": "Anonymous users cannot open an unpublished course.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:22.770Z",
+        "actual": "Direct URL to a draft course displayed the not-found page in signed-out Chrome.",
+        "finishedAt": "2026-10-28T19:30:23.192Z",
+        "durationSeconds": 0.42,
+        "screenshot": "SEL-14.png"
+      },
+      {
+        "id": "SEL-15",
+        "title": "Free enrollment and duplicate prevention",
+        "planIds": [
+          "COURSE-05"
+        ],
+        "expected": "Enrollment persists as one record after revisits.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:23.255Z",
+        "actual": "Real free enrollment opened the course; reload retained access and exactly one enrollment record.",
+        "finishedAt": "2026-10-28T19:30:32.192Z",
+        "durationSeconds": 8.94,
+        "screenshot": "SEL-15.png"
+      },
+      {
+        "id": "SEL-16",
+        "title": "Lesson completion persists",
+        "planIds": [
+          "COURSE-08"
+        ],
+        "expected": "Completing one of two lessons persists 50% progress.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:32.276Z",
+        "actual": "Completion button wrote one actual lesson-progress record; after reload one of two lessons displayed 50%.",
+        "finishedAt": "2026-10-28T19:30:39.963Z",
+        "durationSeconds": 7.69,
+        "screenshot": "SEL-16.png"
+      },
+      {
+        "id": "SEL-17",
+        "title": "Revision request waits for review",
+        "planIds": [
+          "COURSE-09"
+        ],
+        "expected": "Submitting a request does not unlock expired access.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:40.036Z",
+        "actual": "Student modal submitted a real revision request; MongoDB remained PENDING with isRevisionGranted=false.",
+        "finishedAt": "2026-10-28T19:30:45.133Z",
+        "durationSeconds": 5.1,
+        "screenshot": "SEL-17.png"
+      },
+      {
+        "id": "SEL-18",
+        "title": "Revision queue ownership",
+        "planIds": [
+          "COURSE-06",
+          "COURSE-09"
+        ],
+        "expected": "An unrelated instructor cannot see another owner’s revision request.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:45.200Z",
+        "actual": "Unrelated instructor queue omitted the private revision request and showed its empty state.",
+        "finishedAt": "2026-10-28T19:30:46.041Z",
+        "durationSeconds": 0.84,
+        "screenshot": "SEL-18.png"
+      },
+      {
+        "id": "SEL-19",
+        "title": "Owner approval grants temporary access",
+        "planIds": [
+          "COURSE-09"
+        ],
+        "expected": "Owner review grants the configured period and restores access.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:46.089Z",
+        "actual": "Course owner approved through Selenium; reviewer and seven-day grant were saved and the student saw active revision access.",
+        "finishedAt": "2026-10-28T19:30:51.495Z",
+        "durationSeconds": 5.41,
+        "screenshot": "SEL-19.png"
+      },
+      {
+        "id": "SEL-20",
+        "title": "Keyboard MCQ selection and modal return",
+        "planIds": [
+          "UI-03"
+        ],
+        "expected": "Tab, Space and Enter select answers; modal Back preserves selection.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:51.591Z",
+        "actual": "Selenium keyboard input reached options, changed selection with Space/Enter and preserved the final answer after returning from review.",
+        "finishedAt": "2026-10-28T19:30:53.717Z",
+        "durationSeconds": 2.13,
+        "screenshot": "SEL-20.png"
+      },
+      {
+        "id": "SEL-21",
+        "title": "Grading, persistence and cooldown label",
+        "planIds": [
+          "EXAM-04",
+          "EXAM-06"
+        ],
+        "expected": "Correct/wrong/skipped score is 1.75/6; retry is on cooldown, below the cap.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:53.788Z",
+        "actual": "Real UI submission persisted 1.75/6, 29%, failed: one correct, one wrong and one skipped. Reload retained one submission and did not show the false attempt-limit warning at one of two attempts.",
+        "finishedAt": "2026-10-28T19:30:55.782Z",
+        "durationSeconds": 1.99,
+        "screenshot": "SEL-21.png"
+      },
+      {
+        "id": "SEL-22",
+        "title": "Empty dashboard has no invented progress",
+        "planIds": [
+          "DATA-01"
+        ],
+        "expected": "Unenrolled learner sees no 67% or 30/45-minute progress.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:30:55.876Z",
+        "actual": "Dashboard for a learner with zero enrollments showed no fabricated 67% or 30/45-minute progress.",
+        "finishedAt": "2026-10-28T19:30:57.681Z",
+        "durationSeconds": 1.8,
+        "screenshot": "SEL-22.png"
+      },
+      {
+        "id": "SEL-23",
+        "title": "Actual PDF viewer and resource visibility",
+        "planIds": [
+          "EXTRA-01",
+          "COURSE-04"
+        ],
+        "expected": "Enrolled learner opens a real PDF; anonymous view exposes only preview resource.",
+        "status": "Fail",
+        "startedAt": "2026-10-28T19:30:57.850Z",
+        "actual": "{\"length\":0,\"prefix\":\"\",\"status\":204,\"type\":null,\"url\":\"http://localhost:3106/selenium-test-resource-19d26ab41b72.pdf\"}\n\n'' !== '%PDF-'\n",
+        "finishedAt": "2026-10-28T19:31:01.912Z",
+        "durationSeconds": 4.06,
+        "screenshot": "SEL-23.png",
+        "observationSummary": "The enrolled PDF modal and iframe opened. Direct HTTP returned 200 with valid PDF bytes, but Chrome fetch returned HTTP 204 and an empty body. The case failed before all anonymous-resource checks completed. Cause unconfirmed; PDF viewer/delivery reliability remains open."
+      },
+      {
+        "id": "SEL-24",
+        "title": "Responsive principal pages",
+        "planIds": [
+          "UI-01"
+        ],
+        "expected": "No horizontal overflow at 360px and desktop widths.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:31:01.986Z",
+        "actual": "Login, course detail, exam form and contest form had no horizontal overflow at 360px and 1280px window sizes.",
+        "finishedAt": "2026-10-28T19:31:05.219Z",
+        "durationSeconds": 3.23,
+        "screenshot": "SEL-24.png"
+      },
+      {
+        "id": "SEL-25",
+        "title": "Language preference and profile preservation",
+        "planIds": [
+          "UI-02"
+        ],
+        "expected": "Language persists after reload while saved values stay unchanged.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:31:05.293Z",
+        "actual": "Selenium switched to Bangla, reloaded successfully, switched back to English and verified the saved Science department.",
+        "finishedAt": "2026-10-28T19:31:06.706Z",
+        "durationSeconds": 1.41,
+        "screenshot": "SEL-25.png"
+      },
+      {
+        "id": "SEL-26",
+        "title": "Missing course, exam and contest links",
+        "planIds": [
+          "UI-04"
+        ],
+        "expected": "Missing identifiers fail gracefully without unrelated content.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:31:06.777Z",
+        "actual": "Selenium verified safe not-found states for nonexistent course, exam and contest links.",
+        "finishedAt": "2026-10-28T19:31:08.415Z",
+        "durationSeconds": 1.64,
+        "screenshot": "SEL-26.png"
+      },
+      {
+        "id": "SEL-27",
+        "title": "Signout removes protected navigation",
+        "planIds": [
+          "AUTH-06"
+        ],
+        "expected": "After UI signout, protected revisits redirect to login.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:31:08.464Z",
+        "actual": "Navbar signout removed the session; revisiting the student dashboard redirected to login.",
+        "finishedAt": "2026-10-28T19:31:10.868Z",
+        "durationSeconds": 2.4,
+        "screenshot": "SEL-27.png"
+      },
+      {
+        "id": "SEL-28",
+        "title": "Read navigation does not reseed content",
+        "planIds": [
+          "DATA-03"
+        ],
+        "expected": "Repeated visits leave content counts unchanged.",
+        "status": "Pass",
+        "startedAt": "2026-10-28T19:31:10.982Z",
+        "actual": "Selenium navigation/reloads left user, course, exam, contest and notification counts unchanged; no sample reseeding.",
+        "finishedAt": "2026-10-28T19:31:17.431Z",
+        "durationSeconds": 6.45,
+        "screenshot": "SEL-28.png"
+      },
+      {
+        "id": "SEL-X01",
+        "title": "Delivered OTP signup/login",
+        "planIds": [
+          "AUTH-03"
+        ],
+        "expected": "Complete the external prerequisite and verify the real flow.",
+        "status": "Blocked",
+        "startedAt": "2026-10-28T19:31:17.597Z",
+        "actual": "No configured SMS provider and controlled receiving phone. No SMS was sent; fixture session setup does not verify OTP delivery.",
+        "finishedAt": "2026-10-28T19:31:17.597Z",
+        "durationSeconds": 0
+      },
+      {
+        "id": "SEL-X02",
+        "title": "Real Google consent login",
+        "planIds": [
+          "AUTH-08"
+        ],
+        "expected": "Complete the external prerequisite and verify the real flow.",
+        "status": "Blocked",
+        "startedAt": "2026-10-28T19:31:17.598Z",
+        "actual": "No team-controlled Google consent session. Provider signup/login and cancellation require interactive account-holder access.",
+        "finishedAt": "2026-10-28T19:31:17.598Z",
+        "durationSeconds": 0
+      },
+      {
+        "id": "SEL-X03",
+        "title": "Real owner and Test Admin login",
+        "planIds": [
+          "DATA-02"
+        ],
+        "expected": "Complete the external prerequisite and verify the real flow.",
+        "status": "Blocked",
+        "startedAt": "2026-10-28T19:31:17.599Z",
+        "actual": "Fixture role sessions are verified; real account-holder sessions were not provided and no credentials were reset.",
+        "finishedAt": "2026-10-28T19:31:17.599Z",
+        "durationSeconds": 0
+      },
+      {
+        "id": "SEL-X04",
+        "title": "Physical mobile protected playback",
+        "planIds": [
+          "VIDEO-06"
+        ],
+        "expected": "Complete the external prerequisite and verify the real flow.",
+        "status": "Blocked",
+        "startedAt": "2026-10-28T19:31:17.599Z",
+        "actual": "This Selenium run used desktop Chrome only. No physical mobile browser was connected; earlier emulation results are separate.",
+        "finishedAt": "2026-10-28T19:31:17.600Z",
+        "durationSeconds": 0
+      }
+    ],
+    "databaseRemoved": true,
+    "temporaryPdfRemoved": true,
+    "browser": "chrome",
+    "browserVersion": "156.0.8078.73",
+    "driverVersion": "156.0.8078.73",
+    "browserTimezone": "Asia/Dhaka",
+    "pdfDelivery": {
+      "nodeStatus": 200,
+      "nodePrefix": "%PDF-",
+      "browser": {
+        "length": 0,
+        "prefix": "",
+        "status": 204,
+        "type": null,
+        "url": "http://localhost:3106/selenium-test-resource-19d26ab41b72.pdf"
+      }
+    },
+    "finishedAt": "2026-10-28T19:31:18.222Z",
+    "summary": {
+      "passed": 27,
+      "failed": 1,
+      "blocked": 4
+    }
+  },
+  "unit": {
+    "framework": "Vitest",
+    "environment": "jsdom",
+    "tests": 369,
+    "passed": 369,
+    "failed": 0,
+    "testFiles": 50,
+    "runnerDuration": "9.79s",
+    "startedAt": "2026-10-29T01:26:27.149000+06:00",
+    "files": [
+      {
+        "file": "__tests__/login.test.tsx",
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/AcademicProfile.test.ts",
+        "tests": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "tests": 18,
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/AssessmentConfidentiality.test.ts",
+        "tests": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/AssessmentSubmissionAuthorization.test.ts",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "tests": 13,
+        "passed": 13,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/BilingualCourse.test.tsx",
+        "tests": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "tests": 18,
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/Button.test.tsx",
+        "tests": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/CourseDetailsView.test.tsx",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/CourseForm.test.tsx",
+        "tests": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "tests": 12,
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/DiscussionBoard.test.tsx",
+        "tests": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "tests": 9,
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/ExamScoring.test.ts",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "tests": 10,
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/LanguageContext.test.tsx",
+        "tests": 3,
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/LatexRenderer.test.tsx",
+        "tests": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/LeaderboardAndPercentile.test.ts",
+        "tests": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "tests": 11,
+        "passed": 11,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/LoginIdentifier.test.tsx",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "tests": 10,
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "tests": 15,
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "tests": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/NotesAndResources.test.tsx",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/PaymentVerification.test.ts",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "tests": 16,
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/PersonalizedRecommendations.test.ts",
+        "tests": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "tests": 19,
+        "passed": 19,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "tests": 10,
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "tests": 17,
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "tests": 16,
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/Wishlist.test.ts",
+        "tests": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/admin- status.test.ts",
+        "tests": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/admin.test.ts",
+        "tests": 14,
+        "passed": 14,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/auth-helpers.test.ts",
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/contests.test.ts",
+        "tests": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/course-access.test.ts",
+        "tests": 12,
+        "passed": 12,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/course-routine.test.tsx",
+        "tests": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/elo.test.ts",
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/login.test.tsx",
+        "tests": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/otp.test.ts",
+        "tests": 9,
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/routine-scheduler.test.ts",
+        "tests": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/student.test.ts",
+        "tests": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "file": "__tests__/unit-testing/users.test.ts",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0
+      }
+    ],
+    "cases": [
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage renders the login page correctly",
+        "Status": "passed",
+        "Duration milliseconds": 85.951
+      },
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage calls loginWithGoogle with correct provider when clicked",
+        "Status": "passed",
+        "Duration milliseconds": 377.362
+      },
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage passes the callbackUrl to loginWithGoogle if provided",
+        "Status": "passed",
+        "Duration milliseconds": 171.947
+      },
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage allows user to switch between sign up and login tabs",
+        "Status": "passed",
+        "Duration milliseconds": 313.32
+      },
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage submits phone signup with valid information",
+        "Status": "passed",
+        "Duration milliseconds": 173.042
+      },
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage submits phone login with phone and password",
+        "Status": "passed",
+        "Duration milliseconds": 238.66
+      },
+      {
+        "File": "__tests__/login.test.tsx",
+        "Test": "LoginPage does not expose developer login shortcuts",
+        "Status": "passed",
+        "Duration milliseconds": 102.38
+      },
+      {
+        "File": "__tests__/unit-testing/AcademicProfile.test.ts",
+        "Test": "saves the current student education level and department",
+        "Status": "passed",
+        "Duration milliseconds": 3.655
+      },
+      {
+        "File": "__tests__/unit-testing/AcademicProfile.test.ts",
+        "Test": "rejects unsupported education levels and oversized departments",
+        "Status": "passed",
+        "Duration milliseconds": 1.102
+      },
+      {
+        "File": "__tests__/unit-testing/AcademicProfile.test.ts",
+        "Test": "can clear a previously selected education level without inventing a university default",
+        "Status": "passed",
+        "Duration milliseconds": 0.466
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy normalizes department labels without assuming an education level",
+        "Status": "passed",
+        "Duration milliseconds": 3.837
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy supports SCHOOL learners",
+        "Status": "passed",
+        "Duration milliseconds": 0.477
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy supports COLLEGE learners",
+        "Status": "passed",
+        "Duration milliseconds": 0.252
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy supports UNIVERSITY learners",
+        "Status": "passed",
+        "Duration milliseconds": 0.213
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy combines level, department, and explicit student selection using AND",
+        "Status": "passed",
+        "Duration milliseconds": 0.66
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy does not expose even unrestricted global assessments to anonymous viewers",
+        "Status": "passed",
+        "Duration milliseconds": 0.28
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy rejects malformed filters",
+        "Status": "passed",
+        "Duration milliseconds": 1.44
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy permits course owners and explicitly assigned instructors",
+        "Status": "passed",
+        "Duration milliseconds": 0.583
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy rejects student publishing regardless of submitted scope",
+        "Status": "passed",
+        "Duration milliseconds": 1.726
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy requires superadmin-approved hosting permission for global publishing",
+        "Status": "passed",
+        "Duration milliseconds": 1.793
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy validates explicit student IDs against real approved student accounts",
+        "Status": "passed",
+        "Duration milliseconds": 0.803
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy allows created draft courses in the authoring flow",
+        "Status": "passed",
+        "Duration milliseconds": 0.416
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy rejects another instructor course even when a forged course ID is submitted",
+        "Status": "passed",
+        "Duration milliseconds": 0.782
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy blocks direct access and discovery for excluded departments",
+        "Status": "passed",
+        "Duration milliseconds": 0.744
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy hides unapproved and legacy unscoped global assessments",
+        "Status": "passed",
+        "Duration milliseconds": 0.292
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy allows an instructor to inspect their own assessment",
+        "Status": "passed",
+        "Duration milliseconds": 0.229
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy requires an active course entitlement and a published course",
+        "Status": "passed",
+        "Duration milliseconds": 0.313
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentAccess.test.ts",
+        "Test": "Assessment audience and publishing policy loads audience attributes and role from the database",
+        "Status": "passed",
+        "Duration milliseconds": 0.473
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentConfidentiality.test.ts",
+        "Test": "Assessment answer confidentiality does not expose exam answers when an anonymous caller requests preview mode",
+        "Status": "passed",
+        "Duration milliseconds": 2.699
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentConfidentiality.test.ts",
+        "Test": "Assessment answer confidentiality lets the exam author inspect answers",
+        "Status": "passed",
+        "Duration milliseconds": 1.708
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentConfidentiality.test.ts",
+        "Test": "Assessment answer confidentiality does not let another instructor inspect exam answers",
+        "Status": "passed",
+        "Duration milliseconds": 0.918
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentConfidentiality.test.ts",
+        "Test": "Assessment answer confidentiality does not expose active contest solutions using a client preview flag",
+        "Status": "passed",
+        "Duration milliseconds": 1.044
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentSubmissionAuthorization.test.ts",
+        "Test": "rejects a forged exam submission from an excluded student before grading or saving",
+        "Status": "passed",
+        "Duration milliseconds": 3.032
+      },
+      {
+        "File": "__tests__/unit-testing/AssessmentSubmissionAuthorization.test.ts",
+        "Test": "rejects a forged contest submission from an excluded student before scoring or changing ratings",
+        "Status": "passed",
+        "Duration milliseconds": 1.47
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security never signs in using role alone: STUDENT",
+        "Status": "passed",
+        "Duration milliseconds": 2.34
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security never signs in using role alone: INSTRUCTOR",
+        "Status": "passed",
+        "Duration milliseconds": 0.342
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security never signs in using role alone: ADMIN",
+        "Status": "passed",
+        "Duration milliseconds": 0.296
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security never signs in using role alone: SUPERADMIN",
+        "Status": "passed",
+        "Duration milliseconds": 0.21
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security does not impersonate an existing account using only its email",
+        "Status": "passed",
+        "Duration milliseconds": 0.32
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security does not auto-create users from unauthenticated email requests",
+        "Status": "passed",
+        "Duration milliseconds": 0.35
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security verifies stored email passwords and takes the role from the database",
+        "Status": "passed",
+        "Duration milliseconds": 97.238
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security requires proof of identity for phone login",
+        "Status": "passed",
+        "Duration milliseconds": 0.566
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security requires an OTP for new phone registration",
+        "Status": "passed",
+        "Duration milliseconds": 3.125
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security rejects invalid signup OTPs before creating an account",
+        "Status": "passed",
+        "Duration milliseconds": 0.833
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security preserves existing OAuth roles and does not overwrite account status",
+        "Status": "passed",
+        "Duration milliseconds": 1.063
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security does not invent user IDs or recreate deleted accounts during session refresh",
+        "Status": "passed",
+        "Duration milliseconds": 0.896
+      },
+      {
+        "File": "__tests__/unit-testing/AuthenticationSecurity.test.ts",
+        "Test": "Authentication security revokes existing sessions when the database account is suspended",
+        "Status": "passed",
+        "Duration milliseconds": 0.357
+      },
+      {
+        "File": "__tests__/unit-testing/BilingualCourse.test.tsx",
+        "Test": "Bilingual Course Display & Fallback Rules displays Bangla title and thumbnail in Bangla mode even when English exists",
+        "Status": "passed",
+        "Duration milliseconds": 521.957
+      },
+      {
+        "File": "__tests__/unit-testing/BilingualCourse.test.tsx",
+        "Test": "Bilingual Course Display & Fallback Rules displays English title and thumbnail when language is toggled to English",
+        "Status": "passed",
+        "Duration milliseconds": 142.887
+      },
+      {
+        "File": "__tests__/unit-testing/BilingualCourse.test.tsx",
+        "Test": "Bilingual Course Display & Fallback Rules falls back to Bangla title and thumbnail in English mode if instructor did not provide English versions",
+        "Status": "passed",
+        "Duration milliseconds": 57.597
+      },
+      {
+        "File": "__tests__/unit-testing/BilingualCourse.test.tsx",
+        "Test": "Bilingual Course Display & Fallback Rules correctly translates durations, categories, and levels via bilingual helpers",
+        "Status": "passed",
+        "Duration milliseconds": 5.512
+      },
+      {
+        "File": "__tests__/unit-testing/BilingualCourse.test.tsx",
+        "Test": "Bilingual Course Display & Fallback Rules renders LatexPlayground in English when language is toggled to en",
+        "Status": "passed",
+        "Duration milliseconds": 520.947
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback parses https://iframe.mediadelivery.net/embed/12345/video-guid",
+        "Status": "passed",
+        "Duration milliseconds": 3.411
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback parses https://video.bunnycdn.com/play/12345/video-guid",
+        "Status": "passed",
+        "Duration milliseconds": 0.707
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback parses bunny:12345:video-guid",
+        "Status": "passed",
+        "Duration milliseconds": 0.717
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback rejects invalid provider URL https://attacker.test/mediadelivery.net/embed/123/video",
+        "Status": "passed",
+        "Duration milliseconds": 0.747
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback rejects invalid provider URL https://iframe.mediadelivery.net.attacker.test/embed/123/video",
+        "Status": "passed",
+        "Duration milliseconds": 0.481
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback rejects invalid provider URL javascript:mediadelivery.net/embed/123/video",
+        "Status": "passed",
+        "Duration milliseconds": 0.314
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback rejects invalid provider URL ",
+        "Status": "passed",
+        "Duration milliseconds": 0.273
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback rejects invalid provider URL https://youtube.com/watch?v=video",
+        "Status": "passed",
+        "Duration milliseconds": 0.257
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback signs the provider-defined SHA256 payload with an expiry",
+        "Status": "passed",
+        "Duration milliseconds": 1.467
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback refuses to sign with missing or public demo secrets",
+        "Status": "passed",
+        "Duration milliseconds": 1.713
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback does not fabricate a successful upload without credentials",
+        "Status": "passed",
+        "Duration milliseconds": 1.048
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback uploads through both provider requests when configured",
+        "Status": "passed",
+        "Duration milliseconds": 2.359
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback requires a signed-in viewer",
+        "Status": "passed",
+        "Duration milliseconds": 2.399
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback blocks non-enrolled viewers of paid lessons",
+        "Status": "passed",
+        "Duration milliseconds": 0.731
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback does not let enrollment in one course unlock another course lesson",
+        "Status": "passed",
+        "Duration milliseconds": 0.732
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback returns a signed URL and viewer watermark for an entitled viewer",
+        "Status": "passed",
+        "Duration milliseconds": 21.674
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback does not substitute unrelated videos for a missing lesson",
+        "Status": "passed",
+        "Duration milliseconds": 0.543
+      },
+      {
+        "File": "__tests__/unit-testing/BunnyDrmStreaming.test.ts",
+        "Test": "Bunny signed playback converts watch URLs to an embeddable player URL",
+        "Status": "passed",
+        "Duration milliseconds": 0.855
+      },
+      {
+        "File": "__tests__/unit-testing/Button.test.tsx",
+        "Test": "Button component should render the button with provided text",
+        "Status": "passed",
+        "Duration milliseconds": 39.7
+      },
+      {
+        "File": "__tests__/unit-testing/CourseDetailsView.test.tsx",
+        "Test": "CourseDetailsPage with Dynamic / Database Courses renders successfully when learningOutcomes and prerequisites are JSON strings from DB",
+        "Status": "passed",
+        "Duration milliseconds": 382.219
+      },
+      {
+        "File": "__tests__/unit-testing/CourseDetailsView.test.tsx",
+        "Test": "CourseDetailsPage with Dynamic / Database Courses handles empty or malformed learning outcomes without crashing",
+        "Status": "passed",
+        "Duration milliseconds": 103.909
+      },
+      {
+        "File": "__tests__/unit-testing/CourseForm.test.tsx",
+        "Test": "CourseForm renders the form correctly",
+        "Status": "passed",
+        "Duration milliseconds": 473.282
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions addCourseModule rejects unauthorized users or non-instructors",
+        "Status": "passed",
+        "Duration milliseconds": 2.736
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions addCourseModule creates a new module for authorized instructors",
+        "Status": "passed",
+        "Duration milliseconds": 0.771
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions addCourseLecture creates a video lecture with optional PDF attachment",
+        "Status": "passed",
+        "Duration milliseconds": 2.669
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions addCourseLecture creates a quiz lesson item linked to an exam",
+        "Status": "passed",
+        "Duration milliseconds": 0.874
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions updateCourseLecture updates lesson title, duration, and pdf notes",
+        "Status": "passed",
+        "Duration milliseconds": 1.268
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions deleteCourseLecture deletes lesson and recalibrates course lesson counter",
+        "Status": "passed",
+        "Duration milliseconds": 1.572
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions getCourseCurriculum fetches curriculum modules with populated lessons for a course",
+        "Status": "passed",
+        "Duration milliseconds": 1.166
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions getCourseCurriculum does not fabricate a curriculum for removed sample courses",
+        "Status": "passed",
+        "Duration milliseconds": 0.66
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions getCourseQuizzes retrieves exam assessments linked to the course",
+        "Status": "passed",
+        "Duration milliseconds": 0.927
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions prevents instructors from modifying another instructor course",
+        "Status": "passed",
+        "Duration milliseconds": 1.544
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions does not delete lessons that belong to a different course",
+        "Status": "passed",
+        "Duration milliseconds": 0.517
+      },
+      {
+        "File": "__tests__/unit-testing/CurriculumBuilder.test.ts",
+        "Test": "Curriculum Builder & Lecture Actions does not expose the instructor curriculum and media URLs to students",
+        "Status": "passed",
+        "Duration milliseconds": 0.467
+      },
+      {
+        "File": "__tests__/unit-testing/DiscussionBoard.test.tsx",
+        "Test": "DiscussionBoard UI Component renders correctly with initial comments",
+        "Status": "passed",
+        "Duration milliseconds": 86.837
+      },
+      {
+        "File": "__tests__/unit-testing/DiscussionBoard.test.tsx",
+        "Test": "DiscussionBoard UI Component allows posting a new question",
+        "Status": "passed",
+        "Duration milliseconds": 51.016
+      },
+      {
+        "File": "__tests__/unit-testing/DiscussionBoard.test.tsx",
+        "Test": "DiscussionBoard UI Component allows liking a comment",
+        "Status": "passed",
+        "Duration milliseconds": 30.837
+      },
+      {
+        "File": "__tests__/unit-testing/DiscussionBoard.test.tsx",
+        "Test": "DiscussionBoard UI Component allows flagging as solution",
+        "Status": "passed",
+        "Duration milliseconds": 30.201
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Exam Creation with Configurable Max Attempts should default maxAttempts to 3 when not specified",
+        "Status": "passed",
+        "Duration milliseconds": 4.164
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Exam Creation with Configurable Max Attempts should allow instructor to configure custom attempts (e.g., 1 attempt [Strict], or 5 attempts)",
+        "Status": "passed",
+        "Duration milliseconds": 0.919
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Attempt Tracking via getExamByIdAction should report canAttempt: true with 3 remaining attempts for fresh student",
+        "Status": "passed",
+        "Duration milliseconds": 1.153
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Attempt Tracking via getExamByIdAction should report canAttempt: true with 1 remaining attempt after 2 submissions",
+        "Status": "passed",
+        "Duration milliseconds": 0.797
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Attempt Tracking via getExamByIdAction should report canAttempt: false and 0 remaining attempts when cap of 3 is reached",
+        "Status": "passed",
+        "Duration milliseconds": 0.614
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should allow attempt 1 of 3, recording attemptNumber: 1 and canRetake: true",
+        "Status": "passed",
+        "Duration milliseconds": 1.549
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should allow attempt 3 of 3, recording canRetake: false because cap is reached",
+        "Status": "passed",
+        "Duration milliseconds": 0.717
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should reject attempt 4 with error when maxAttempts of 3 has already been reached",
+        "Status": "passed",
+        "Duration milliseconds": 0.94
+      },
+      {
+        "File": "__tests__/unit-testing/ExamRetakePolicy.test.ts",
+        "Test": "Exam Retake Policy Enforcement (Maximum 3 Attempts Cap & Configurable Limit) Submission Enforcement & Retake Cap Block should respect custom instructor maxAttempts limit (e.g. 1 attempt strict cap)",
+        "Status": "passed",
+        "Duration milliseconds": 0.567
+      },
+      {
+        "File": "__tests__/unit-testing/ExamScoring.test.ts",
+        "Test": "Exam grading logic calculates perfect score when all answers are correct",
+        "Status": "passed",
+        "Duration milliseconds": 2.062
+      },
+      {
+        "File": "__tests__/unit-testing/ExamScoring.test.ts",
+        "Test": "Exam grading logic handles partial answers and wrong answers correctly",
+        "Status": "passed",
+        "Duration milliseconds": 0.661
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "submits an application as pending without granting itself approval",
+        "Status": "passed",
+        "Duration milliseconds": 4.158
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "prevents duplicate pending requests",
+        "Status": "passed",
+        "Duration milliseconds": 0.704
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "prevents STUDENT from reviewing a global application",
+        "Status": "passed",
+        "Duration milliseconds": 0.489
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "prevents ADMIN from reviewing a global application",
+        "Status": "passed",
+        "Duration milliseconds": 0.278
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "prevents INSTRUCTOR from reviewing a global application",
+        "Status": "passed",
+        "Duration milliseconds": 0.262
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "requires rejection feedback and only changes pending applications",
+        "Status": "passed",
+        "Duration milliseconds": 0.62
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "lists draft and assigned courses without a published-only restriction",
+        "Status": "passed",
+        "Duration milliseconds": 0.943
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "requires global approval before student search",
+        "Status": "passed",
+        "Duration milliseconds": 0.557
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "escapes search patterns instead of accepting regular expressions",
+        "Status": "passed",
+        "Duration milliseconds": 0.815
+      },
+      {
+        "File": "__tests__/unit-testing/GlobalAssessmentApplications.test.ts",
+        "Test": "does not let an instructor assign themselves to another course",
+        "Status": "passed",
+        "Duration milliseconds": 0.509
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) approves application: sets approval_status=\"Approved\", remarks, and promotes user role to \"INSTRUCTOR\"",
+        "Status": "passed",
+        "Duration milliseconds": 6.621
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) rejects application: sets approval_status=\"Rejected\", stores feedback remarks, and does NOT promote role",
+        "Status": "passed",
+        "Duration milliseconds": 0.836
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) supports uppercase \"APPROVE\" and \"REJECT\" decisions seamlessly",
+        "Status": "passed",
+        "Duration milliseconds": 0.475
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) returns error when profile is not found",
+        "Status": "passed",
+        "Duration milliseconds": 0.513
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition reviewInstructorApplication (Task T-016) blocks unauthorized non-admin users from reviewing applications",
+        "Status": "passed",
+        "Duration milliseconds": 6.074
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition getInstructorApplicationsAction (Task T-015) returns formatted applications with applicant credentials, institution, qualifications, and verification data",
+        "Status": "passed",
+        "Duration milliseconds": 1.307
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition getInstructorApplicationsAction (Task T-015) filters applications by search query",
+        "Status": "passed",
+        "Duration milliseconds": 0.649
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorApplicationReview.test.ts",
+        "Test": "Task T-015 & T-016: Instructor Application Review & Role Transition seedDemoInstructorApplicationsAction refuses to create sample applications",
+        "Status": "passed",
+        "Duration milliseconds": 0.401
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "ExamCreateForm - True/False Removal & Add Question Fix renders without True/False format option and has MCQ, Short Answer, and Code options",
+        "Status": "passed",
+        "Duration milliseconds": 295.88
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "ExamCreateForm - True/False Removal & Add Question Fix adds a new question when clicking the top Add New Question button",
+        "Status": "passed",
+        "Duration milliseconds": 191.238
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "ExamCreateForm - True/False Removal & Add Question Fix provides a bottom Add Another Question button that also adds questions",
+        "Status": "passed",
+        "Duration milliseconds": 108.001
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "InstructorSettingsClient - Tailored Profile for Instructor renders instructor header stats, badges, and metrics",
+        "Status": "passed",
+        "Duration milliseconds": 117.249
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "InstructorSettingsClient - Tailored Profile for Instructor allows navigating to Teaching & Expertise tab and toggles chips",
+        "Status": "passed",
+        "Duration milliseconds": 483.716
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "InstructorSettingsClient - Tailored Profile for Instructor allows navigating to Payouts & Banking tab and displays financial setup",
+        "Status": "passed",
+        "Duration milliseconds": 238.702
+      },
+      {
+        "File": "__tests__/unit-testing/InstructorProfileAndExamQuestionFix.test.tsx",
+        "Test": "InstructorSettingsClient - Tailored Profile for Instructor calls updateInstructorProfileAction when saving profile",
+        "Status": "passed",
+        "Duration milliseconds": 119.798
+      },
+      {
+        "File": "__tests__/unit-testing/LanguageContext.test.tsx",
+        "Test": "LanguageContext and LanguageToggle defaults to Bangla (bn) and translates navigation keys",
+        "Status": "passed",
+        "Duration milliseconds": 59.635
+      },
+      {
+        "File": "__tests__/unit-testing/LanguageContext.test.tsx",
+        "Test": "LanguageContext and LanguageToggle switches to English when toggled and updates translations",
+        "Status": "passed",
+        "Duration milliseconds": 13.648
+      },
+      {
+        "File": "__tests__/unit-testing/LanguageContext.test.tsx",
+        "Test": "LanguageContext and LanguageToggle switches language using setLanguage directly and via LanguageToggle component",
+        "Status": "passed",
+        "Duration milliseconds": 29.197
+      },
+      {
+        "File": "__tests__/unit-testing/LatexRenderer.test.tsx",
+        "Test": "LatexRenderer component renders plain Bengali text properly",
+        "Status": "passed",
+        "Duration milliseconds": 18.903
+      },
+      {
+        "File": "__tests__/unit-testing/LatexRenderer.test.tsx",
+        "Test": "LatexRenderer component renders inline math with KaTeX",
+        "Status": "passed",
+        "Duration milliseconds": 125.991
+      },
+      {
+        "File": "__tests__/unit-testing/LatexRenderer.test.tsx",
+        "Test": "LatexRenderer component renders display block math correctly",
+        "Status": "passed",
+        "Duration milliseconds": 48.635
+      },
+      {
+        "File": "__tests__/unit-testing/LatexRenderer.test.tsx",
+        "Test": "LatexRenderer component handles invalid or unclosed math gracefully without crashing",
+        "Status": "passed",
+        "Duration milliseconds": 35.587
+      },
+      {
+        "File": "__tests__/unit-testing/LatexRenderer.test.tsx",
+        "Test": "LatexRenderer component renders formula toolbar with quick insert shortcuts",
+        "Status": "passed",
+        "Duration milliseconds": 67.732
+      },
+      {
+        "File": "__tests__/unit-testing/LeaderboardAndPercentile.test.ts",
+        "Test": "Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Global Leaderboard with Elo & Percentile Calculation should rank students globally by Elo and calculate accurate mathematical percentiles",
+        "Status": "passed",
+        "Duration milliseconds": 4.597
+      },
+      {
+        "File": "__tests__/unit-testing/LeaderboardAndPercentile.test.ts",
+        "Test": "Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Global Leaderboard with Elo & Percentile Calculation should filter global leaderboard by academic track (e.g., CSE)",
+        "Status": "passed",
+        "Duration milliseconds": 0.852
+      },
+      {
+        "File": "__tests__/unit-testing/LeaderboardAndPercentile.test.ts",
+        "Test": "Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Local (Course-Level) Cohort Leaderboard should rank enrolled students locally by course exam score and calculate cohort percentile",
+        "Status": "passed",
+        "Duration milliseconds": 1.793
+      },
+      {
+        "File": "__tests__/unit-testing/LeaderboardAndPercentile.test.ts",
+        "Test": "Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Local (Course-Level) Cohort Leaderboard should return empty list gracefully when course has no enrolled students",
+        "Status": "passed",
+        "Duration milliseconds": 1.066
+      },
+      {
+        "File": "__tests__/unit-testing/LeaderboardAndPercentile.test.ts",
+        "Test": "Local (Course-Level) & Global Leaderboard with Percentile / Elo Ranking Engine Course Selector for Leaderboard should list available courses with their enrolled counts",
+        "Status": "passed",
+        "Duration milliseconds": 0.838
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions submitLiveQuestionAction rejects question submission when user is not authenticated",
+        "Status": "passed",
+        "Duration milliseconds": 3.117
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions submitLiveQuestionAction rejects question when text length is less than 5 characters",
+        "Status": "passed",
+        "Duration milliseconds": 0.531
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions submitLiveQuestionAction successfully persists question and returns live question item",
+        "Status": "passed",
+        "Duration milliseconds": 0.973
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions toggleUpvoteLiveQuestionAction adds student upvote when student has not yet upvoted",
+        "Status": "passed",
+        "Duration milliseconds": 1.868
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions toggleUpvoteLiveQuestionAction removes student upvote when student already upvoted (toggle off)",
+        "Status": "passed",
+        "Duration milliseconds": 0.998
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions answerLiveQuestionAction marks question as answered and saves instructor reply",
+        "Status": "passed",
+        "Duration milliseconds": 0.816
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions pinLiveQuestionAction toggles question pinned status for instructor highlight",
+        "Status": "passed",
+        "Duration milliseconds": 0.535
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions getLiveSessionDetailsAction loads live session and questions sorted by votes and pinned state",
+        "Status": "passed",
+        "Duration milliseconds": 17.333
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions prevents a student from answering or pinning questions",
+        "Status": "passed",
+        "Duration milliseconds": 0.581
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions prevents another instructor from modifying the course live questions",
+        "Status": "passed",
+        "Duration milliseconds": 0.435
+      },
+      {
+        "File": "__tests__/unit-testing/LiveClassInteractiveQA.test.ts",
+        "Test": "Interactive Live Class Streaming with Real-Time Student Questions does not create fake sessions or seed questions for missing sessions",
+        "Status": "passed",
+        "Duration milliseconds": 0.326
+      },
+      {
+        "File": "__tests__/unit-testing/LoginIdentifier.test.tsx",
+        "Test": "Login identifier entry preserves hyphens in email local parts and domains",
+        "Status": "passed",
+        "Duration milliseconds": 354.739
+      },
+      {
+        "File": "__tests__/unit-testing/LoginIdentifier.test.tsx",
+        "Test": "Login identifier entry still normalizes formatting in phone numbers",
+        "Status": "passed",
+        "Duration milliseconds": 125.53
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes \"Warning\" penalty: resolves ticket, writes audit into MODERATOR_ACTION",
+        "Status": "passed",
+        "Duration milliseconds": 4.632
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes \"Remove\" penalty on Comment: soft-deletes/hides comment, updates report, and writes to MODERATOR_ACTION",
+        "Status": "passed",
+        "Duration milliseconds": 1.048
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes \"Remove\" penalty on Course: unpublishes course to DRAFT and REJECTED",
+        "Status": "passed",
+        "Duration milliseconds": 0.605
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) executes \"Ban\" penalty: invokes suspension state on target user (status: \"SUSPENDED\")",
+        "Status": "passed",
+        "Duration milliseconds": 0.772
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) returns error when ticket is not found",
+        "Status": "passed",
+        "Duration milliseconds": 0.566
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution resolveModerationTicket (Task T-018) blocks unauthorized regular student accounts from resolving tickets",
+        "Status": "passed",
+        "Duration milliseconds": 6.899
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution getModerationTicketsAction (Task T-017) returns flagged tickets categorized by reported_type with in-context preview and reporter rationale",
+        "Status": "passed",
+        "Duration milliseconds": 1.312
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution getModerationTicketsAction (Task T-017) filters tickets by search term across rationale and preview",
+        "Status": "passed",
+        "Duration milliseconds": 0.557
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution updateReportStatus updates report status to \"In Review\"",
+        "Status": "passed",
+        "Duration milliseconds": 0.709
+      },
+      {
+        "File": "__tests__/unit-testing/ModerationQueueAndActions.test.ts",
+        "Test": "Task T-017 & T-018: Content Moderation Queue & Action Execution seedDemoModerationReportsAction refuses to create sample moderation tickets",
+        "Status": "passed",
+        "Duration milliseconds": 0.544
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should correctly accept exact match",
+        "Status": "passed",
+        "Duration milliseconds": 3.454
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should accept case-insensitive variations",
+        "Status": "passed",
+        "Duration milliseconds": 0.414
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should trim surrounding whitespace and trailing sentence punctuation",
+        "Status": "passed",
+        "Duration milliseconds": 0.387
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should match Bengali alternative synonyms",
+        "Status": "passed",
+        "Duration milliseconds": 0.288
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should match numeric equivalence",
+        "Status": "passed",
+        "Duration milliseconds": 0.362
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Short-Answer Intelligent Evaluator (evaluateShortAnswer) should reject incorrect answers",
+        "Status": "passed",
+        "Duration milliseconds": 0.311
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should grade code as correct when all test cases pass",
+        "Status": "passed",
+        "Duration milliseconds": 48.523
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should fail when code produces wrong answer on test cases",
+        "Status": "passed",
+        "Duration milliseconds": 34.696
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should catch runtime errors gracefully without crashing",
+        "Status": "passed",
+        "Duration milliseconds": 12.799
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should protect against infinite loops with timeout limit",
+        "Status": "passed",
+        "Duration milliseconds": 315.484
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should normalize JSON arrays and structural data",
+        "Status": "passed",
+        "Duration milliseconds": 23.754
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine Automated Code Execution & Verification (evaluateCodeSubmission) should evaluate console.log outputs if function return is not used",
+        "Status": "passed",
+        "Duration milliseconds": 31.071
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine runSampleCodeAction should execute sample code and return outcome",
+        "Status": "passed",
+        "Duration milliseconds": 26.215
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine submitExamAction with Multi-Format Auto-Grading should auto-grade all formats and calculate score accurately when all are correct",
+        "Status": "passed",
+        "Duration milliseconds": 24.973
+      },
+      {
+        "File": "__tests__/unit-testing/MultiFormatExamAndAutoGrading.test.ts",
+        "Test": "Multi-Format Exam & Auto-Grading Engine submitExamAction with Multi-Format Auto-Grading should correctly award 0 marks when code fails test cases",
+        "Status": "passed",
+        "Duration milliseconds": 44.776
+      },
+      {
+        "File": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "Test": "Configurable Fractional Negative Marking Engine Exam Creation with Configurable Negative Marking should create an exam with negative marking enabled and custom fractional rate",
+        "Status": "passed",
+        "Duration milliseconds": 7.059
+      },
+      {
+        "File": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "Test": "Configurable Fractional Negative Marking Engine Exam Creation with Configurable Negative Marking should support other configurable negative marking rates such as -0.33 or -0.50",
+        "Status": "passed",
+        "Duration milliseconds": 0.869
+      },
+      {
+        "File": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "Test": "Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should deduct fractional marks only for attempted wrong answers, leaving skipped questions at 0 penalty",
+        "Status": "passed",
+        "Duration milliseconds": 14.849
+      },
+      {
+        "File": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "Test": "Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should clamp the final score at zero when negative deductions exceed earned marks",
+        "Status": "passed",
+        "Duration milliseconds": 1.137
+      },
+      {
+        "File": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "Test": "Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should not deduct negative marks when hasNegativeMarking is disabled",
+        "Status": "passed",
+        "Duration milliseconds": 1.832
+      },
+      {
+        "File": "__tests__/unit-testing/NegativeMarking.test.ts",
+        "Test": "Configurable Fractional Negative Marking Engine Submission Evaluation & Negative Marking Calculation should correctly handle custom negative marking values like -0.50",
+        "Status": "passed",
+        "Duration milliseconds": 0.949
+      },
+      {
+        "File": "__tests__/unit-testing/NotesAndResources.test.tsx",
+        "Test": "NotesAndResources UI Component renders empty state correctly",
+        "Status": "passed",
+        "Duration milliseconds": 95.426
+      },
+      {
+        "File": "__tests__/unit-testing/NotesAndResources.test.tsx",
+        "Test": "NotesAndResources UI Component allows adding a new note",
+        "Status": "passed",
+        "Duration milliseconds": 114.137
+      },
+      {
+        "File": "__tests__/unit-testing/PaymentVerification.test.ts",
+        "Test": "Unverified payment confirmation requires authentication",
+        "Status": "passed",
+        "Duration milliseconds": 5.512
+      },
+      {
+        "File": "__tests__/unit-testing/PaymentVerification.test.ts",
+        "Test": "Unverified payment confirmation never grants enrollment without a verified payment provider",
+        "Status": "passed",
+        "Duration milliseconds": 1.026
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 1. Payout Request Initiation (requestPayout) rejects invalid or non-positive payout amounts",
+        "Status": "passed",
+        "Duration milliseconds": 4.601
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 1. Payout Request Initiation (requestPayout) rejects requests when instructor has insufficient available balance",
+        "Status": "passed",
+        "Duration milliseconds": 18.445
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 1. Payout Request Initiation (requestPayout) places funds on hold in FinancialLedger and creates PENDING payout request upon valid submission",
+        "Status": "passed",
+        "Duration milliseconds": 2.413
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 2. Payout Approval Workflow (approvePayoutRequestAction) blocks unauthorized regular student accounts from approving payouts",
+        "Status": "passed",
+        "Duration milliseconds": 3.224
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 2. Payout Approval Workflow (approvePayoutRequestAction) blocks approving payouts that are already disbursed or rejected",
+        "Status": "passed",
+        "Duration milliseconds": 1.286
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 2. Payout Approval Workflow (approvePayoutRequestAction) transitions status from PENDING to APPROVED and logs approval metadata",
+        "Status": "passed",
+        "Duration milliseconds": 3.144
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 3. Payout Disbursement via Financial Ledger (disbursePayoutRequestAction) requires a valid transaction reference for disbursal",
+        "Status": "passed",
+        "Duration milliseconds": 1.487
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 3. Payout Disbursement via Financial Ledger (disbursePayoutRequestAction) blocks disbursing already disbursed or rejected payouts",
+        "Status": "passed",
+        "Duration milliseconds": 0.716
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 3. Payout Disbursement via Financial Ledger (disbursePayoutRequestAction) records immutable CLEARED entry in FinancialLedger and marks payout as DISBURSED",
+        "Status": "passed",
+        "Duration milliseconds": 1.458
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 4. Payout Rejection & Wallet Refund (rejectPayoutRequestAction) requires a rejection reason to be specified",
+        "Status": "passed",
+        "Duration milliseconds": 0.905
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 4. Payout Rejection & Wallet Refund (rejectPayoutRequestAction) prevents rejecting an already disbursed payout",
+        "Status": "passed",
+        "Duration milliseconds": 0.693
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 4. Payout Rejection & Wallet Refund (rejectPayoutRequestAction) refunds held funds back to instructor availableBalance and logs compensating PAYOUT_REFUND ledger entry",
+        "Status": "passed",
+        "Duration milliseconds": 0.867
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 5. Instructor Self-Cancellation (cancelPayoutRequestAction) allows owner to cancel their own pending payout request and restores wallet balance",
+        "Status": "passed",
+        "Duration milliseconds": 0.79
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 5. Instructor Self-Cancellation (cancelPayoutRequestAction) prevents non-owner regular user from cancelling someone elses payout",
+        "Status": "passed",
+        "Duration milliseconds": 0.354
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 6. Payout Queries & Ledger Aggregation (getPayoutRequestsAction & getFinancialLedgerAction) aggregates live KPI counts and financial amounts across lifecycle statuses",
+        "Status": "passed",
+        "Duration milliseconds": 1.048
+      },
+      {
+        "File": "__tests__/unit-testing/PayoutRequestWorkflows.test.ts",
+        "Test": "Payout Request Workflows & Financial Ledger Engine 6. Payout Queries & Ledger Aggregation (getPayoutRequestsAction & getFinancialLedgerAction) fetches Financial Ledger entries and computes outflow summary stats",
+        "Status": "passed",
+        "Duration milliseconds": 0.828
+      },
+      {
+        "File": "__tests__/unit-testing/PersonalizedRecommendations.test.ts",
+        "Test": "Personalized Course Recommendation Engine gives high score to fullstack course when student track is Fullstack Web Development",
+        "Status": "passed",
+        "Duration milliseconds": 2.823
+      },
+      {
+        "File": "__tests__/unit-testing/PersonalizedRecommendations.test.ts",
+        "Test": "Personalized Course Recommendation Engine prioritizes Machine Learning & AI course when student has data science interests",
+        "Status": "passed",
+        "Duration milliseconds": 1.252
+      },
+      {
+        "File": "__tests__/unit-testing/PersonalizedRecommendations.test.ts",
+        "Test": "Personalized Course Recommendation Engine calibrates difficulty and rewards Advanced System Design course for high-Elo students",
+        "Status": "passed",
+        "Duration milliseconds": 0.412
+      },
+      {
+        "File": "__tests__/unit-testing/PersonalizedRecommendations.test.ts",
+        "Test": "Personalized Course Recommendation Engine rewards student skills synergy when course builds upon known technologies",
+        "Status": "passed",
+        "Duration milliseconds": 0.403
+      },
+      {
+        "File": "__tests__/unit-testing/PersonalizedRecommendations.test.ts",
+        "Test": "Personalized Course Recommendation Engine caps recommendation score at 99% and maintains reasonable minimum floor",
+        "Status": "passed",
+        "Duration milliseconds": 0.963
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) Commission Rules Configuration establishes the default 10% commission rule with 90% instructor share",
+        "Status": "passed",
+        "Duration milliseconds": 2.076
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) Commission Rules Configuration establishes the 5% Early Bird promotional commission rule with 95% instructor share",
+        "Status": "passed",
+        "Duration milliseconds": 0.333
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when explicitly requested in options",
+        "Status": "passed",
+        "Duration milliseconds": 0.306
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns DEFAULT when explicitly requested in options",
+        "Status": "passed",
+        "Duration milliseconds": 0.178
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course has isEarlyBird flag set to true",
+        "Status": "passed",
+        "Duration milliseconds": 0.171
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course has an active future earlyBirdUntil date",
+        "Status": "passed",
+        "Duration milliseconds": 0.153
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns DEFAULT when course earlyBirdUntil date has expired and no other criteria match",
+        "Status": "passed",
+        "Duration milliseconds": 0.14
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD for early cohort enrollments (first 20 students enrolled)",
+        "Status": "passed",
+        "Duration milliseconds": 0.144
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course is in promotional discounted launch phase (price < originalPrice)",
+        "Status": "passed",
+        "Duration milliseconds": 0.178
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns EARLY_BIRD when course was launched recently (within 30 days of creation)",
+        "Status": "passed",
+        "Duration milliseconds": 0.261
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) determineCommissionRule Business Logic returns DEFAULT when course does not qualify for any early bird criteria",
+        "Status": "passed",
+        "Duration milliseconds": 0.167
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly calculates 10% platform commission and 90% instructor earnings under DEFAULT rule",
+        "Status": "passed",
+        "Duration milliseconds": 0.392
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly calculates 5% platform commission and 95% instructor earnings under EARLY_BIRD rule",
+        "Status": "passed",
+        "Duration milliseconds": 0.292
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly handles fractional prices and rounds cleanly to 2 decimal places",
+        "Status": "passed",
+        "Duration milliseconds": 0.174
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine correctly handles zero price (free courses)",
+        "Status": "passed",
+        "Duration milliseconds": 0.117
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) calculatePlatformCommission Calculation Engine safely clamps negative price to 0",
+        "Status": "passed",
+        "Duration milliseconds": 0.141
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) processEnrollmentCommission Atomic Server Action & Tracking does not let anonymous callers or students generate instructor earnings",
+        "Status": "passed",
+        "Duration milliseconds": 0.874
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) processEnrollmentCommission Atomic Server Action & Tracking creates PLATFORM_COMMISSION entity with DEFAULT 10% rule tracking",
+        "Status": "passed",
+        "Duration milliseconds": 1.79
+      },
+      {
+        "File": "__tests__/unit-testing/PlatformCommissionRules.test.ts",
+        "Test": "Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%) processEnrollmentCommission Atomic Server Action & Tracking creates PLATFORM_COMMISSION entity with EARLY_BIRD 5% rule tracking when early bird applies",
+        "Status": "passed",
+        "Duration milliseconds": 0.829
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) awards high score when repository, live URL, deliverables, and docs are complete",
+        "Status": "passed",
+        "Duration milliseconds": 4.097
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) penalizes when GitHub URL is invalid or missing when required",
+        "Status": "passed",
+        "Duration milliseconds": 0.702
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) penalizes when live deployment URL is missing or insecure (HTTP)",
+        "Status": "passed",
+        "Duration milliseconds": 0.373
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine evaluateProjectSubmission (Automated Engine) fails evaluation when overall score is below passMarks",
+        "Status": "passed",
+        "Duration milliseconds": 0.349
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine submitProjectAndEvaluateAction (Server Action) prevents submission if student is not authenticated",
+        "Status": "passed",
+        "Duration milliseconds": 0.723
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine submitProjectAndEvaluateAction (Server Action) evaluates and saves project submission, updates progress if passed",
+        "Status": "passed",
+        "Duration milliseconds": 0.967
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine Instructor Actions blocks non-instructor users from accessing submissions",
+        "Status": "passed",
+        "Duration milliseconds": 0.464
+      },
+      {
+        "File": "__tests__/unit-testing/ProjectSubmissionAndAutoEvaluation.test.ts",
+        "Test": "Project Submission & Automated Evaluation Engine Instructor Actions allows instructors to grade and override submission scores",
+        "Status": "passed",
+        "Duration milliseconds": 0.662
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Approval atomically updates payment to Refunded and revokes enrollment to Cancelled",
+        "Status": "passed",
+        "Duration milliseconds": 5.913
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Approval handles refund approval when no commission document exists by looking up course instructor",
+        "Status": "passed",
+        "Duration milliseconds": 0.937
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Approval supports MODERATOR and SUPERADMIN roles",
+        "Status": "passed",
+        "Duration milliseconds": 0.528
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation processRefundRequest - Rejection records rejection rationale and keeps student enrollment active",
+        "Status": "passed",
+        "Duration milliseconds": 1.177
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation Security & Validation blocks unauthenticated requests",
+        "Status": "passed",
+        "Duration milliseconds": 0.584
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation Security & Validation blocks unauthorized roles (STUDENT, INSTRUCTOR)",
+        "Status": "passed",
+        "Duration milliseconds": 0.412
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation Security & Validation returns error when payment record is not found and cannot be created",
+        "Status": "passed",
+        "Duration milliseconds": 0.606
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation getRefundRequestsAction fetches and filters serialized payments for authorized admins",
+        "Status": "passed",
+        "Duration milliseconds": 2.159
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation getRefundRequestsAction filters by search term correctly",
+        "Status": "passed",
+        "Duration milliseconds": 1.179
+      },
+      {
+        "File": "__tests__/unit-testing/RefundProcessingEngine.test.ts",
+        "Test": "Task T-019: Refund Request Processing Engine & Reconciliation seedDemoRefundRequestsAction refuses to create sample financial records",
+        "Status": "passed",
+        "Duration milliseconds": 0.717
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review queues an expired enrollment without granting access",
+        "Status": "passed",
+        "Duration milliseconds": 5.534
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review rejects invalid request details: {\"examDate\":\"2000-01-01\"}",
+        "Status": "passed",
+        "Duration milliseconds": 1.052
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review rejects invalid request details: {\"examDate\":\"2099-02-30\"}",
+        "Status": "passed",
+        "Duration milliseconds": 0.514
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review rejects invalid request details: {\"reason\":\"too short\"}",
+        "Status": "passed",
+        "Duration milliseconds": 0.492
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review requires an expired paid enrollment",
+        "Status": "passed",
+        "Duration milliseconds": 0.554
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review requires an expired paid enrollment",
+        "Status": "passed",
+        "Duration milliseconds": 0.375
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review rejects duplicate pending requests",
+        "Status": "passed",
+        "Duration milliseconds": 0.466
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review uses the course revision duration and a pending-only update on approval",
+        "Status": "passed",
+        "Duration milliseconds": 1.622
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review allows a current ADMIN to review",
+        "Status": "passed",
+        "Duration milliseconds": 0.642
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review allows a current SUPERADMIN to review",
+        "Status": "passed",
+        "Duration milliseconds": 0.514
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review denies a non-owner STUDENT",
+        "Status": "passed",
+        "Duration milliseconds": 0.432
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review denies a non-owner INSTRUCTOR",
+        "Status": "passed",
+        "Duration milliseconds": 0.236
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review rejects a stale session whose current account is blocked",
+        "Status": "passed",
+        "Duration milliseconds": 0.31
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review requires rejection feedback and leaves access disabled",
+        "Status": "passed",
+        "Duration milliseconds": 0.444
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review does not approve when revision is disabled on the course",
+        "Status": "passed",
+        "Duration milliseconds": 0.295
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review reports a concurrent or already completed review",
+        "Status": "passed",
+        "Duration milliseconds": 0.232
+      },
+      {
+        "File": "__tests__/unit-testing/RevisionAccess.test.ts",
+        "Test": "Revision access review limits the instructor queue to owned courses",
+        "Status": "passed",
+        "Duration milliseconds": 0.653
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 1. Student Instructor Application Submission allows a regular student to submit an instructor application and updates InstructorProfile",
+        "Status": "passed",
+        "Duration milliseconds": 4.963
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 1. Student Instructor Application Submission rejects an application from a user who is already an approved instructor",
+        "Status": "passed",
+        "Duration milliseconds": 0.725
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 1. Student Instructor Application Submission rejects an application if the reason is shorter than 20 characters",
+        "Status": "passed",
+        "Duration milliseconds": 0.594
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 2. Admin Approval & Student Data Preservation promotes user role to INSTRUCTOR and preserves all student progress, elo, and enrollment data",
+        "Status": "passed",
+        "Duration milliseconds": 1.652
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention allows an approved instructor to enroll in an eligible course created by another instructor",
+        "Status": "passed",
+        "Duration milliseconds": 1.421
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention blocks an instructor from enrolling in their own course (self-enrollment prevention)",
+        "Status": "passed",
+        "Duration milliseconds": 0.523
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention prevents duplicate enrollment if user is already enrolled in the course",
+        "Status": "passed",
+        "Duration milliseconds": 0.5
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 3. Instructor Course Enrollment & Self-Enrollment / Duplicate Prevention returns payment checkout URL for paid course enrollment by instructor",
+        "Status": "passed",
+        "Duration milliseconds": 0.504
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 4. Superadmin Course Assignment Logic prevents superadmin from assigning a course to its own creator/instructor",
+        "Status": "passed",
+        "Duration milliseconds": 1.084
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 4. Superadmin Course Assignment Logic prevents duplicate assignment if learner is already enrolled",
+        "Status": "passed",
+        "Duration milliseconds": 0.674
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Unified Enrolled Courses Retrieval for Instructors retrieves all courses enrolled when user was a student without having to go back to student profile",
+        "Status": "passed",
+        "Duration milliseconds": 2.114
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Unified Enrolled Courses Retrieval for Instructors aggregates both student-enrolled courses and newly instructor-enrolled courses in the enrolled courses list",
+        "Status": "passed",
+        "Duration milliseconds": 1.245
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Unified Enrolled Courses Retrieval for Instructors revalidates both student and instructor dashboard paths when enrolling",
+        "Status": "passed",
+        "Duration milliseconds": 0.537
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment 5. Admin Role Promotion and Auto-Revalidation for Instructors promotes user role to INSTRUCTOR and revalidates all student and instructor dashboard paths",
+        "Status": "passed",
+        "Duration milliseconds": 0.987
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment does not enroll students in DRAFT courses",
+        "Status": "passed",
+        "Duration milliseconds": 0.465
+      },
+      {
+        "File": "__tests__/unit-testing/StudentToInstructorRoleUpgrade.test.ts",
+        "Test": "Student-to-Instructor Role Upgrade & Instructor Course Enrollment does not enroll students in PENDING_REVIEW courses",
+        "Status": "passed",
+        "Duration milliseconds": 0.242
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions assignCourseToStudent successfully assigns a course to a student when not already enrolled",
+        "Status": "passed",
+        "Duration milliseconds": 3.992
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions assignCourseToStudent rejects assignment if student is already enrolled",
+        "Status": "passed",
+        "Duration milliseconds": 0.602
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions removeCourseFromStudent successfully revokes course enrollment",
+        "Status": "passed",
+        "Duration milliseconds": 0.633
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions blockUser & unblockUser blocks a user successfully",
+        "Status": "passed",
+        "Duration milliseconds": 0.748
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions blockUser & unblockUser prevents blocking a superadmin account",
+        "Status": "passed",
+        "Duration milliseconds": 0.376
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions blockUser & unblockUser unblocks a user successfully",
+        "Status": "passed",
+        "Duration milliseconds": 0.421
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions deleteUser permanently removes student account and their enrollments",
+        "Status": "passed",
+        "Duration milliseconds": 0.576
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminActions.test.ts",
+        "Test": "Superadmin Actions deleteUser prevents deleting another superadmin",
+        "Status": "passed",
+        "Duration milliseconds": 0.286
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions createUser creates a new student successfully",
+        "Status": "passed",
+        "Duration milliseconds": 51.943
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions createUser creates an instructor and registers Instructor document",
+        "Status": "passed",
+        "Duration milliseconds": 81.593
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions createUser rejects duplicate email",
+        "Status": "passed",
+        "Duration milliseconds": 0.726
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions editUser updates user properties successfully",
+        "Status": "passed",
+        "Duration milliseconds": 0.96
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions createCourseByAdmin creates a course and initial module/lesson",
+        "Status": "passed",
+        "Duration milliseconds": 1.222
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions updateCourseByAdmin updates course details",
+        "Status": "passed",
+        "Duration milliseconds": 1.731
+      },
+      {
+        "File": "__tests__/unit-testing/SuperadminUserAndCourseManagement.test.ts",
+        "Test": "Superadmin User & Course Management Actions deleteCourseByAdmin deletes course and associated modules, lessons, enrollments",
+        "Status": "passed",
+        "Duration milliseconds": 1.125
+      },
+      {
+        "File": "__tests__/unit-testing/Wishlist.test.ts",
+        "Test": "Wishlist Server Actions rejects toggle when user is not authenticated",
+        "Status": "passed",
+        "Duration milliseconds": 3.107
+      },
+      {
+        "File": "__tests__/unit-testing/Wishlist.test.ts",
+        "Test": "Wishlist Server Actions adds course to wishlist if not previously saved",
+        "Status": "passed",
+        "Duration milliseconds": 0.879
+      },
+      {
+        "File": "__tests__/unit-testing/Wishlist.test.ts",
+        "Test": "Wishlist Server Actions removes course from wishlist if already present",
+        "Status": "passed",
+        "Duration milliseconds": 1.323
+      },
+      {
+        "File": "__tests__/unit-testing/Wishlist.test.ts",
+        "Test": "Wishlist Server Actions returns empty wishlistIds when not logged in",
+        "Status": "passed",
+        "Duration milliseconds": 0.63
+      },
+      {
+        "File": "__tests__/unit-testing/Wishlist.test.ts",
+        "Test": "Wishlist Server Actions fetches wishlist IDs for logged-in user",
+        "Status": "passed",
+        "Duration milliseconds": 0.664
+      },
+      {
+        "File": "__tests__/unit-testing/admin- status.test.ts",
+        "Test": "updateUserStatus updates status and returns success",
+        "Status": "passed",
+        "Duration milliseconds": 2.89
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions updateUserStatus should successfully update user status",
+        "Status": "passed",
+        "Duration milliseconds": 3.77
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions updateUserStatus should handle errors gracefully",
+        "Status": "passed",
+        "Duration milliseconds": 4.47
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions updateUserRole should successfully update user role",
+        "Status": "passed",
+        "Duration milliseconds": 0.875
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions updateUserRole should handle errors gracefully",
+        "Status": "passed",
+        "Duration milliseconds": 1.04
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions approveCourse should successfully approve a course",
+        "Status": "passed",
+        "Duration milliseconds": 0.727
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions approveCourse should handle errors gracefully",
+        "Status": "passed",
+        "Duration milliseconds": 0.834
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions rejectCourse should successfully reject a course",
+        "Status": "passed",
+        "Duration milliseconds": 0.471
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions toggleUserSuspend should successfully suspend an active user",
+        "Status": "passed",
+        "Duration milliseconds": 0.457
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions toggleUserSuspend should successfully approve a suspended user",
+        "Status": "passed",
+        "Duration milliseconds": 0.497
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions reviewInstructorRequest should successfully approve an instructor request and update user role",
+        "Status": "passed",
+        "Duration milliseconds": 1.059
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions reviewInstructorRequest should successfully reject an instructor request without updating user role",
+        "Status": "passed",
+        "Duration milliseconds": 0.656
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions reviewInstructorRequest should return error if request is not found",
+        "Status": "passed",
+        "Duration milliseconds": 0.266
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions reviewCourse should successfully approve a course",
+        "Status": "passed",
+        "Duration milliseconds": 0.438
+      },
+      {
+        "File": "__tests__/unit-testing/admin.test.ts",
+        "Test": "Admin Server Actions reviewCourse should successfully reject a course",
+        "Status": "passed",
+        "Duration milliseconds": 0.296
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers normalizePhone normalizes local 11-digit Bangladeshi number",
+        "Status": "passed",
+        "Duration milliseconds": 2.277
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers normalizePhone normalizes numbers starting with +880 or 880",
+        "Status": "passed",
+        "Duration milliseconds": 0.312
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers isValidBDPhone validates correct Bangladeshi phone numbers",
+        "Status": "passed",
+        "Duration milliseconds": 0.569
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers isValidBDPhone rejects invalid phone numbers",
+        "Status": "passed",
+        "Duration milliseconds": 0.346
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers hashPassword and verifyPassword hashes and securely verifies matching passwords",
+        "Status": "passed",
+        "Duration milliseconds": 148.731
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers isValidMongoObjectId accepts valid 24-character hexadecimal MongoDB ObjectIds",
+        "Status": "passed",
+        "Duration milliseconds": 0.537
+      },
+      {
+        "File": "__tests__/unit-testing/auth-helpers.test.ts",
+        "Test": "auth-helpers isValidMongoObjectId rejects UUID strings and prevents Mongoose CastError",
+        "Status": "passed",
+        "Duration milliseconds": 4.25
+      },
+      {
+        "File": "__tests__/unit-testing/contests.test.ts",
+        "Test": "Contest Prioritization & Elo System identifies discipline match accurately and assigns priority weights",
+        "Status": "passed",
+        "Duration milliseconds": 2.034
+      },
+      {
+        "File": "__tests__/unit-testing/contests.test.ts",
+        "Test": "Contest Prioritization & Elo System sorts contests by priority score so CS students see CS contests first",
+        "Status": "passed",
+        "Duration milliseconds": 0.441
+      },
+      {
+        "File": "__tests__/unit-testing/contests.test.ts",
+        "Test": "Contest Prioritization & Elo System demonstrates two-way Elo fluctuation: drops on poor performance and climbs on high performance",
+        "Status": "passed",
+        "Duration milliseconds": 0.663
+      },
+      {
+        "File": "__tests__/unit-testing/contests.test.ts",
+        "Test": "Contest Prioritization & Elo System calculates composite Elo with course completion bonus and solved problems bonus",
+        "Status": "passed",
+        "Duration milliseconds": 0.359
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress denies access without a session",
+        "Status": "passed",
+        "Duration milliseconds": 4.749
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress counts actual lessons rather than a hardcoded course total",
+        "Status": "passed",
+        "Duration milliseconds": 1.226
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress denies access after enrollment expiration",
+        "Status": "passed",
+        "Duration milliseconds": 0.613
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress honors a current revision grant",
+        "Status": "passed",
+        "Duration milliseconds": 0.787
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress prevents progress writes without enrollment",
+        "Status": "passed",
+        "Duration milliseconds": 1.185
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress rejects progress for a lesson belonging to a different course",
+        "Status": "passed",
+        "Duration milliseconds": 0.504
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress records completion for an entitled student and matching lesson",
+        "Status": "passed",
+        "Duration milliseconds": 0.979
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress rejects invalid video timestamps",
+        "Status": "passed",
+        "Duration milliseconds": 0.693
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress does not invent resources for an empty course",
+        "Status": "passed",
+        "Duration milliseconds": 1.171
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress withholds paid PDF URLs from non-enrolled students",
+        "Status": "passed",
+        "Duration milliseconds": 0.705
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress returns only existing live sessions",
+        "Status": "passed",
+        "Duration milliseconds": 0.599
+      },
+      {
+        "File": "__tests__/unit-testing/course-access.test.ts",
+        "Test": "Course entitlement and real progress withholds meeting links from non-enrolled students",
+        "Status": "passed",
+        "Duration milliseconds": 0.397
+      },
+      {
+        "File": "__tests__/unit-testing/course-routine.test.tsx",
+        "Test": "Course Routine Reschedule Modal & CourseCard renders RescheduleModal with presets: 1-month fast track, catch-up rebalance, and custom",
+        "Status": "passed",
+        "Duration milliseconds": 202.987
+      },
+      {
+        "File": "__tests__/unit-testing/course-routine.test.tsx",
+        "Test": "Course Routine Reschedule Modal & CourseCard allows switching to Catch-up mode (missed live classes & exams) and displays elapsed slider",
+        "Status": "passed",
+        "Duration milliseconds": 43.669
+      },
+      {
+        "File": "__tests__/unit-testing/course-routine.test.tsx",
+        "Test": "Course Routine Reschedule Modal & CourseCard successfully applies rescheduled routine and calls onSuccess",
+        "Status": "passed",
+        "Duration milliseconds": 77.342
+      },
+      {
+        "File": "__tests__/unit-testing/course-routine.test.tsx",
+        "Test": "Course Routine Reschedule Modal & CourseCard renders CourseCard with adjust routine button and opens RescheduleModal",
+        "Status": "passed",
+        "Duration milliseconds": 151.449
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic calculates logistic expected score correctly",
+        "Status": "passed",
+        "Duration milliseconds": 2.834
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic adjusts dynamic K-factor based on player experience and rating",
+        "Status": "passed",
+        "Duration milliseconds": 0.615
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic strictly decreases Elo rating when contest performance drops or fails",
+        "Status": "passed",
+        "Duration milliseconds": 0.663
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic increases Elo rating when performance beats benchmark expectation",
+        "Status": "passed",
+        "Duration milliseconds": 0.341
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic calculates composite Elo with course completion and solved problem bonuses",
+        "Status": "passed",
+        "Duration milliseconds": 0.41
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic correctly categorizes rating tiers",
+        "Status": "passed",
+        "Duration milliseconds": 0.386
+      },
+      {
+        "File": "__tests__/unit-testing/elo.test.ts",
+        "Test": "Elo Engine & Mathematical Logic prioritizes CS contests for CS students with HIGH priority and deprioritizes for other backgrounds",
+        "Status": "passed",
+        "Duration milliseconds": 0.694
+      },
+      {
+        "File": "__tests__/unit-testing/login.test.tsx",
+        "Test": "LoginPage renders the login page correctly",
+        "Status": "passed",
+        "Duration milliseconds": 104.552
+      },
+      {
+        "File": "__tests__/unit-testing/login.test.tsx",
+        "Test": "LoginPage calls loginWithGoogle with correct provider when clicked",
+        "Status": "passed",
+        "Duration milliseconds": 465.295
+      },
+      {
+        "File": "__tests__/unit-testing/login.test.tsx",
+        "Test": "LoginPage passes the callbackUrl to loginWithGoogle if provided",
+        "Status": "passed",
+        "Duration milliseconds": 146.948
+      },
+      {
+        "File": "__tests__/unit-testing/login.test.tsx",
+        "Test": "LoginPage allows user to switch between sign up and login tabs",
+        "Status": "passed",
+        "Duration milliseconds": 243.233
+      },
+      {
+        "File": "__tests__/unit-testing/login.test.tsx",
+        "Test": "LoginPage submits phone signup with valid information",
+        "Status": "passed",
+        "Duration milliseconds": 142.041
+      },
+      {
+        "File": "__tests__/unit-testing/login.test.tsx",
+        "Test": "LoginPage submits phone login with phone and password",
+        "Status": "passed",
+        "Duration milliseconds": 160.473
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System requestSignupOtp rejects invalid or too short phone numbers",
+        "Status": "passed",
+        "Duration milliseconds": 2.445
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System requestSignupOtp rejects phone numbers that are already registered",
+        "Status": "passed",
+        "Duration milliseconds": 0.766
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System requestSignupOtp enforces 60-second rate-limiting between OTP requests",
+        "Status": "passed",
+        "Duration milliseconds": 0.386
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System requestSignupOtp successfully generates and stores OTP for a valid new phone",
+        "Status": "passed",
+        "Duration milliseconds": 1.375
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System verifyPasswordAndSendLoginOtp (2FA flow) rejects login when password is incorrect",
+        "Status": "passed",
+        "Duration milliseconds": 47.657
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System verifyPasswordAndSendLoginOtp (2FA flow) verifies password and sends login OTP to user mobile number",
+        "Status": "passed",
+        "Duration milliseconds": 50.665
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System verifyPasswordAndSendLoginOtp (2FA flow) works for Admin logging in with email and password",
+        "Status": "passed",
+        "Duration milliseconds": 46.82
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System requestLoginOtp rejects un-registered phone numbers during login",
+        "Status": "passed",
+        "Duration milliseconds": 0.451
+      },
+      {
+        "File": "__tests__/unit-testing/otp.test.ts",
+        "Test": "OTP Authentication System requestLoginOtp sends login OTP for existing users",
+        "Status": "passed",
+        "Duration milliseconds": 0.385
+      },
+      {
+        "File": "__tests__/unit-testing/routine-scheduler.test.ts",
+        "Test": "Course Routine Scheduler Engine generates 1-month accelerated schedule shrinking 4-month deadline",
+        "Status": "passed",
+        "Duration milliseconds": 3.477
+      },
+      {
+        "File": "__tests__/unit-testing/routine-scheduler.test.ts",
+        "Test": "Course Routine Scheduler Engine reschedules course after 2 months of falling behind (Catch-up Mode)",
+        "Status": "passed",
+        "Duration milliseconds": 0.767
+      },
+      {
+        "File": "__tests__/unit-testing/routine-scheduler.test.ts",
+        "Test": "Course Routine Scheduler Engine correctly handles already completed lessons and only re-allocates remaining",
+        "Status": "passed",
+        "Duration milliseconds": 1.49
+      },
+      {
+        "File": "__tests__/unit-testing/routine-scheduler.test.ts",
+        "Test": "Course Routine Scheduler Engine handles course without explicit modules by generating fallback lessons",
+        "Status": "passed",
+        "Duration milliseconds": 0.659
+      },
+      {
+        "File": "__tests__/unit-testing/student.test.ts",
+        "Test": "student actions should have basic tests",
+        "Status": "passed",
+        "Duration milliseconds": 2.005
+      },
+      {
+        "File": "__tests__/unit-testing/users.test.ts",
+        "Test": "Users Server Actions getPaginatedUsers should return paginated users without search parameters",
+        "Status": "passed",
+        "Duration milliseconds": 4.14
+      },
+      {
+        "File": "__tests__/unit-testing/users.test.ts",
+        "Test": "Users Server Actions getPaginatedUsers should correctly apply search logic when searchEmail is provided",
+        "Status": "passed",
+        "Duration milliseconds": 0.602
+      }
+    ]
+  },
+  "checks": {
+    "productionBuild": "Pass",
+    "typeScript": "Pass",
+    "lintErrors": 0
+  },
+  "applicationFix": {
+    "file": "app/login/page.tsx",
+    "description": "Preserve email hyphens while normalizing formatted phone numbers.",
+    "unitRegressionTests": 2
+  },
+  "prior69CaseReport": "Separate Playwright/server-action evidence; not relabeled as Selenium execution.",
+  "providerLimits": [
+    "No delivered SMS/OTP",
+    "No real Google consent",
+    "No real owner/admin login",
+    "No physical mobile browser",
+    "No new live Bunny upload/playback in this Selenium run",
+    "PDF browser retrieval failed with empty HTTP 204 while direct HTTP succeeded"
+  ]
+}

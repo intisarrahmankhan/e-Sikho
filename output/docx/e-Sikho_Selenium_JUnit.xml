@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="e-Sikho Selenium" tests="32" failures="1" errors="0" skipped="4">
+  <testcase name="SEL-01 Anonymous protected routes" classname="e_sikho.selenium" time="0.79">
+    <system-out>Student, instructor and admin pages redirected signed-out Chrome to login.</system-out>
+  </testcase>
+  <testcase name="SEL-02 Wrong password in the login form" classname="e_sikho.selenium" time="1.4">
+    <system-out>Real login-form submission rejected a wrong password; Chrome remained signed out. No SMS/OTP delivery was performed.</system-out>
+  </testcase>
+  <testcase name="SEL-03 Authenticated identity and reload" classname="e_sikho.selenium" time="4.34">
+    <system-out>Credentials-endpoint fixture session displayed the correct student dashboard and survived reload. Complete delivered-OTP UI login is outside this check.</system-out>
+  </testcase>
+  <testcase name="SEL-04 Student and instructor role boundaries" classname="e_sikho.selenium" time="5.66">
+    <system-out>Selenium navigation denied all four student privileged routes and the instructor superadmin review route.</system-out>
+  </testcase>
+  <testcase name="SEL-05 Owned course selector and empty exam builder" classname="e_sikho.selenium" time="0.59">
+    <system-out>Owned draft/published options and blank question verified; foreign course absent and global option disabled.</system-out>
+  </testcase>
+  <testcase name="SEL-06 Global exam request and approval" classname="e_sikho.selenium" time="3.87">
+    <system-out>Teacher request persisted PENDING; superadmin UI approval unlocked the global exam option.</system-out>
+  </testcase>
+  <testcase name="SEL-07 Publish a targeted global exam" classname="e_sikho.selenium" time="2.74">
+    <system-out>Selenium created a global exam; MongoDB persisted SCHOOL + normalized science + the selected student ID.</system-out>
+  </testcase>
+  <testcase name="SEL-08 Targeted exam discovery and direct access" classname="e_sikho.selenium" time="2.79">
+    <system-out>Selected School learner saw the banner and exam. College learner saw neither listing nor private detail through the copied URL.</system-out>
+  </testcase>
+  <testcase name="SEL-09 Contest permission is independent" classname="e_sikho.selenium" time="3.68">
+    <system-out>Contest global option remained locked after exam approval, then unlocked after a separate request and superadmin approval.</system-out>
+  </testcase>
+  <testcase name="SEL-10 Targeted contest creation and exclusions" classname="e_sikho.selenium" time="5.08">
+    <system-out>Teacher published a real targeted contest; University CSE listing/detail succeeded and EEE listing/direct access were denied.</system-out>
+  </testcase>
+  <testcase name="SEL-11 Administrator assigns an existing course" classname="e_sikho.selenium" time="2.18">
+    <system-out>Superadmin UI assignment added the existing course to the teacher’s assessment selector; MongoDB owner was unchanged.</system-out>
+  </testcase>
+  <testcase name="SEL-12 Profile changes immediately update eligibility" classname="e_sikho.selenium" time="3.81">
+    <system-out>Selenium changed Science to Humanities, verified persistence and immediate direct-link exclusion, then restored Science.</system-out>
+  </testcase>
+  <testcase name="SEL-13 Create a course with no profile image" classname="e_sikho.selenium" time="3.46">
+    <system-out>Real course form created the course, module and lesson without a profile image; ownership and reopened curriculum passed.</system-out>
+  </testcase>
+  <testcase name="SEL-14 Draft course direct link" classname="e_sikho.selenium" time="0.42">
+    <system-out>Direct URL to a draft course displayed the not-found page in signed-out Chrome.</system-out>
+  </testcase>
+  <testcase name="SEL-15 Free enrollment and duplicate prevention" classname="e_sikho.selenium" time="8.94">
+    <system-out>Real free enrollment opened the course; reload retained access and exactly one enrollment record.</system-out>
+  </testcase>
+  <testcase name="SEL-16 Lesson completion persists" classname="e_sikho.selenium" time="7.69">
+    <system-out>Completion button wrote one actual lesson-progress record; after reload one of two lessons displayed 50%.</system-out>
+  </testcase>
+  <testcase name="SEL-17 Revision request waits for review" classname="e_sikho.selenium" time="5.1">
+    <system-out>Student modal submitted a real revision request; MongoDB remained PENDING with isRevisionGranted=false.</system-out>
+  </testcase>
+  <testcase name="SEL-18 Revision queue ownership" classname="e_sikho.selenium" time="0.84">
+    <system-out>Unrelated instructor queue omitted the private revision request and showed its empty state.</system-out>
+  </testcase>
+  <testcase name="SEL-19 Owner approval grants temporary access" classname="e_sikho.selenium" time="5.41">
+    <system-out>Course owner approved through Selenium; reviewer and seven-day grant were saved and the student saw active revision access.</system-out>
+  </testcase>
+  <testcase name="SEL-20 Keyboard MCQ selection and modal return" classname="e_sikho.selenium" time="2.13">
+    <system-out>Selenium keyboard input reached options, changed selection with Space/Enter and preserved the final answer after returning from review.</system-out>
+  </testcase>
+  <testcase name="SEL-21 Grading, persistence and cooldown label" classname="e_sikho.selenium" time="1.99">
+    <system-out>Real UI submission persisted 1.75/6, 29%, failed: one correct, one wrong and one skipped. Reload retained one submission and did not show the false attempt-limit warning at one of two attempts.</system-out>
+  </testcase>
+  <testcase name="SEL-22 Empty dashboard has no invented progress" classname="e_sikho.selenium" time="1.8">
+    <system-out>Dashboard for a learner with zero enrollments showed no fabricated 67% or 30/45-minute progress.</system-out>
+  </testcase>
+  <testcase name="SEL-23 Actual PDF viewer and resource visibility" classname="e_sikho.selenium" time="4.06">
+    <failure message="{&quot;length&quot;:0,&quot;prefix&quot;:&quot;&quot;,&quot;status&quot;:204,&quot;type&quot;:null,&quot;url&quot;:&quot;http://localhost:3106/selenium-test-resource-19d26ab41b72.pdf&quot;}&#10;&#10;'' !== '%PDF-'&#10;">{"length":0,"prefix":"","status":204,"type":null,"url":"http://localhost:3106/selenium-test-resource-19d26ab41b72.pdf"}
+
+'' !== '%PDF-'
+</failure>
+  </testcase>
+  <testcase name="SEL-24 Responsive principal pages" classname="e_sikho.selenium" time="3.23">
+    <system-out>Login, course detail, exam form and contest form had no horizontal overflow at 360px and 1280px window sizes.</system-out>
+  </testcase>
+  <testcase name="SEL-25 Language preference and profile preservation" classname="e_sikho.selenium" time="1.41">
+    <system-out>Selenium switched to Bangla, reloaded successfully, switched back to English and verified the saved Science department.</system-out>
+  </testcase>
+  <testcase name="SEL-26 Missing course, exam and contest links" classname="e_sikho.selenium" time="1.64">
+    <system-out>Selenium verified safe not-found states for nonexistent course, exam and contest links.</system-out>
+  </testcase>
+  <testcase name="SEL-27 Signout removes protected navigation" classname="e_sikho.selenium" time="2.4">
+    <system-out>Navbar signout removed the session; revisiting the student dashboard redirected to login.</system-out>
+  </testcase>
+  <testcase name="SEL-28 Read navigation does not reseed content" classname="e_sikho.selenium" time="6.45">
+    <system-out>Selenium navigation/reloads left user, course, exam, contest and notification counts unchanged; no sample reseeding.</system-out>
+  </testcase>
+  <testcase name="SEL-X01 Delivered OTP signup/login" classname="e_sikho.selenium" time="0">
+    <skipped message="No configured SMS provider and controlled receiving phone. No SMS was sent; fixture session setup does not verify OTP delivery." />
+  </testcase>
+  <testcase name="SEL-X02 Real Google consent login" classname="e_sikho.selenium" time="0">
+    <skipped message="No team-controlled Google consent session. Provider signup/login and cancellation require interactive account-holder access." />
+  </testcase>
+  <testcase name="SEL-X03 Real owner and Test Admin login" classname="e_sikho.selenium" time="0">
+    <skipped message="Fixture role sessions are verified; real account-holder sessions were not provided and no credentials were reset." />
+  </testcase>
+  <testcase name="SEL-X04 Physical mobile protected playback" classname="e_sikho.selenium" time="0">
+    <skipped message="This Selenium run used desktop Chrome only. No physical mobile browser was connected; earlier emulation results are separate." />
+  </testcase>
+</testsuite>

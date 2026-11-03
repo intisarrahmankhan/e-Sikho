@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { ExamCard } from '@/components/exam/ExamCard';
-import { LatexPlayground } from '@/components/exam/LatexPlayground';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import {
@@ -14,8 +14,11 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
+const LatexPlayground = dynamic(() => import('@/components/exam/LatexPlayground').then((m) => m.LatexPlayground), { ssr: false });
+
 export function ExamsListClient({ exams, canCreate = false }: { exams: any[]; canCreate?: boolean }) {
   const { language } = useLanguage();
+  const [showPlayground, setShowPlayground] = useState(false);
 
   return (
     <div className="space-y-8 pb-12">
@@ -50,7 +53,7 @@ export function ExamsListClient({ exams, canCreate = false }: { exams: any[]; ca
               </Button>
             </Link>}
 
-            <a href="#latex-playground">
+            <a href="#latex-playground" onClick={() => setShowPlayground(true)}>
               <Button
                 variant="outline"
                 className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs px-4 py-2.5 rounded-xl gap-2"
@@ -153,7 +156,11 @@ export function ExamsListClient({ exams, canCreate = false }: { exams: any[]; ca
           </p>
         </div>
 
-        <LatexPlayground />
+        {showPlayground ? <LatexPlayground /> : (
+          <Button variant="outline" onClick={() => setShowPlayground(true)}>
+            {language === 'en' ? 'Open formula practice' : 'সূত্র অনুশীলন খুলুন'}
+          </Button>
+        )}
       </div>
     </div>
   );

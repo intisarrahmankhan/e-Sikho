@@ -93,17 +93,17 @@ export default function HomePage() {
     },
     {
       step: '04',
-      title: language === 'en' ? 'Certificate & Careers' : 'সার্টিফিকেট ও জব',
+      title: language === 'en' ? 'Track Your Progress' : 'অগ্রগতি দেখুন',
       desc: language === 'en'
-        ? 'Earn verified certificates and build a portfolio to land your dream tech role.'
-        : 'সার্টিফিকেট অর্জন করুন এবং পোর্টফোলিও দিয়ে চাকরির জন্য আবেদন করুন।',
+        ? 'Review quiz results and completed lessons as you work through your courses.'
+        : 'কোর্সে শেখার পাশাপাশি কুইজের ফলাফল ও সম্পন্ন লেসনের অগ্রগতি দেখুন।',
     },
   ];
 
   const checkItems = [
     t('home.heroCheck1', 'প্রজেক্ট ভিত্তিক পাঠ্যক্রম'),
 
-    t('home.heroCheck3', 'ইন্ডাস্ট্রি সার্টিফিকেট'),
+    t('home.heroCheck3', 'শেখার অগ্রগতি ট্র্যাকিং'),
   ];
 
   return (

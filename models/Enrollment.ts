@@ -14,6 +14,9 @@ export interface IEnrollment extends Document {
   revisionRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
   revisionReason?: string;
   revisionExamDate?: string;
+  revisionReviewNotes?: string;
+  revisionReviewedBy?: mongoose.Types.ObjectId | string;
+  revisionReviewedAt?: Date;
   isEarlyBird?: boolean;
   commissionRule?: string;
 }
@@ -37,6 +40,9 @@ const enrollmentSchema = new Schema<IEnrollment>(
     },
     revisionReason: { type: String, default: '' },
     revisionExamDate: { type: String, default: '' },
+    revisionReviewNotes: { type: String, default: '' },
+    revisionReviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    revisionReviewedAt: { type: Date },
     isEarlyBird: { type: Boolean, default: false },
     commissionRule: { type: String, default: 'DEFAULT' },
   },
