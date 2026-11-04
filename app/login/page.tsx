@@ -18,15 +18,12 @@ import {
   KeyRound,
   ArrowLeft,
   RotateCcw,
-  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import {
   loginWithGoogle,
-  signUpWithPhone,
   signUpWithPhoneOtp,
-  loginWithPhone,
   loginWithPhoneOtp,
 } from '@/actions/auth';
 import { requestSignupOtp, verifyPasswordAndSendLoginOtp } from '@/actions/otp';
@@ -61,9 +58,8 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // OTP Countdown & Dev Code helper
+  // OTP resend countdown
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [devCode, setDevCode] = useState<string | null>(null);
 
   // Check for URL OAuth error params
   useEffect(() => {
@@ -161,60 +157,12 @@ function LoginForm() {
         setError(res.error || (language === 'en' ? 'Failed to send OTP.' : 'ওটিপি পাঠাতে ব্যর্থ হয়েছে।'));
       } else {
         setSuccess(t('auth.otpSentSuccess', 'ভেরিফিকেশন কোড পাঠানো হয়েছে!'));
-        setDevCode(res.devCode || null);
         setTargetPhone(cleanPhone);
         setSignupStep('otp');
         setResendCountdown(60);
       }
     } catch (err: any) {
       setError(err?.message || (language === 'en' ? 'An error occurred. Please try again.' : 'একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // SIGN UP: Fallback / Direct Submit
-  const handleDirectSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '').trim();
-    if (!name.trim()) {
-      setError(t('auth.nameRequired', 'অনুগ্রহ করে আপনার পুরো নাম লিখুন।'));
-      return;
-    }
-    if (!cleanPhone || cleanPhone.length < 11) {
-      setError(t('auth.phoneRequired', 'অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)।'));
-      return;
-    }
-    if (password && password.length < 6) {
-      setError(t('auth.passwordLength', 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।'));
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await signUpWithPhone({
-        name: name.trim(),
-        phone: cleanPhone,
-        password,
-        role,
-        callbackUrl,
-      });
-
-      if (res && !res.success) {
-        setError(res.error || (language === 'en' ? 'Sign up failed.' : 'সাইন আপ ব্যর্থ হয়েছে।'));
-      } else {
-        setSuccess(language === 'en' ? 'Sign up successful! Logging in...' : 'সাইন আপ সফল হয়েছে! লগইন করা হচ্ছে...');
-        if (res?.redirectTo) {
-          window.location.href = res.redirectTo;
-        }
-      }
-    } catch (err: any) {
-      if (err?.message !== 'NEXT_REDIRECT' && !err?.digest?.startsWith('NEXT_REDIRECT')) {
-        setError(err?.message || (language === 'en' ? 'An error occurred. Please try again.' : 'একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।'));
-      }
     } finally {
       setIsLoading(false);
     }
@@ -293,32 +241,12 @@ function LoginForm() {
         setError(res.error || (language === 'en' ? 'Login failed.' : 'লগইন ব্যর্থ হয়েছে।'));
       } else {
         setSuccess(language === 'en' ? 'Password verified! An OTP has been sent to your phone.' : 'পাসওয়ার্ড যাচাই হয়েছে! আপনার মোবাইল নম্বরে ওটিপি পাঠানো হয়েছে।');
-        setDevCode(res.devCode || null);
         setTargetPhone(res.phone || cleanIdentifier);
         setLoginStep('otp');
         setResendCountdown(60);
       }
     } catch (err: any) {
-      // Fallback for tests mocking loginWithPhone directly
-      try {
-        const directRes = await loginWithPhone({
-          phone: cleanIdentifier,
-          password,
-          callbackUrl,
-        });
-        if (directRes && !directRes.success) {
-          setError(directRes.error || (language === 'en' ? 'Login failed.' : 'লগইন ব্যর্থ হয়েছে।'));
-        } else {
-          setSuccess(language === 'en' ? 'Login successful!' : 'লগইন সফল হয়েছে!');
-          if (directRes?.redirectTo) {
-            window.location.href = directRes.redirectTo;
-          }
-        }
-      } catch (directErr: any) {
-        if (directErr?.message !== 'NEXT_REDIRECT' && !directErr?.digest?.startsWith('NEXT_REDIRECT')) {
-          setError(err?.message || (language === 'en' ? 'An error occurred. Please try again.' : 'একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।'));
-        }
-      }
+      setError(err?.message || (language === 'en' ? 'Unable to send a verification code. Please try again.' : 'ওটিপি পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।'));
     } finally {
       setIsLoading(false);
     }
@@ -342,6 +270,7 @@ function LoginForm() {
     try {
       const res = await loginWithPhoneOtp({
         phone: cleanPhone,
+        ...(phone.includes('@') ? { email: phone.trim().toLowerCase() } : {}),
         otp: cleanOtp,
         password,
         callbackUrl,
@@ -496,31 +425,11 @@ function LoginForm() {
           </div>
         )}
 
-        {/* Dev OTP Helper Badge */}
-        {devCode && (
-          <div className="mb-5 p-3 text-xs text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <span>
-                {t('auth.devOtpBadge', 'টেস্ট ওটিপি কোড:')}{' '}
-                <strong className="font-mono text-sm tracking-widest text-indigo-700">{devCode}</strong>
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOtp(devCode)}
-              className="text-[11px] font-bold text-primary-600 hover:underline"
-            >
-              {t('auth.autoFill', 'স্বয়ংক্রিয় বসান')}
-            </button>
-          </div>
-        )}
-
         {/* ─────────── SIGN UP FLOW ─────────── */}
         {activeTab === 'signup' && (
           <>
             {signupStep === 'form' ? (
-              <form onSubmit={handleDirectSignUp} className="space-y-4">
+              <form onSubmit={handleSendSignupOtp} className="space-y-4">
                 {/* Account Type / Role */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -647,15 +556,6 @@ function LoginForm() {
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSendSignupOtp()}
-                    disabled={isLoading}
-                    className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition"
-                  >
-                    <KeyRound className="h-3.5 w-3.5 text-primary-600" />
-                    <span>{t('auth.signUpWithOtpBtn', 'ওটিপি যাচাই করে সুরক্ষিত সাইন আপ')}</span>
-                  </button>
                 </div>
 
                 <p className="text-center text-xs text-slate-500 mt-2">

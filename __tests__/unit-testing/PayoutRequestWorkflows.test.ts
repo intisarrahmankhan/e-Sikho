@@ -36,6 +36,7 @@ vi.mock('@/auth', () => ({
 const { mockSession } = vi.hoisted(() => ({
   mockSession: {
     startTransaction: vi.fn(),
+    inTransaction: vi.fn().mockReturnValue(true),
     commitTransaction: vi.fn(),
     abortTransaction: vi.fn(),
     endSession: vi.fn(),
@@ -60,6 +61,7 @@ vi.mock('mongoose', async () => {
 const mockAuditLogCreate = vi.fn().mockResolvedValue([{}]);
 vi.mock('@/models/AuditLog', () => ({
   default: {
+    init: vi.fn().mockResolvedValue(undefined),
     create: (...args: any[]) => mockAuditLogCreate(...args),
   },
 }));
@@ -86,6 +88,7 @@ const mockPayoutRequestFind = vi.fn();
 const mockPayoutRequestFindById = vi.fn();
 vi.mock('@/models/PayoutRequest', () => ({
   default: {
+    init: vi.fn().mockResolvedValue(undefined),
     create: (...args: any[]) => mockPayoutRequestCreate(...args),
     findById: vi.fn(() => ({
       session: vi.fn().mockResolvedValue(mockPayoutDoc),
@@ -116,6 +119,7 @@ const mockFinancialLedgerUpdateMany = vi.fn().mockResolvedValue({ modifiedCount:
 const mockFinancialLedgerFind = vi.fn();
 vi.mock('@/models/FinancialLedger', () => ({
   default: {
+    init: vi.fn().mockResolvedValue(undefined),
     create: (...args: any[]) => mockFinancialLedgerCreate(...args),
     updateMany: (...args: any[]) => mockFinancialLedgerUpdateMany(...args),
     find: vi.fn((query?: any) => ({
@@ -147,6 +151,17 @@ describe('Payout Request Workflows & Financial Ledger Engine', () => {
   });
 
   describe('1. Payout Request Initiation (requestPayout)', () => {
+    beforeEach(() => {
+      mockSessionUser = { id: '65f000000000000000000001', role: 'INSTRUCTOR' };
+    });
+
+    it('rejects requests for another instructor account before creating a transaction', async () => {
+      const res = await requestPayout('65f000000000000000000002', 500, 'BKASH', '01711223344');
+      expect(res.success).toBe(false);
+      expect(mockSession.startTransaction).not.toHaveBeenCalled();
+      expect(mockPayoutRequestCreate).not.toHaveBeenCalled();
+    });
+
     it('rejects invalid or non-positive payout amounts', async () => {
       const resZero = await requestPayout('65f000000000000000000001', 0, 'BKASH', '01711223344');
       expect(resZero.success).toBe(false);
@@ -193,6 +208,11 @@ describe('Payout Request Workflows & Financial Ledger Engine', () => {
       const res = await requestPayout('65f000000000000000000001', 8000, 'BKASH', '01711223344');
 
       expect(res.success).toBe(true);
+      expect(res).toEqual({
+        success: true,
+        availableBalance: 7000,
+        payoutRequest: { id: fakePayout._id, requestedAt: expect.any(String) },
+      });
       expect(mockInstructorDoc.availableBalance).toBe(7000); // 15000 - 8000
       expect(mockInstructorDoc.save).toHaveBeenCalled();
 

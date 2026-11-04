@@ -4,8 +4,7 @@ import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/mongoose';
 import User from '@/models/User';
-import Instructor from '@/models/Instructor';
-import VerificationCode from '@/models/VerificationCode';
+import { consumeOtp } from '@/lib/otp';
 import { normalizePhone, isValidBDPhone, hashPassword, verifyPassword, isValidMongoObjectId } from '@/lib/auth-helpers';
 
 
@@ -61,30 +60,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             throw new Error('এই ফোন নম্বর দিয়ে ইতিমধ্যেই একটি অ্যাকাউন্ট তৈরি করা হয়েছে। অনুগ্রহ করে লগইন করুন।');
                         }
 
-                        // Verify OTP for Signup
-                        if (otp) {
-                            const otpRecord = await VerificationCode.findOne({
-                                phone: cleanPhone,
-                                purpose: 'SIGNUP',
-                                expiresAt: { $gt: new Date() },
-                            }).sort({ createdAt: -1 });
-
-                            if (!otpRecord) {
-                                throw new Error('ওটিপি কোডটি মেয়াদোত্তীর্ণ বা পাওয়া যায়নি। অনুগ্রহ করে নতুন ওটিপি কোড চান।');
-                            }
-
-                            if (otpRecord.code !== otp) {
-                                otpRecord.attempts = (otpRecord.attempts || 0) + 1;
-                                await otpRecord.save();
-                                if (otpRecord.attempts >= 5) {
-                                    await VerificationCode.deleteOne({ _id: otpRecord._id });
-                                    throw new Error('ভুল ওটিপি দেওয়ার কারণে কোডটি বাতিল করা হয়েছে। নতুন কোড চান।');
-                                }
-                                throw new Error('ভুল ওটিপি কোড! অনুগ্রহ করে আপনার মোবাইলে পাঠানো সঠিক ৬ ডিজিটের কোড দিন।');
-                            }
-
-                            // Delete verified OTP so it cannot be reused
-                            await VerificationCode.deleteOne({ _id: otpRecord._id });
+                        if (!await consumeOtp(otp, { phone: cleanPhone, purpose: 'SIGNUP' })) {
+                            throw new Error('The verification code is invalid, expired or has reached its attempt limit. Request a new code.');
                         }
 
                         const name = String(
@@ -127,11 +104,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     } else {
                         // Login (via Password + OTP 2-Factor Authentication)
                         const user = await User.findOne({
-                            $or: [
-                                ...(cleanPhone ? [{ phone: cleanPhone }, { email: `${cleanPhone}@phone.esikho.com` }] : []),
-                                { email: String(credentials.phone || '').toLowerCase().trim() },
-                                { email: String(credentials.email || '').toLowerCase().trim() },
-                            ],
+                            ...(credentials.email
+                                ? { email: String(credentials.email).toLowerCase().trim(), phone: cleanPhone }
+                                : { $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@phone.esikho.com` }] }),
                         });
 
                         if (!user) {
@@ -142,45 +117,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             throw new Error('আপনার অ্যাকাউন্টটি সাময়িকভাবে বা স্থায়ীভাবে ব্লক করা হয়েছে। অ্যাডমিনের সাথে যোগাযোগ করুন। (Account Blocked)');
                         }
 
-                        if (!otp && (!password || !user.password)) return null;
-
-                        // 1. Verify password if account has password
-                        if (user.password && password) {
-                            const isValid = verifyPassword(password, user.password);
-                            if (!isValid) {
-                                throw new Error('ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ড দিন।');
-                            }
-                        }
-
-                        // 2. Verify OTP if provided
-                        if (otp) {
-                            const targetPhone = user.phone || cleanPhone;
-                            if (!targetPhone) {
-                                throw new Error('অ্যাকাউন্টে কোনো মোবাইল নম্বর যুক্ত নেই।');
-                            }
-
-                            const otpRecord = await VerificationCode.findOne({
-                                phone: targetPhone,
-                                purpose: 'LOGIN',
-                                expiresAt: { $gt: new Date() },
-                            }).sort({ createdAt: -1 });
-
-                            if (!otpRecord) {
-                                throw new Error('লগইন ওটিপি কোডটি মেয়াদোত্তীর্ণ বা পাওয়া যায়নি। পুনরায় কোড চান।');
-                            }
-
-                            if (otpRecord.code !== otp) {
-                                otpRecord.attempts = (otpRecord.attempts || 0) + 1;
-                                await otpRecord.save();
-                                if (otpRecord.attempts >= 5) {
-                                    await VerificationCode.deleteOne({ _id: otpRecord._id });
-                                    throw new Error('ভুল ওটিপি দেওয়ায় কোডটি বাতিল করা হয়েছে। নতুন কোড চান।');
-                                }
-                                throw new Error('ভুল ওটিপি কোড! অনুগ্রহ করে আপনার মোবাইলে পাঠানো সঠিক ৬ ডিজিটের কোড দিন।');
-                            }
-
-                            await VerificationCode.deleteOne({ _id: otpRecord._id });
-                        }
+                        // Phone login always requires an OTP; password accounts require both factors.
+                        if (!/^\d{6}$/.test(otp)) return null;
+                        if (user.password && (!password || !verifyPassword(password, user.password))) return null;
+                        if (!await consumeOtp(otp, {
+                            phone: normalizePhone(user.phone || cleanPhone),
+                            purpose: 'LOGIN',
+                            userId: user._id.toString(),
+                        })) return null;
 
                         return {
                             id: user._id.toString(),
@@ -200,6 +144,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const user = await User.findOne({ email });
                 if (!user || !user.password || !verifyPassword(String(credentials.password), user.password)) return null;
                 if (user.status === 'BLOCKED' || user.status === 'SUSPENDED') return null;
+                // Using an email identifier must not bypass the linked phone's second factor.
+                if (user.phone) {
+                    const phone = normalizePhone(user.phone);
+                    if (!isValidBDPhone(phone) || !await consumeOtp(String(credentials.otp || '').trim(), {
+                        phone, purpose: 'LOGIN', userId: user._id.toString(),
+                    })) return null;
+                }
+
 
                 return {
                     id: user._id.toString(),

@@ -133,11 +133,12 @@ export async function signUpWithPhoneOtp(formData: {
  */
 export async function loginWithPhoneOtp(formData: {
   phone: string;
+  email?: string;
   otp: string;
   password?: string;
   callbackUrl?: string;
 }) {
-  const { phone, otp, password, callbackUrl } = formData;
+  const { phone, email, otp, password, callbackUrl } = formData;
   const cleanPhone = phone ? phone.replace(/[\s\-\(\)]/g, '').trim() : '';
 
   if (!cleanPhone || cleanPhone.length < 11) {
@@ -154,6 +155,7 @@ export async function loginWithPhoneOtp(formData: {
   try {
     await signIn('credentials', {
       phone: cleanPhone,
+      ...(email ? { email: email.trim().toLowerCase() } : {}),
       otp: cleanOtp,
       password: password || '',
       isSignUp: 'false',

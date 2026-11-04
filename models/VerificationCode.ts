@@ -2,6 +2,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface IVerificationCode extends Document {
   phone: string;
+  userId?: string;
   code: string;
   purpose: 'SIGNUP' | 'LOGIN' | 'PASSWORD_RESET';
   expiresAt: Date;
@@ -12,6 +13,7 @@ export interface IVerificationCode extends Document {
 const verificationCodeSchema = new Schema<IVerificationCode>(
   {
     phone: { type: String, required: true, index: true },
+    userId: { type: String },
     code: { type: String, required: true },
     purpose: {
       type: String,

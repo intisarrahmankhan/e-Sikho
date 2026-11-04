@@ -6,6 +6,7 @@ import VerificationCode from '@/models/VerificationCode';
 import { normalizePhone, isValidBDPhone, verifyPassword } from '@/lib/auth-helpers';
 import { sendOtpSms } from '@/lib/sms';
 import { randomInt } from 'crypto';
+import { hashOtp } from '@/lib/otp';
 
 export interface OtpActionResponse {
   success: boolean;
@@ -63,9 +64,9 @@ export async function requestSignupOtp(phone: string): Promise<OtpActionResponse
   await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'SIGNUP' });
 
   // Save new OTP
-  await VerificationCode.create({
+  const challenge = await VerificationCode.create({
     phone: cleanPhone,
-    code: otp,
+    code: hashOtp(otp, { phone: cleanPhone, purpose: 'SIGNUP' }),
     purpose: 'SIGNUP',
     expiresAt,
   });
@@ -73,14 +74,13 @@ export async function requestSignupOtp(phone: string): Promise<OtpActionResponse
   // Send SMS
   const smsResult = await sendOtpSms(cleanPhone, otp, 'SIGNUP');
   if (!smsResult.success) {
-    await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'SIGNUP' });
+    await VerificationCode.deleteOne({ _id: challenge._id });
     return { success: false, error: smsResult.error || 'SMS delivery failed.' };
   }
 
   return {
     success: true,
     message: 'আপনার মোবাইলে একটি ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে।',
-    devCode: smsResult.devCode,
     phone: cleanPhone,
   };
 }
@@ -93,7 +93,7 @@ export async function verifyPasswordAndSendLoginOtp(params: {
   password?: string;
   phoneForMissing?: string;
 }): Promise<OtpActionResponse & { userRole?: string }> {
-  const { identifier, password, phoneForMissing } = params;
+  const { identifier, password } = params;
   if (!identifier || !identifier.trim()) {
     return { success: false, error: 'অনুগ্রহ করে আপনার মোবাইল নম্বর বা ইমেইল লিখুন।' };
   }
@@ -118,6 +118,10 @@ export async function verifyPasswordAndSendLoginOtp(params: {
     };
   }
 
+  if (user.status === 'BLOCKED' || user.status === 'SUSPENDED') {
+    return { success: false, error: 'This account is blocked or suspended. Please contact support.' };
+  }
+
   // 1. Password Verification
   if (user.password) {
     if (!password) {
@@ -130,20 +134,13 @@ export async function verifyPasswordAndSendLoginOtp(params: {
   }
 
   // 2. Resolve Mobile Number to send OTP
-  let targetPhone = user.phone || (isValidBDPhone(cleanPhone) ? cleanPhone : '');
-  if (!targetPhone && phoneForMissing && user.password && password) {
-    const cleanMissing = normalizePhone(phoneForMissing);
-    if (isValidBDPhone(cleanMissing)) {
-      targetPhone = cleanMissing;
-      user.phone = cleanMissing;
-      await user.save();
-    }
-  }
+  // Never attach a caller-supplied number before proving ownership.
+  const targetPhone = normalizePhone(user.phone || (user.email === `${cleanPhone}@phone.esikho.com` ? cleanPhone : ''));
 
-  if (!targetPhone) {
+  if (!isValidBDPhone(targetPhone)) {
     return {
       success: false,
-      error: 'অ্যাকাউন্টে কোনো মোবাইল নম্বর যুক্ত নেই। অনুগ্রহ করে ওটিপি পাওয়ার জন্য একটি মোবাইল নম্বর দিন।',
+      error: 'No valid mobile number is linked to this account. Use your existing sign-in method or contact support to set up phone verification.',
     };
   }
 
@@ -168,9 +165,11 @@ export async function verifyPasswordAndSendLoginOtp(params: {
 
   await VerificationCode.deleteMany({ phone: targetPhone, purpose: 'LOGIN' });
 
-  await VerificationCode.create({
+  const userId = user._id.toString();
+  const challenge = await VerificationCode.create({
     phone: targetPhone,
-    code: otp,
+    userId,
+    code: hashOtp(otp, { phone: targetPhone, purpose: 'LOGIN', userId }),
     purpose: 'LOGIN',
     expiresAt,
   });
@@ -178,23 +177,22 @@ export async function verifyPasswordAndSendLoginOtp(params: {
   // 5. Send SMS
   const smsResult = await sendOtpSms(targetPhone, otp, 'LOGIN');
   if (!smsResult.success) {
-    await VerificationCode.deleteMany({ phone: targetPhone, purpose: 'LOGIN' });
+    await VerificationCode.deleteOne({ _id: challenge._id });
     return { success: false, error: smsResult.error || 'SMS delivery failed.' };
   }
 
   return {
     success: true,
     message: 'পাসওয়ার্ড সঠিক! আপনার মোবাইল নম্বরে ৬ ডিজিটের ভেরিফিকেশন ওটিপি পাঠানো হয়েছে।',
-    devCode: smsResult.devCode,
     phone: targetPhone,
     userRole: user.role,
   };
 }
 
 /**
- * Sends OTP for Existing User Login (legacy/direct)
+ * Compatibility entry point: the same password checks apply to every login request.
  */
-export async function requestLoginOtp(phone: string): Promise<OtpActionResponse> {
+export async function requestLoginOtp(phone: string, password?: string): Promise<OtpActionResponse> {
   const cleanPhone = normalizePhone(phone);
   if (!isValidBDPhone(cleanPhone)) {
     return {
@@ -203,57 +201,5 @@ export async function requestLoginOtp(phone: string): Promise<OtpActionResponse>
     };
   }
 
-  await dbConnect();
-
-  // Check if user exists
-  const user = await User.findOne({
-    $or: [{ phone: cleanPhone }, { email: `${cleanPhone}@phone.esikho.com` }],
-  });
-
-  if (!user) {
-    return {
-      success: false,
-      error: 'এই ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে আগে সাইন আপ করুন।',
-    };
-  }
-
-  // Rate limiting: check 60 seconds
-  const recentOtp = await VerificationCode.findOne({
-    phone: cleanPhone,
-    purpose: 'LOGIN',
-    createdAt: { $gt: new Date(Date.now() - 60 * 1000) },
-  });
-
-  if (recentOtp) {
-    return {
-      success: false,
-      error: 'অনুগ্রহ করে ১ মিনিট অপেক্ষা করে পুনরায় ওটিপি চান।',
-    };
-  }
-
-  // Generate 6-digit OTP
-  const otp = randomInt(100000, 1000000).toString();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
-
-  await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'LOGIN' });
-
-  await VerificationCode.create({
-    phone: cleanPhone,
-    code: otp,
-    purpose: 'LOGIN',
-    expiresAt,
-  });
-
-  const smsResult = await sendOtpSms(cleanPhone, otp, 'LOGIN');
-  if (!smsResult.success) {
-    await VerificationCode.deleteMany({ phone: cleanPhone, purpose: 'LOGIN' });
-    return { success: false, error: smsResult.error || 'SMS delivery failed.' };
-  }
-
-  return {
-    success: true,
-    message: 'লগইন করার জন্য আপনার মোবাইলে ওটিপি পাঠানো হয়েছে।',
-    devCode: smsResult.devCode,
-    phone: cleanPhone,
-  };
+  return verifyPasswordAndSendLoginOtp({ identifier: cleanPhone, password });
 }

@@ -5,6 +5,9 @@ import Course from '@/models/Course';
 import { redirect } from 'next/navigation';
 import { InstructorDashboardClient } from '@/components/instructor/InstructorDashboardClient';
 import { getUserEnrolledCourses } from '@/actions/student-actions';
+import mongoose from 'mongoose';
+import PlatformCommission from '@/models/PlatformCommission';
+import { paidCommissionStages } from '@/lib/financial-reporting';
 
 import { isValidMongoObjectId } from '@/lib/auth-helpers';
 
@@ -46,7 +49,6 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
     if (userDoc) {
       userId = userDoc._id.toString();
       availableBalance = userDoc.availableBalance || 0;
-      totalEarnings = userDoc.totalEarnings || 0;
       if (userDoc.name) userName = userDoc.name;
       if (userDoc.role) effectiveRole = userDoc.role;
     }
@@ -60,7 +62,16 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
       .select('_id title status approvalStatus price studentsEnrolled rating totalRatings createdAt category level')
       .lean();
 
-    courses = (rawCourses || []).map((c: any) => ({ ...c, id: c._id.toString() }));
+    const earningsByCourse = isValidMongoObjectId(userId) ? await PlatformCommission.aggregate([
+      { $match: { instructorUserId: new mongoose.Types.ObjectId(userId) } },
+      ...paidCommissionStages(),
+      { $group: { _id: '$courseId', earnedRevenue: { $sum: '$instructorEarnings' } } },
+    ]) : [];
+    const courseEarnings = new Map(earningsByCourse.map((entry: any) => [String(entry._id), entry.earnedRevenue as number]));
+    totalEarnings = earningsByCourse.reduce((sum: number, entry: any) => sum + entry.earnedRevenue, 0);
+    courses = (rawCourses || []).map((c: any) => ({
+      ...c, id: c._id.toString(), earnedRevenue: courseEarnings.get(String(c._id)) || 0,
+    }));
 
     const { default: PayoutRequest } = await import('@/models/PayoutRequest');
     const rawPayoutRequests = await PayoutRequest.find({ userId })

@@ -11,7 +11,6 @@ import {
   Rocket, ExternalLink, Github, AlertTriangle, Check
 } from 'lucide-react';
 import { BarChart, DonutChart, ProgressBar } from '@/components/instructor/Charts';
-import { MiniSparkline } from '@/components/instructor/MiniSparkline';
 import InstructorPayout from '@/components/instructor/InstructorPayout';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -36,6 +35,7 @@ export interface CreatedCourseItem {
   approvalStatus?: string;
   price?: number;
   studentsEnrolled?: number;
+  earnedRevenue?: number;
   rating?: number;
   totalRatings?: number;
   createdAt: string | Date;
@@ -75,21 +75,6 @@ function statusLabel(status: string, lang: 'bn' | 'en' = 'bn') {
   if (status === 'REJECTED') return lang === 'en' ? 'Rejected' : 'বাতিল';
   if (status === 'DRAFT') return lang === 'en' ? 'Draft' : 'ড্রাফট';
   return status;
-}
-
-// Enrollment counts grouped by course creation month (not enrollment dates).
-function buildMonthlyTrend(courses: CreatedCourseItem[]): number[] {
-  const months = Array(6).fill(0);
-  const now = new Date();
-  courses.forEach((c) => {
-    const mthsAgo = Math.floor(
-      (now.getTime() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30)
-    );
-    if (mthsAgo < 6) {
-      months[5 - mthsAgo] += c.studentsEnrolled ?? 0;
-    }
-  });
-  return months;
 }
 
 export function InstructorDashboardClient({
@@ -177,12 +162,11 @@ export function InstructorDashboardClient({
   const drafts    = courses.filter((c) => c.status === 'DRAFT');
 
   const totalStudents = courses.reduce((a, c) => a + (c.studentsEnrolled ?? 0), 0);
-  const totalRevenue  = courses.reduce((a, c) => a + (c.price ?? 0) * (c.studentsEnrolled ?? 0), 0);
-  const avgRating =
-    published.length > 0
-      ? published.reduce((a, c) => a + (c.rating ?? 0), 0) / published.length
-      : 0;
+  const totalRevenue = courses.reduce((a, c) => a + (c.earnedRevenue ?? 0), 0);
   const totalRatings = courses.reduce((a, c) => a + (c.totalRatings ?? 0), 0);
+  const avgRating = totalRatings > 0
+    ? courses.reduce((a, c) => a + (c.rating ?? 0) * (c.totalRatings ?? 0), 0) / totalRatings
+    : 0;
 
   // ── sorted courses ──
   const sortedByEnrollment = [...courses].sort(
@@ -200,7 +184,6 @@ export function InstructorDashboardClient({
   }));
 
   // ── sparkline / bar / donut data ──
-  const sparklineData = buildMonthlyTrend(courses);
   const barData = sortedByEnrollment.slice(0, 6).map((c, i) => ({
     label: c.title.length > 12 ? c.title.slice(0, 12) + '…' : c.title,
     value: c.studentsEnrolled ?? 0,
@@ -220,21 +203,19 @@ export function InstructorDashboardClient({
 
   return (
     <div className="space-y-8 pb-16">
-      {/* ── Gradient Header ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 px-7 py-6 text-white shadow-lg">
-        <div className="pointer-events-none absolute -top-8 -right-8 h-48 w-48 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-white/5" />
+      {/* Instructor overview */}
+      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-slate-900 sm:px-7">
         
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 text-blue-700 px-3 py-1 text-xs font-semibold mb-3">
               <Activity className="h-3 w-3" />
               <span>{language === 'en' ? 'Instructor Portal' : 'ইন্সট্রাক্টর পোর্টাল'}</span>
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">
-              {language === 'en' ? `Welcome, ${firstName}! 👋` : `স্বাগতম, ${firstName}! 👋`}
+              {language === 'en' ? `Welcome, ${firstName}` : `স্বাগতম, ${firstName}`}
             </h1>
-            <p className="mt-1 text-indigo-200 text-sm">
+            <p className="mt-2 max-w-xl text-slate-500 text-sm leading-relaxed">
               {activeTab === 'enrolled'
                 ? (language === 'en' ? 'View all your enrolled courses and ongoing progress here.' : 'আপনার শিক্ষার্থী হিসেবে এনরোল্ড সকল কোর্স এবং চলমান অগ্রগতি এখানে একসাথে দেখুন।')
                 : activeTab === 'projects'
@@ -247,10 +228,10 @@ export function InstructorDashboardClient({
             {/* Quick tab switcher buttons in header */}
             <button
               onClick={() => setActiveTab(activeTab === 'teaching' ? 'enrolled' : 'teaching')}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition ${
+              className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
                 activeTab === 'enrolled'
-                  ? 'bg-white text-indigo-700 hover:bg-indigo-50'
-                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white'
+                  ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
               title={activeTab === 'teaching' ? (language === 'en' ? 'Go to My Enrolled Courses' : 'আমার এনরোল্ড কোর্সসমূহে যান') : (language === 'en' ? 'Return to Teaching Studio' : 'শিক্ষকতা স্টুডিওতে ফিরে যান')}
             >
@@ -269,28 +250,28 @@ export function InstructorDashboardClient({
 
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/15 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/25 transition"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
             >
               <BookOpen className="h-4 w-4" /> {language === 'en' ? 'Browse Courses' : 'ব্রাউজ কোর্স'}
             </Link>
 
             <Link
               href="/instructor/create-course"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 shadow-md hover:bg-indigo-50 transition"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition"
             >
               <PlusCircle className="h-4 w-4" /> {language === 'en' ? 'Create Course' : 'কোর্স তৈরি'}
             </Link>
 
             <Link
               href="/exams/create"
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-500/60 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500/90 transition shadow-sm"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
             >
               <PlusCircle className="h-4 w-4" /> {language === 'en' ? 'Create Exam' : 'পরীক্ষা তৈরি'}
             </Link>
 
             <Link
               href="/instructor/settings"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
             >
               <Settings className="h-4 w-4" /> {language === 'en' ? 'Settings' : 'সেটিংস'}
             </Link>
@@ -596,7 +577,6 @@ export function InstructorDashboardClient({
                 <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-indigo-100">
                   <BookOpen className="h-5 w-5 text-indigo-600" />
                 </div>
-                <MiniSparkline data={[Math.max(0, courses.length - 3), Math.max(0, courses.length - 2), Math.max(0, courses.length - 1), courses.length]} color="#6366f1" />
               </div>
               <p className="text-3xl font-extrabold text-gray-900">{courses.length}</p>
               <p className="text-xs font-semibold text-gray-500 mt-0.5 uppercase tracking-wide">
@@ -613,7 +593,6 @@ export function InstructorDashboardClient({
                 <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-100">
                   <Users className="h-5 w-5 text-emerald-600" />
                 </div>
-                <MiniSparkline data={sparklineData} color="#10b981" />
               </div>
               <p className="text-3xl font-extrabold text-gray-900">{totalStudents.toLocaleString()}</p>
               <p className="text-xs font-semibold text-gray-500 mt-0.5 uppercase tracking-wide">
@@ -630,17 +609,13 @@ export function InstructorDashboardClient({
                 <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-violet-100">
                   <DollarSign className="h-5 w-5 text-violet-600" />
                 </div>
-                <MiniSparkline
-                  data={sortedByEnrollment.slice(0, 6).map((c) => (c.price ?? 0) * (c.studentsEnrolled ?? 0))}
-                  color="#8b5cf6"
-                />
               </div>
               <p className="text-3xl font-extrabold text-gray-900">৳{totalRevenue.toLocaleString()}</p>
               <p className="text-xs font-semibold text-gray-500 mt-0.5 uppercase tracking-wide">
-                {language === 'en' ? 'Est. Revenue' : 'আনুমানিক আয়'}
+                {language === 'en' ? 'Recorded earnings' : 'হিসাবভুক্ত আয়'}
               </p>
               <p className="text-xs text-violet-600 mt-2 font-medium">
-                ৳{Math.round(totalRevenue / Math.max(published.length, 1)).toLocaleString()} {language === 'en' ? 'per course avg' : 'কোর্স প্রতি গড়'}
+                {language === 'en' ? 'Instructor share after refunds' : 'রিফান্ড বাদে শিক্ষকের অংশ'}
               </p>
             </Card>
 
@@ -650,10 +625,6 @@ export function InstructorDashboardClient({
                 <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-amber-100">
                   <Star className="h-5 w-5 text-amber-500" />
                 </div>
-                <MiniSparkline
-                  data={published.length > 0 ? published.map((c) => c.rating ?? 0) : [0, 0]}
-                  color="#f59e0b"
-                />
               </div>
               <p className="text-3xl font-extrabold text-gray-900">
                 {avgRating > 0 ? avgRating.toFixed(1) : '—'}
@@ -894,7 +865,7 @@ export function InstructorDashboardClient({
                         {language === 'en' ? 'Rating' : 'রেটিং'}
                       </th>
                       <th className="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
-                        {language === 'en' ? 'Revenue' : 'মোট আয়'}
+                        {language === 'en' ? 'Earnings' : 'আয়'}
                       </th>
                       <th className="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
                         {language === 'en' ? 'Status' : 'স্ট্যাটাস'}
@@ -916,7 +887,7 @@ export function InstructorDashboardClient({
                         </td>
                         <td className="py-3.5 text-center">
                           <span className="text-sm font-medium text-red-600">
-                            {course.studentsEnrolled ? (((course.title.charCodeAt(0) + (course.studentsEnrolled || 0)) % 35) + 10) + '%' : '—'}
+                            <span title={language === 'en' ? 'Course drop-off data is not available' : 'কোর্সের ড্রপ-অফের তথ্য নেই'}>—</span>
                           </span>
                         </td>
                         <td className="py-3.5 text-center">
@@ -935,7 +906,7 @@ export function InstructorDashboardClient({
                               {language === 'en' ? 'Free' : 'ফ্রি'}
                             </Badge>
                           ) : (
-                            <span className="text-sm font-bold text-violet-700">৳{((course.price ?? 0) * (course.studentsEnrolled ?? 0)).toLocaleString()}</span>
+                            <span className="text-sm font-bold text-violet-700">৳{(course.earnedRevenue ?? 0).toLocaleString()}</span>
                           )}
                         </td>
                         <td className="py-3.5 text-center">

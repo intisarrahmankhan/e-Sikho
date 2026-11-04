@@ -20,6 +20,7 @@ export interface IEnrollment extends Document {
   revisionReviewedAt?: Date;
   isEarlyBird?: boolean;
   commissionRule?: string;
+  commissionProcessedAt?: Date;
 }
 
 const enrollmentSchema = new Schema<IEnrollment>(
@@ -51,6 +52,7 @@ const enrollmentSchema = new Schema<IEnrollment>(
     revisionReviewedAt: { type: Date },
     isEarlyBird: { type: Boolean, default: false },
     commissionRule: { type: String, default: 'DEFAULT' },
+    commissionProcessedAt: { type: Date },
   },
   {
     timestamps: false,

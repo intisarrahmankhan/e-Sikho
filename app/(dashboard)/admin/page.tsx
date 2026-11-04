@@ -8,6 +8,7 @@ import Instructor from '@/models/Instructor';
 import InstructorRequest from '@/models/InstructorRequest';
 import PayoutRequest from '@/models/PayoutRequest';
 import PlatformCommission from '@/models/PlatformCommission';
+import { paidCommissionStages } from '@/lib/financial-reporting';
 import PendingApprovals from '@/components/admin/PendingApprovals';
 import FinancialAnalytics from '@/components/admin/FinancialAnalytics';
 import PaginatedUsersList from '@/components/admin/PaginatedUsersList';
@@ -85,6 +86,7 @@ export default async function AdminDashboardPage() {
 
     // Financial Analytics
     const commissionAgg = await PlatformCommission.aggregate([
+      ...paidCommissionStages(),
       {
         $group: {
           _id: null,

@@ -102,16 +102,20 @@ export default function InstructorPayout({
           }
         : undefined;
 
-    const res = await requestPayout(userId, reqAmount, provider, number.trim(), bankDetails);
-    if (res.success && res.payoutRequest) {
+    try {
+      const res = await requestPayout(userId, reqAmount, provider, number.trim(), bankDetails);
+      if (!res.success) {
+        setMessage({ type: 'error', text: res.error });
+        return;
+      }
       setMessage({
         type: 'success',
         text: `৳${reqAmount.toLocaleString()} এর উইথড্রয়াল আবেদন সফলভাবে গ্রহণ করা হয়েছে। অ্যাডমিন রিভিউয়ের পর অ্যাকাউন্টে পাঠানো হবে।`,
       });
-      setAvailableBalance((prev) => prev - reqAmount);
+      setAvailableBalance(res.availableBalance);
       setRequests((prev) => [
         {
-          id: res.payoutRequest._id?.toString() || `req-${Date.now()}`,
+          id: res.payoutRequest.id,
           amount: reqAmount,
           mfsProvider: provider,
           mfsNumber: number.trim(),
@@ -119,15 +123,16 @@ export default function InstructorPayout({
           bankName,
           bankBranch,
           bankAccountName,
-          requestedAt: new Date().toISOString(),
+          requestedAt: res.payoutRequest.requestedAt,
         },
         ...prev,
       ]);
       setAmount('');
-    } else {
-      setMessage({ type: 'error', text: res.error || 'আবেদন সম্পন্ন করা সম্ভব হয়নি।' });
+    } catch {
+      setMessage({ type: 'error', text: 'আবেদনের অবস্থা নিশ্চিত করা যায়নি। আবার চেষ্টা করার আগে পেজ রিফ্রেশ করে ইতিহাস দেখুন।' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleCancelRequest = async (requestId: string, reqAmount: number) => {
@@ -235,7 +240,8 @@ export default function InstructorPayout({
                     onChange={(e) => setAmount(e.target.value)}
                     max={availableBalance}
                     min={1}
-                    placeholder="৫০০ বা তদূর্ধ্ব"
+                    step="0.01"
+                    placeholder="৫০০"
                     className="w-full text-sm pl-7 pr-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                     required
                   />
@@ -299,9 +305,14 @@ export default function InstructorPayout({
               </div>
             )}
 
+            {availableBalance < 1 && (
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                অন্তত ৳১ উত্তোলনযোগ্য ব্যালেন্স প্রয়োজন। A withdrawable balance of at least ৳1 is required.
+              </p>
+            )}
             <button
               type="submit"
-              disabled={loading || availableBalance <= 0}
+              disabled={loading || availableBalance < 1}
               className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-xs sm:text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm mt-1"
             >
               {loading ? 'প্রক্রিয়াধীন...' : 'উইথড্রয়াল আবেদন জমা দিন'}
@@ -309,6 +320,7 @@ export default function InstructorPayout({
 
             {message && (
               <div
+                role={message.type === 'error' ? 'alert' : 'status'}
                 className={`p-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 ${
                   message.type === 'success'
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'

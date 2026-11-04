@@ -14,7 +14,6 @@ import {
   ChevronLeft,
   PlayCircle,
   FileText,
-  ShieldCheck,
   Lock,
   Sparkles,
   Loader2,
@@ -1465,19 +1464,6 @@ export default function CourseDetailsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-slate-50 p-4 border border-slate-200 text-center space-y-1">
-                  <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-800">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    <span>
-                      {language === 'en' ? '7-Day Money-Back Guarantee' : '৭ দিনের মানিব্যাক গ্যারান্টি'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    {language === 'en'
-                      ? 'Get a full refund if not satisfied with no questions asked.'
-                      : 'কোর্স পছন্দ না হলে কোনো প্রশ্ন ছাড়াই সম্পূর্ণ রিফান্ড পাবেন।'}
-                  </p>
-                </div>
               </CardContent>
             </Card>
           )}

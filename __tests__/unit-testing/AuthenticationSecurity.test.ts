@@ -2,11 +2,13 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import User from '@/models/User';
 import VerificationCode from '@/models/VerificationCode';
 import { hashPassword } from '@/lib/auth-helpers';
+import { consumeOtp } from '@/lib/otp';
 const captured = vi.hoisted(() => ({ config: null as any }));
 vi.mock('next-auth', () => ({ default: vi.fn((config) => { captured.config = config; return { handlers: {}, auth: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }; }) }));
 vi.mock('@/lib/mongoose', () => ({ default: vi.fn() }));
 vi.mock('@/models/User', () => ({ default: { findOne: vi.fn(), create: vi.fn(), findOneAndUpdate: vi.fn() } }));
 vi.mock('@/models/VerificationCode', () => ({ default: { findOne: vi.fn(), deleteOne: vi.fn() } }));
+vi.mock('@/lib/otp', () => ({ consumeOtp: vi.fn() }));
 const storedHash = hashPassword('correct-password');
 let authorize: (credentials: any) => Promise<any>;
 beforeAll(async () => {
@@ -14,7 +16,7 @@ beforeAll(async () => {
   const provider = captured.config.providers.find((provider: any) => provider.id === 'credentials');
   authorize = provider.options.authorize;
 });
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(consumeOtp).mockResolvedValue(false); });
 
 describe('Authentication security', () => {
   it.each(['STUDENT', 'INSTRUCTOR', 'ADMIN', 'SUPERADMIN'])('never signs in using role alone: %s', async (role) => {
@@ -38,6 +40,22 @@ describe('Authentication security', () => {
   it('requires proof of identity for phone login', async () => {
     vi.mocked(User.findOne).mockResolvedValue({ _id: '507f1f77bcf86cd799439011', phone: '01712345678', password: storedHash, role: 'ADMIN', status: 'APPROVED' } as any);
     expect(await authorize({ phone: '01712345678' })).toBeNull();
+  });
+  it('requires both password and OTP for a phone account with a password', async () => {
+    vi.mocked(User.findOne).mockResolvedValue({ _id: '507f1f77bcf86cd799439011', phone: '01712345678', password: storedHash, role: 'STUDENT', status: 'APPROVED' } as any);
+    vi.mocked(consumeOtp).mockResolvedValue(true);
+    expect(await authorize({ phone: '01712345678', password: 'correct-password' })).toBeNull();
+    expect(await authorize({ phone: '01712345678', otp: '123456' })).toBeNull();
+    expect(await authorize({ phone: '01712345678', otp: '123456', password: 'wrong-password' })).toBeNull();
+    expect(consumeOtp).not.toHaveBeenCalled();
+    expect(await authorize({ phone: '01712345678', otp: '123456', password: 'correct-password' })).toMatchObject({ role: 'STUDENT' });
+    expect(consumeOtp).toHaveBeenCalledWith('123456', { phone: '01712345678', purpose: 'LOGIN', userId: '507f1f77bcf86cd799439011' });
+  });
+  it('does not bypass linked-phone verification through email credentials', async () => {
+    vi.mocked(User.findOne).mockResolvedValue({ _id: '507f1f77bcf86cd799439011', email: 'student@example.test', phone: '01712345678', password: storedHash, role: 'STUDENT', status: 'APPROVED' } as any);
+    expect(await authorize({ email: 'student@example.test', password: 'correct-password' })).toBeNull();
+    vi.mocked(consumeOtp).mockResolvedValue(true);
+    expect(await authorize({ email: 'student@example.test', password: 'correct-password', otp: '123456' })).toMatchObject({ role: 'STUDENT' });
   });
   it('requires an OTP for new phone registration', async () => {
     await expect(authorize({ phone: '01712345678', isSignUp: 'true', password: 'correct-password' })).rejects.toThrow('OTP');

@@ -770,15 +770,15 @@ export default function LectureManager({
 
       {/* ── Modal: Add New Lecture ── */}
       {isAddLectureOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 shadow-2xl border border-gray-100 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="add-lecture-title" className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-8">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
                   <PlusCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">নতুন লেকচার বা পাঠ যোগ করুন</h3>
+                  <h3 id="add-lecture-title" className="text-lg font-bold text-gray-900">নতুন লেকচার বা পাঠ যোগ করুন</h3>
                   <p className="text-xs text-gray-500">ভিডিও ক্লাস, পিডিএফ স্লাইডস বা কুইজ অ্যাসেসমেন্ট সংযুক্ত করুন</p>
                 </div>
               </div>
@@ -1398,10 +1398,10 @@ export default function LectureManager({
 
       {/* ── Modal: Edit Existing Lecture ── */}
       {activeLectureForEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 shadow-2xl border border-gray-100 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-lecture-title" className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-8">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-              <h3 className="text-lg font-bold text-gray-900">লেকচার ও কন্টেন্ট সম্পাদন করুন</h3>
+              <h3 id="edit-lecture-title" className="text-lg font-bold text-gray-900">লেকচার ও কন্টেন্ট সম্পাদন করুন</h3>
               <button
                 onClick={() => setActiveLectureForEdit(null)}
                 className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
