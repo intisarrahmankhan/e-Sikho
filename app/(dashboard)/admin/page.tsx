@@ -15,10 +15,13 @@ import CourseApprovals from '@/components/admin/CourseApprovals';
 import InstructorRequests from '@/components/admin/InstructorRequests';
 import CourseReviews from '@/components/admin/CourseReviews';
 import CourseManagement from '@/components/admin/CourseManagement';
+import DemoPurchaseQueue from '@/components/admin/DemoPurchaseQueue';
+import { getPendingDemoPurchases } from '@/actions/demo-purchases';
+import { isDemoCheckoutEnabled } from '@/lib/demo-checkout';
 import { Card, CardContent } from '@/components/ui/Card';
 import {
   Users, BookOpen, GraduationCap, Clock, ShieldCheck,
-  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell, ShieldAlert, RotateCcw, DollarSign
+  AlertTriangle, CheckCircle2, BarChart3, Settings, Bell, ShieldAlert, RotateCcw, DollarSign, CreditCard
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +35,7 @@ export default async function AdminDashboardPage() {
     redirect('/student');
   }
 
+  const pendingDemoPurchases = isDemoCheckoutEnabled() ? getPendingDemoPurchases() : null;
   let pendingUsers: any[] = [];
   let pendingCourses: any[] = [];
   let instructorRequests: any[] = [];
@@ -103,6 +107,7 @@ export default async function AdminDashboardPage() {
 
   const totalPending = pendingUsers.length;
   const totalAlerts = pendingUsers.length + pendingCourses.length + instructorRequests.length + payoutRequests.filter((p: any) => p.status === 'REQUESTED').length;
+  const demoPurchaseResult = await pendingDemoPurchases;
 
   const metrics = [
     {
@@ -171,6 +176,15 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex flex-wrap items-center gap-2">
+              {demoPurchaseResult && (
+                <Link
+                  href="#demo-purchases"
+                  className="flex items-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/20 px-3.5 py-2 text-xs font-semibold text-sky-300 transition-colors hover:bg-sky-500/30"
+                >
+                  <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Demo Purchases
+                </Link>
+              )}
               <Link
                 href="/admin/payouts"
                 className="flex items-center gap-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/30 transition-colors"
@@ -236,6 +250,23 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="space-y-6">
+
+        {demoPurchaseResult && (
+          <Card id="demo-purchases" className="scroll-mt-24 overflow-hidden border-gray-200/80 shadow-sm">
+            <div className="flex items-center gap-3 border-b border-gray-100 bg-gradient-to-r from-sky-50 to-blue-50 px-6 py-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-100">
+                <CreditCard className="h-4 w-4 text-sky-700" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">Demo Purchase Approvals</h2>
+                <p className="text-xs text-gray-600">Approval grants course access. All amounts are simulated.</p>
+              </div>
+            </div>
+            <CardContent className="p-6">
+              <DemoPurchaseQueue result={demoPurchaseResult} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Financial Analytics & Payouts */}
         <Card className="overflow-hidden border-gray-200/80 shadow-sm">

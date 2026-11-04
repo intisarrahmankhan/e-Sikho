@@ -6,6 +6,7 @@ export interface IEnrollment extends Document {
   paymentStatus: string;
   transactionId?: string;
   amountPaid: number;
+  demoPurchase?: { amount: number; requestedAt: Date; approvedBy?: mongoose.Types.ObjectId };
   couponApplied?: mongoose.Types.ObjectId | string | null;
   enrolledAt: Date;
   validUntil?: Date;
@@ -28,6 +29,11 @@ const enrollmentSchema = new Schema<IEnrollment>(
     paymentStatus: { type: String, default: 'pending' },
     transactionId: { type: String },
     amountPaid: { type: Number, required: true, default: 0 },
+    demoPurchase: {
+      amount: { type: Number },
+      requestedAt: { type: Date },
+      approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    },
     couponApplied: { type: Schema.Types.ObjectId, ref: 'Coupon', default: null },
     enrolledAt: { type: Date, default: Date.now },
     validUntil: { type: Date },

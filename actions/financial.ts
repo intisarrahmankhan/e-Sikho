@@ -699,6 +699,9 @@ export async function processRefundRequest(
     if (!payment) {
       // Check if paymentId was an Enrollment ID
       const enr = await Enrollment.findById(paymentId);
+      if (enr?.demoPurchase?.requestedAt) {
+        return { success: false, error: 'Demo purchases have no payment to refund.' };
+      }
       if (enr) {
         payment = await Payment.create({
           userId: enr.userId,

@@ -1,18 +1,27 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import CourseDetailsPage from '@/app/courses/[id]/page';
 import { LanguageProvider } from '@/context/LanguageContext';
 
+const { push, useSession, enrollInCourseAction } = vi.hoisted(() => ({
+  push: vi.fn(),
+  useSession: vi.fn(),
+  enrollInCourseAction: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push }),
   useParams: () => ({ id: 'mongo-course-id-123' }),
   notFound: vi.fn(),
 }));
+vi.mock('next-auth/react', () => ({ useSession }));
+vi.mock('@/actions/student-actions', () => ({ enrollInCourseAction }));
 
 describe('CourseDetailsPage with Dynamic / Database Courses', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useSession.mockReturnValue({ data: null, status: 'unauthenticated' });
   });
 
   it('renders successfully when learningOutcomes and prerequisites are JSON strings from DB', async () => {
@@ -83,6 +92,7 @@ describe('CourseDetailsPage with Dynamic / Database Courses', () => {
 
     // Verify instructor
     expect(screen.getByText('ফারহানা ইয়াসমিন')).toBeTruthy();
+    expect(screen.getByText(/অনলাইন পেমেন্ট বর্তমানে উপলব্ধ নয়/)).toBeInTheDocument();
   });
 
   it('handles empty or malformed learning outcomes without crashing', async () => {
@@ -114,5 +124,35 @@ describe('CourseDetailsPage with Dynamic / Database Courses', () => {
 
     expect(screen.getByText('পাইথন বেসিক')).toBeTruthy();
     expect(screen.getByText('প্যান্ডাস ও নামপাই')).toBeTruthy();
+  });
+
+  describe('free enrollment', () => {
+    beforeEach(() => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ title: 'Free Course', price: 0, modules: [] }),
+      });
+    });
+
+    it('sends signed-out students to sign in with a return link to the course', async () => {
+      render(<LanguageProvider><CourseDetailsPage /></LanguageProvider>);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'বিনামূল্যে ভর্তি হন' }));
+
+      expect(push).toHaveBeenCalledWith('/login?callbackUrl=%2Fcourses%2Fmongo-course-id-123');
+      expect(enrollInCourseAction).not.toHaveBeenCalled();
+    });
+
+    it('shows a rejected enrollment on the course page without opening checkout', async () => {
+      useSession.mockReturnValue({ data: { user: { id: 'student-id' } }, status: 'authenticated' });
+      enrollInCourseAction.mockResolvedValue({ success: false, error: 'Enrollment is closed.' });
+      render(<LanguageProvider><CourseDetailsPage /></LanguageProvider>);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'বিনামূল্যে ভর্তি হন' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Enrollment is closed.');
+      expect(enrollInCourseAction).toHaveBeenCalledWith('mongo-course-id-123');
+      expect(push).not.toHaveBeenCalled();
+    });
   });
 });

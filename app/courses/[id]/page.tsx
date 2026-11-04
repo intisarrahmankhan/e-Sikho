@@ -171,8 +171,8 @@ export default function CourseDetailsPage() {
     return url;
   };
 
-  // Track button loading state while navigating to the payment gateway
   const [enrolling, setEnrolling] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState('');
   const [course, setCourse] = useState<Course | null>(() => {
     const staticMatch = getCourseById(courseId);
     if (!staticMatch) return null;
@@ -199,6 +199,7 @@ export default function CourseDetailsPage() {
     setActiveLessonId('');
     setActiveModuleId('');
     setCourseTab('syllabus');
+    setEnrollmentError('');
     setLoading(true);
     fetch(`/api/courses/${courseId}`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
@@ -324,28 +325,51 @@ export default function CourseDetailsPage() {
     courseCreatorId.toString() === sessionUserId.toString()
   );
 
-  /** Navigate to payment gateway or handle direct enrollment for free course */
+  const isFreeCourse = currentPrice === 0;
+  const enrollLabel = isFreeCourse
+    ? (language === 'en' ? 'Enroll for Free' : 'বিনামূল্যে ভর্তি হন')
+    : (language === 'en'
+      ? `Enroll Now — BDT ${currentPrice.toLocaleString()}`
+      : `এখনই ভর্তি হন — ৳${currentPrice.toLocaleString('bn-BD')}`);
+  const paidEnrollmentNotice = language === 'en'
+    ? 'Online payment is unavailable. Continue to checkout to see enrollment options.'
+    : 'অনলাইন পেমেন্ট বর্তমানে উপলব্ধ নয়। ভর্তির বিকল্প দেখতে চেকআউটে যান।';
+  const enrollmentUnavailable = enrolling || (isFreeCourse && sessionStatus === 'loading');
+
   async function handleEnroll() {
-    setEnrolling(true);
+    setEnrollmentError('');
     if (isCourseCreator) {
       router.push(`/instructor/courses/${courseId}/lectures`);
       return;
     }
-    if (currentPrice === 0) {
-      try {
-        const { enrollInCourseAction } = await import('@/actions/student-actions');
-        const res = await enrollInCourseAction(courseId);
-        if (res.enrolled) {
-          const accessRes = await getCourseAccessDetails(courseId);
-          setAccessDetails(accessRes);
-          setEnrolling(false);
-          return;
-        }
-      } catch (err) {
-        console.error('Free enrollment error:', err);
-      }
+    if (!isFreeCourse) {
+      router.push(`/payment/${courseId}`);
+      return;
     }
-    router.push(`/payment/${courseId}`);
+    if (sessionStatus === 'unauthenticated') {
+      router.push(`/login?callbackUrl=${encodeURIComponent(`/courses/${courseId}`)}`);
+      return;
+    }
+
+    const fallbackError = language === 'en'
+      ? 'Enrollment could not be completed. Refresh the course page and try again.'
+      : 'কোর্সে ভর্তি সম্পন্ন করা যায়নি। কোর্সের পেজ রিফ্রেশ করে আবার চেষ্টা করুন।';
+    setEnrolling(true);
+    try {
+      const { enrollInCourseAction } = await import('@/actions/student-actions');
+      const result = await enrollInCourseAction(courseId);
+      if (result.enrolled || result.alreadyEnrolled) {
+        setAccessDetails(await getCourseAccessDetails(courseId));
+        setIsLockedModalOpen(false);
+      } else {
+        setEnrollmentError(result.error || fallbackError);
+      }
+    } catch (error) {
+      console.error('Free enrollment error:', error);
+      setEnrollmentError(fallbackError);
+    } finally {
+      setEnrolling(false);
+    }
   }
 
   /** Plays lesson, opens PDF, navigates to quiz, or prompts lock modal if not enrolled */
@@ -1369,25 +1393,25 @@ export default function CourseDetailsPage() {
                   id="btn-enroll-now"
                   size="lg"
                   onClick={handleEnroll}
-                  disabled={enrolling}
+                  disabled={enrollmentUnavailable}
                   className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-base shadow-md py-6 gap-2"
                 >
                   {enrolling ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>{language === 'en' ? 'Redirecting to payment…' : 'পেমেন্ট পেইজে যাওয়া হচ্ছে…'}</span>
+                      <span>{language === 'en' ? 'Enrolling…' : 'ভর্তি করা হচ্ছে…'}</span>
                     </>
                   ) : (
                     <>
                       <CreditCard className="h-5 w-5" />
-                      <span>
-                        {language === 'en'
-                          ? `Enroll Now — BDT ${currentPrice.toLocaleString()}`
-                          : `এখনই ভর্তি হন — ৳${currentPrice.toLocaleString('bn-BD')}`}
-                      </span>
+                      <span>{enrollLabel}</span>
                     </>
                   )}
                 </Button>
+                {!isFreeCourse && <p className="text-sm text-slate-600">{paidEnrollmentNotice}</p>}
+                {enrollmentError && !isLockedModalOpen && (
+                  <p role="alert" className="text-sm text-red-700">{enrollmentError}</p>
+                )}
 
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
@@ -1559,19 +1583,17 @@ export default function CourseDetailsPage() {
             </div>
             <div className="space-y-2">
               <Button
-                onClick={() => {
-                  setIsLockedModalOpen(false);
-                  handleEnroll();
-                }}
+                onClick={handleEnroll}
+                disabled={enrollmentUnavailable}
                 className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm py-5 rounded-2xl shadow-md gap-2"
               >
                 <CreditCard className="h-4 w-4" />
-                <span>
-                  {language === 'en'
-                    ? `Enroll Now — BDT ${currentPrice.toLocaleString()}`
-                    : `এখনই ভর্তি হন — ৳${currentPrice.toLocaleString('bn-BD')}`}
-                </span>
+                <span>{enrollLabel}</span>
               </Button>
+              {!isFreeCourse && <p className="text-xs text-slate-600">{paidEnrollmentNotice}</p>}
+              {enrollmentError && (
+                <p role="alert" className="text-xs text-red-700">{enrollmentError}</p>
+              )}
               <Button
                 variant="outline"
                 onClick={() => setIsLockedModalOpen(false)}

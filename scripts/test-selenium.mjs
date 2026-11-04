@@ -30,6 +30,7 @@ const data = {
   uncommittedFixes: true, nodeVersion: process.version, platform: process.platform, baseURL: base, results: [], databaseRemoved: false, temporaryPdfRemoved: false,
 };
 const selectedCases = (process.env.SELENIUM_CASES || '').split(',').filter(Boolean);
+const runDemoCheckout = selectedCases.length === 0 || selectedCases.includes('SEL-29');
 let connection, server, driver, serverLog, pdfPath, currentActor;
 const users = {}, courses = {};
 const id = value => new mongoose.Types.ObjectId(value);
@@ -106,7 +107,7 @@ async function actor(key) {
         done({ id: session.user?.id, role: session.user?.role });
       })().catch(error => done({ error: error.message }));
     }, users[key].email, password);
-    assert.equal(result.id, users[key].id, 'Real fixture authentication failed.');
+    assert.equal(result.id, users[key].id, `Real fixture authentication failed for ${key}.`);
     assert.equal(result.role, users[key].role);
   }
   currentActor = key;
@@ -136,15 +137,18 @@ async function setup() {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
   connection = await mongoose.createConnection(uri.toString(), { autoIndex: false, serverSelectionTimeoutMS: 10000 }).asPromise();
   const specs = [['teacher','Selenium Teacher','INSTRUCTOR','',''],['other','Other Selenium Teacher','INSTRUCTOR','',''],['admin','Selenium Superadmin','SUPERADMIN','',''],['school','School Selenium Learner','STUDENT','SCHOOL','Science'],['college','College Selenium Learner','STUDENT','COLLEGE','Science'],['university','University Selenium Learner','STUDENT','UNIVERSITY','CSE'],['outsider','EEE Selenium Learner','STUDENT','UNIVERSITY','EEE']];
+  if (runDemoCheckout) specs.push(['purchaseAdmin','Selenium Purchase Admin','ADMIN','','']);
   for (const [key,name,role,educationLevel,department] of specs) {
     const _id = id(), salt = crypto.randomBytes(16).toString('hex');
-    const record = { _id, name, role, status:'APPROVED', email:key+'@selenium-fixture.test', password:salt+':'+crypto.scryptSync(password,salt,64).toString('hex'), department, educationLevel:educationLevel||undefined, image:'', createdAt:new Date(), updatedAt:new Date() };
+    const record = { _id, name, role, status:'APPROVED', email:key.toLowerCase()+'@selenium-fixture.test', password:salt+':'+crypto.scryptSync(password,salt,64).toString('hex'), department, educationLevel:educationLevel||undefined, image:'', createdAt:new Date(), updatedAt:new Date() };
     await col('users').insertOne(record); users[key] = { id:String(_id), email:record.email, role };
   }
-  for (const [key,title,owner,status] of [['published','Selenium Published Course','teacher','PUBLISHED'],['draft','Selenium Draft Course','teacher','DRAFT'],['foreign','Other Selenium Course','other','PUBLISHED'],['revision','Selenium Revision Course','teacher','PUBLISHED']]) {
+  const courseSpecs = [['published','Selenium Published Course','teacher','PUBLISHED'],['draft','Selenium Draft Course','teacher','DRAFT'],['foreign','Other Selenium Course','other','PUBLISHED'],['revision','Selenium Revision Course','teacher','PUBLISHED']];
+  if (runDemoCheckout) courseSpecs.push(['demoPaid','Selenium Demo Paid Course','other','PUBLISHED',500]);
+  for (const [key,title,owner,status,price=0] of courseSpecs) {
     const _id = id(), instructor = id();
     await col('instructors').insertOne({ _id:instructor,name:owner+' Selenium Instructor',role:'Instructor',bio:'Disposable Selenium fixture',avatar:'/images/avatar-placeholder.svg' });
-    await col('courses').insertOne({ _id,title,titleEn:title,tagline:'Disposable Selenium verification',description:'Disposable Selenium verification',category:'programming',categoryBangla:'Programming',level:'Beginner',price:0,originalPrice:0,rating:0,totalRatings:0,studentsEnrolled:0,duration:'1 hour',totalLessons:key==='published'?2:0,thumbnailUrl:'/favicon.ico',status,approvalStatus:'APPROVED',createdById:id(users[owner].id),instructorId:instructor,instructorUserIds:[],learningOutcomes:'[]',prerequisites:'[]',allowRevisionAccess:true,revisionAccessDays:7,createdAt:new Date(),updatedAt:new Date() }); courses[key]=String(_id);
+    await col('courses').insertOne({ _id,title,titleEn:title,tagline:'Disposable Selenium verification',description:'Disposable Selenium verification',category:'programming',categoryBangla:'Programming',level:'Beginner',price,originalPrice:price,rating:0,totalRatings:0,studentsEnrolled:0,duration:'1 hour',totalLessons:key==='published'?2:0,thumbnailUrl:'/favicon.ico',status,approvalStatus:'APPROVED',createdById:id(users[owner].id),instructorId:instructor,instructorUserIds:[],learningOutcomes:'[]',prerequisites:'[]',allowRevisionAccess:true,revisionAccessDays:7,createdAt:new Date(),updatedAt:new Date() }); courses[key]=String(_id);
   }
   pdfPath=path.resolve('public','selenium-test-resource-'+crypto.randomBytes(6).toString('hex')+'.pdf');
   await fs.writeFile(pdfPath,pdfFixture());
@@ -157,7 +161,7 @@ async function setup() {
   serverLog=await fs.open(path.join(out,'server.log'),'a');
   let occupied=false;try{await fetch(base+'/api/auth/csrf',{signal:AbortSignal.timeout(2000)});occupied=true;}catch{}
   if(occupied)throw new Error('Port 3106 is already in use. Refusing to reuse another application server.');
-  server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--port','3106'],{windowsHide:true,stdio:['ignore',serverLog.fd,serverLog.fd],env:{...process.env,E_SIKHO_BUILD_DIR:build,MONGODB_URI:uri.toString(),AUTH_URL:base,NEXTAUTH_URL:base,AUTH_TRUST_HOST:'true'}});
+  server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--port','3106'],{windowsHide:true,stdio:['ignore',serverLog.fd,serverLog.fd],env:{...process.env,E_SIKHO_BUILD_DIR:build,MONGODB_URI:uri.toString(),AUTH_URL:base,NEXTAUTH_URL:base,AUTH_TRUST_HOST:'true',ENABLE_DEMO_CHECKOUT:String(runDemoCheckout)}});
   for(let n=0;n<60;n++){try{if((await fetch(base+'/api/auth/csrf')).ok)break;}catch{}if(n===59)throw Error('Selenium test server did not start.');await new Promise(resolve=>setTimeout(resolve,500));}
   driver=await new Builder().forBrowser('chrome').setChromeOptions(new chrome.Options().addArguments('--headless=new','--window-size=1360,1000','--lang=en-US')).build();
   await driver.manage().setTimeouts({implicit:0,pageLoad:45000,script:30000});
@@ -268,6 +272,58 @@ async function cases() {
   });
   await run('SEL-28','Read navigation does not reseed content',['DATA-03'],'Repeated visits leave content counts unchanged.',async()=>{
     await actor('outsider');const names=['users','courses','exams','contests','notifications'];const before=await Promise.all(names.map(n=>col(n).countDocuments()));for(const route of ['/','/courses','/exams','/contests','/student']){await goto(route);await driver.navigate().refresh();}const after=await Promise.all(names.map(n=>col(n).countDocuments()));assert.deepEqual(after,before);return 'Selenium navigation/reloads left user, course, exam, contest and notification counts unchanged; no sample reseeding.';
+  });
+  await run('SEL-29', 'Demo card checkout and administrator approval', [], 'A simulated purchase stays locked until admin approval, then grants access with zero paid.', async () => {
+    const courseId = courses.demoPaid;
+    const enrollmentFilter = { userId: id(users.school.id), courseId };
+    const courseUrl = '/courses/' + courseId;
+    const checkoutUrl = '/payment/' + courseId;
+    await actor('school');
+    await goto(courseUrl);
+    await click(By.id('btn-enroll-now'));
+    await driver.wait(until.urlIs(base + checkoutUrl), 15000);
+    await hasText('Demo checkout');
+    await hasText('Demo card');
+    await hasText('4242 4242 4242 4242');
+    await hasText('BDT 500');
+    const paymentPanel = await visible(By.css('section[aria-labelledby="purchase-panel"]'));
+    const editableCardFields = await paymentPanel.findElements(By.css('input, textarea, [contenteditable="true"]'));
+    assert.equal(editableCardFields.length, 0);
+    await click(button('Send demo purchase request'));
+    await hasText('Awaiting admin approval');
+    await driver.navigate().refresh();
+    await hasText('Awaiting admin approval');
+    const forgedConfirmationStatus = await driver.executeAsyncScript((courseId, done) => {
+      fetch('/api/payment/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, status: 'success' }),
+      }).then((response) => done(response.status), () => done(0));
+    }, courseId);
+    assert.equal(forgedConfirmationStatus, 503);
+    assert.equal(await col('enrollments').countDocuments({ ...enrollmentFilter, paymentStatus: 'DEMO_PENDING', amountPaid: 0 }), 1);
+    assert.equal(await col('courses').countDocuments({ _id: id(courseId), studentsEnrolled: 0 }), 1);
+    await goto(courseUrl);
+    await visible(By.id('btn-enroll-now'));
+    await noText('Welcome to your Course!');
+
+    await actor('purchaseAdmin');
+    await goto('/admin');
+    await hasText('Demo Purchase Approvals');
+    const request = await visible(By.xpath("//*[@id='demo-purchases']//li[contains(.,'Selenium Demo Paid Course') and contains(.,'School Selenium Learner')]"));
+    await request.findElement(By.xpath(".//button[normalize-space(.)='Approve Demo Purchase']")).click();
+    await hasText('No demo purchases are awaiting approval.');
+
+    await actor('school');
+    await goto(checkoutUrl);
+    await hasText('Course access is available');
+    await click(By.linkText('Open course'));
+    await hasText('Welcome to your Course!');
+    assert.equal(await col('enrollments').countDocuments(enrollmentFilter), 1);
+    assert.equal(await col('enrollments').countDocuments({ ...enrollmentFilter, paymentStatus: 'GRANTED', amountPaid: 0, 'demoPurchase.amount': 500, 'demoPurchase.approvedBy': id(users.purchaseAdmin.id) }), 1);
+    assert.equal(await col('courses').countDocuments({ _id: id(courseId), studentsEnrolled: 1 }), 1);
+    assert.equal(await col('payments').countDocuments({ userId: enrollmentFilter.userId, courseId: { $in: [courseId, id(courseId)] } }), 0);
+    return 'Sample card checkout stayed pending across reload and kept the course locked. The payment API rejected a forged confirmation. Regular admin approval created one grant with zero paid and no payment record.';
   });
   for(const [caseId,title,planIds,reason] of [
     ['SEL-X01','Delivered OTP signup/login',['AUTH-03'],'No configured SMS provider and controlled receiving phone. No SMS was sent; fixture session setup does not verify OTP delivery.'],
