@@ -18,6 +18,7 @@ const build = process.env.E_SIKHO_BUILD_DIR || '.next-assessment-audit';
 const out = path.resolve(process.env.SELENIUM_RESULTS_DIR || 'audit-local/selenium-results');
 const databaseName = 'e_sikho_selenium_test_' + crypto.randomBytes(6).toString('hex');
 const password = crypto.randomBytes(16).toString('base64url') + '!';
+const videoSigningKey = crypto.randomBytes(32).toString('hex');
 const uri = new URL(process.env.MONGODB_URI); uri.pathname = '/' + databaseName;
 process.env.SE_CACHE_PATH ||= path.resolve('audit-local/selenium-cache');
 process.env.SE_AVOID_STATS = 'true';
@@ -161,7 +162,7 @@ async function setup() {
   serverLog=await fs.open(path.join(out,'server.log'),'a');
   let occupied=false;try{await fetch(base+'/api/auth/csrf',{signal:AbortSignal.timeout(2000)});occupied=true;}catch{}
   if(occupied)throw new Error('Port 3106 is already in use. Refusing to reuse another application server.');
-  server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--port','3106'],{windowsHide:true,stdio:['ignore',serverLog.fd,serverLog.fd],env:{...process.env,E_SIKHO_BUILD_DIR:build,MONGODB_URI:uri.toString(),AUTH_URL:base,NEXTAUTH_URL:base,AUTH_TRUST_HOST:'true',ENABLE_DEMO_CHECKOUT:String(runDemoCheckout)}});
+  server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--port','3106'],{windowsHide:true,stdio:['ignore',serverLog.fd,serverLog.fd],env:{...process.env,E_SIKHO_BUILD_DIR:build,MONGODB_URI:uri.toString(),AUTH_URL:base,NEXTAUTH_URL:base,AUTH_TRUST_HOST:'true',ENABLE_DEMO_CHECKOUT:String(runDemoCheckout),BUNNY_STREAM_TOKEN_KEY:videoSigningKey,BUNNY_STREAM_CDN_HOSTNAME:'iframe.mediadelivery.net'}});
   for(let n=0;n<60;n++){try{if((await fetch(base+'/api/auth/csrf')).ok)break;}catch{}if(n===59)throw Error('Selenium test server did not start.');await new Promise(resolve=>setTimeout(resolve,500));}
   driver=await new Builder().forBrowser('chrome').setChromeOptions(new chrome.Options().addArguments('--headless=new','--window-size=1360,1000','--lang=en-US')).build();
   await driver.manage().setTimeouts({implicit:0,pageLoad:45000,script:30000});
@@ -183,6 +184,29 @@ async function fillExam(title) {
   for(const [index,value] of ['4','3','2','1'].entries())await options[index].sendKeys(value);
 }
 async function cases() {
+  await run('SEL-30', 'Application styles on public pages and dashboards', ['UI-01'], 'Next.js serves the application stylesheets and the browser applies the Tailwind layout.', async () => {
+    for (const [key, route] of [['anon', '/login'], ['school', '/student'], ['teacher', '/instructor'], ['admin', '/admin']]) {
+      await actor(key);
+      await goto(route);
+      assert.equal(new URL(await driver.getCurrentUrl()).pathname, route);
+      const styles = await driver.executeAsyncScript(done => {
+        const css = [...document.querySelectorAll('link[rel="stylesheet"]')].filter(link => {
+          const url = new URL(link.href);
+          return url.origin === location.origin && url.pathname.startsWith('/_next/static/css/');
+        });
+        const body = getComputedStyle(document.body);
+        Promise.all(css.map(async link => {
+          const response = await fetch(link.href);
+          return { status: response.status, type: response.headers.get('content-type'), applied: !!link.sheet };
+        })).then(assets => done({ assets, display: body.display, direction: body.flexDirection }), error => done({ error: error.message }));
+      });
+      assert(styles.assets?.length > 0, `${route} has no app stylesheet: ${JSON.stringify(styles)}`);
+      assert(styles.assets.every(asset => asset.status === 200 && asset.type?.startsWith('text/css') && asset.applied), `${route} failed to apply its stylesheets: ${JSON.stringify(styles.assets)}`);
+      assert.equal(styles.display, 'flex', `${route} is missing the Tailwind body layout.`);
+      assert.equal(styles.direction, 'column', `${route} is missing the Tailwind column layout.`);
+    }
+    return 'Login and all three dashboards received CSS with HTTP 200 and applied the Tailwind layout.';
+  });
   await run('SEL-01','Anonymous protected routes',['AUTH-04'],'All protected routes redirect to login.',async()=>{
     await actor('anon');for(const route of ['/student','/instructor','/admin']){await goto(route);await driver.wait(until.urlContains('/login'),10000);}return 'Student, instructor and admin pages redirected signed-out Chrome to login.';
   });
@@ -192,7 +216,7 @@ async function cases() {
     const session=await driver.executeAsyncScript(done=>fetch('/api/auth/session').then(r=>r.json()).then(s=>done(!!s?.user?.id)));assert.equal(session,false);return 'Real login-form submission rejected a wrong password; Chrome remained signed out. No SMS/OTP delivery was performed.';
   });
   await run('SEL-03','Authenticated identity and reload',['AUTH-01'],'Real fixture identity and role persist across reload.',async()=>{
-    await actor('school');await goto('/student');await hasText('Welcome, School!');await driver.navigate().refresh();await hasText('Welcome, School!');assert((await driver.getCurrentUrl()).includes('/student'));return 'Credentials-endpoint fixture session displayed the correct student dashboard and survived reload. Complete delivered-OTP UI login is outside this check.';
+    await actor('school');await goto('/student');await hasText('Welcome back, School!');await driver.navigate().refresh();await hasText('Welcome back, School!');assert((await driver.getCurrentUrl()).includes('/student'));return 'Credentials-endpoint fixture session displayed the correct student dashboard and survived reload. Complete delivered-OTP UI login is outside this check.';
   });
   await run('SEL-04','Student and instructor role boundaries',['AUTH-05'],'Student author/admin and instructor admin routes are denied.',async()=>{
     await actor('school');for(const route of ['/instructor','/exams/create','/contests/create','/admin']){await goto(route);await driver.wait(async()=>new URL(await driver.getCurrentUrl()).pathname!==route,10000);}
@@ -253,10 +277,37 @@ async function cases() {
     const active=await driver.findElements(By.css('button[aria-label="A: 4"]'));if(!active.length)throw new Blocked('The keyboard exam case did not leave an active exam.');await click(button('Next'));await click(By.css('button[aria-label="B: 3"]'));await click(button('Submit Exam'));await click(button('Yes, Submit'));await dbWait(async()=>await col('examsubmissions').findOne({examId:id(courses.exam),studentId:id(users.school.id)}),'Exam submission was not saved.');const sub=await col('examsubmissions').findOne({examId:id(courses.exam),studentId:id(users.school.id)});assert.equal(sub.score,1.75);assert.equal(sub.percentage,29);assert.equal(sub.passed,false);await goto('/exams/'+courses.exam);await hasText('Selenium Scoring Exam');await noText('Attempt Limit Reached');assert.equal(await col('examsubmissions').countDocuments({examId:id(courses.exam),studentId:id(users.school.id)}),1);return 'Real UI submission persisted 1.75/6, 29%, failed: one correct, one wrong and one skipped. Reload retained one submission and did not show the false attempt-limit warning at one of two attempts.';
   });
   await run('SEL-22','Empty dashboard has no invented progress',['DATA-01'],'Unenrolled learner sees no 67% or 30/45-minute progress.',async()=>{
-    await actor('outsider');await goto('/student');await hasText('Welcome, EEE!');await noText('67%');await noText('30 of 45');assert.equal(await col('enrollments').countDocuments({userId:id(users.outsider.id)}),0);return 'Dashboard for a learner with zero enrollments showed no fabricated 67% or 30/45-minute progress.';
+    await actor('outsider');await goto('/student');await hasText('Welcome back, EEE!');await noText('67%');await noText('30 of 45');assert.equal(await col('enrollments').countDocuments({userId:id(users.outsider.id)}),0);return 'Dashboard for a learner with zero enrollments showed no fabricated 67% or 30/45-minute progress.';
   });
   await run('SEL-23','Actual PDF viewer and resource visibility',['EXTRA-01','COURSE-04'],'Enrolled learner opens a real PDF; anonymous view exposes only preview resource.',async()=>{
-    await actor('school');await goto('/courses/'+courses.published);await hasText('Welcome to your Course!');await click(exact('Lecture Slides & PDFs'));await hasText('Selenium Private Lesson PDF');const heading=await visible(By.xpath("//h3[normalize-space(.)='Selenium Private Lesson PDF']"));const card=await heading.findElement(By.xpath('../..'));await card.findElement(By.xpath(".//button[contains(.,'View Protected PDF')]")).click();const iframe=await visible(By.css('iframe[src*="selenium-test-resource-"]'));assert(await iframe.isDisplayed());const raw=await fetch(base+'/'+path.basename(pdfPath));const rawBytes=Buffer.from(await raw.arrayBuffer());data.pdfDelivery={nodeStatus:raw.status,nodePrefix:rawBytes.subarray(0,5).toString()};await save();assert.equal(rawBytes.subarray(0,5).toString(),'%PDF-',JSON.stringify(data.pdfDelivery));const pdf=await driver.executeAsyncScript(function(url,done){fetch(url,{cache:'no-store'}).then(async r=>{const bytes=await r.arrayBuffer();done({url:r.url,status:r.status,type:r.headers.get('content-type'),length:bytes.byteLength,prefix:new TextDecoder().decode(bytes.slice(0,5))})}).catch(e=>done({error:e.message}));},'/'+path.basename(pdfPath));data.pdfDelivery.browser=pdf;await save();assert.equal(pdf.prefix,'%PDF-',JSON.stringify(pdf));assert(pdf.type.includes('pdf'));await actor('anon');await goto('/courses/'+courses.published);await click(exact('Lecture Slides & PDFs'));await hasText('Selenium Preview Lesson PDF');await noText('Selenium Private Lesson PDF');return 'Enrolled Selenium session opened the actual PDF iframe and received valid PDF bytes; anonymous resource tab showed only preview metadata. Underlying public-URL secrecy was not certified.';
+    await actor('school');
+    await goto('/courses/'+courses.published);
+    await hasText('Welcome to your Course!');
+    await click(exact('Lecture Slides & PDFs'));
+    const heading = await visible(By.xpath("//h3[normalize-space(.)='Selenium Private Lesson PDF']"));
+    const resourcePath = '/' + path.basename(pdfPath);
+    // Check delivery independently of the native Chrome viewer's iframe navigation.
+    const pdf = await driver.executeAsyncScript((url, done) => {
+      fetch(url, { cache: 'no-store' }).then(async response => {
+        const bytes = await response.arrayBuffer();
+        done({ status: response.status, type: response.headers.get('content-type'), prefix: new TextDecoder().decode(bytes.slice(0, 5)) });
+      }).catch(error => done({ error: error.message }));
+    }, resourcePath);
+    data.pdfDelivery = { browser: pdf };
+    await save();
+    assert.equal(pdf.status, 200, JSON.stringify(pdf));
+    assert.equal(pdf.prefix, '%PDF-', JSON.stringify(pdf));
+    assert(pdf.type?.includes('pdf'));
+    const card = await heading.findElement(By.xpath('../..'));
+    await card.findElement(By.xpath(".//button[contains(.,'View Protected PDF')]")).click();
+    const iframe = await visible(By.css(`iframe[src^="${resourcePath}"]`));
+    assert(await iframe.isDisplayed());
+    await actor('anon');
+    await goto('/courses/'+courses.published);
+    await click(exact('Lecture Slides & PDFs'));
+    await hasText('Selenium Preview Lesson PDF');
+    await noText('Selenium Private Lesson PDF');
+    return 'Chrome received valid PDF bytes and opened the enrolled viewer iframe. The anonymous resource tab showed only preview metadata.';
   });
   await run('SEL-24','Responsive principal pages',['UI-01'],'No horizontal overflow at 360px and desktop widths.',async()=>{
     for(const width of [360,1280]){await driver.manage().window().setRect({width,height:1000});for(const [key,route] of [['anon','/login'],['school','/courses/'+courses.published],['teacher','/exams/create'],['teacher','/contests/create']]){await actor(key);await goto(route);const size=await driver.executeScript('return {scroll:document.documentElement.scrollWidth,width:innerWidth}');assert(size.scroll<=size.width+2,route+' overflow at '+width);}}await driver.manage().window().setRect({width:1360,height:1000});return 'Login, course detail, exam form and contest form had no horizontal overflow at 360px and 1280px window sizes.';
@@ -268,7 +319,7 @@ async function cases() {
     await actor('anon');await goto('/courses/507f1f77bcf86cd799439099');await hasText('404');await goto('/exams/507f1f77bcf86cd799439099');await hasText('পরীক্ষাটি পাওয়া যায়নি।');await goto('/contests/selenium-missing-contest');await hasText('404');return 'Selenium verified safe not-found states for nonexistent course, exam and contest links.';
   });
   await run('SEL-27','Signout removes protected navigation',['AUTH-06'],'After UI signout, protected revisits redirect to login.',async()=>{
-    await actor('school');await goto('/student');await hasText('Welcome, School!');await click(By.css('button[title="Log Out"]'));await driver.wait(async()=>!new URL(await driver.getCurrentUrl()).pathname.startsWith('/student'),15000);currentActor=undefined;await goto('/student');await driver.wait(until.urlContains('/login'),10000);return 'Navbar signout removed the session; revisiting the student dashboard redirected to login.';
+    await actor('school');await goto('/student');await hasText('Welcome back, School!');await click(By.css('button[aria-label="User menu"]'));await click(button('Log Out'));await driver.wait(async()=>!new URL(await driver.getCurrentUrl()).pathname.startsWith('/student'),15000);currentActor=undefined;await goto('/student');await driver.wait(until.urlContains('/login'),10000);return 'Navbar signout removed the session; revisiting the student dashboard redirected to login.';
   });
   await run('SEL-28','Read navigation does not reseed content',['DATA-03'],'Repeated visits leave content counts unchanged.',async()=>{
     await actor('outsider');const names=['users','courses','exams','contests','notifications'];const before=await Promise.all(names.map(n=>col(n).countDocuments()));for(const route of ['/','/courses','/exams','/contests','/student']){await goto(route);await driver.navigate().refresh();}const after=await Promise.all(names.map(n=>col(n).countDocuments()));assert.deepEqual(after,before);return 'Selenium navigation/reloads left user, course, exam, contest and notification counts unchanged; no sample reseeding.';
@@ -323,7 +374,35 @@ async function cases() {
     assert.equal(await col('enrollments').countDocuments({ ...enrollmentFilter, paymentStatus: 'GRANTED', amountPaid: 0, 'demoPurchase.amount': 500, 'demoPurchase.approvedBy': id(users.purchaseAdmin.id) }), 1);
     assert.equal(await col('courses').countDocuments({ _id: id(courseId), studentsEnrolled: 1 }), 1);
     assert.equal(await col('payments').countDocuments({ userId: enrollmentFilter.userId, courseId: { $in: [courseId, id(courseId)] } }), 0);
-    return 'Sample card checkout stayed pending across reload and kept the course locked. The payment API rejected a forged confirmation. Regular admin approval created one grant with zero paid and no payment record.';
+    await actor('other');
+    await goto('/instructor');
+    const owner = await col('users').findOne({ _id: id(users.other.id) });
+    assert.equal(owner.availableBalance ?? 0, 0, 'The demo purchase must not fund an instructor payout.');
+    assert.equal(owner.totalEarnings ?? 0, 0, 'The demo purchase must not credit earnings.');
+    await actor('purchaseAdmin');
+    await goto('/admin');
+    const revenue = await visible(By.xpath("//p[normalize-space(.)='Total Course Revenue']/following-sibling::h3"));
+    assert.equal(await revenue.getText(), '৳0');
+    return 'Demo approval granted access with zero paid, no payment record, no instructor balance increase and zero platform revenue.';
+  });
+  await run('SEL-31', 'Instructor preview signs saved Bunny videos', [], 'A saved lesson can open a fresh signed preview even with only a Bunny ID stored.', async () => {
+    const videoId = crypto.randomUUID();
+    const moduleId = id();
+    const title = 'Selenium Protected Video Preview';
+    await col('modules').insertOne({ _id: moduleId, courseId: id(courses.draft), title: 'Selenium video module', order: 0 });
+    await col('lessons').insertOne({ moduleId, title, type: 'VIDEO', isFree: false, order: 0, videoUrl: '', bunnyVideoId: videoId, bunnyLibraryId: '123456' });
+    await actor('teacher');
+    await goto(`/instructor/courses/${courses.draft}/lectures`);
+    const lesson = await visible(By.xpath(`//h4[normalize-space(.)='${title}']`));
+    const row = await lesson.findElement(By.xpath('../../../..'));
+    await row.findElement(By.xpath(".//button[normalize-space(.)='ভিডিও']")).click();
+    const iframe = await visible(By.css(`iframe[title="${title}"]`));
+    const src = new URL(await iframe.getAttribute('src'));
+    assert.equal(src.pathname, `/embed/123456/${videoId}`);
+    const expires = src.searchParams.get('expires');
+    assert(Number(expires) > Date.now() / 1000, 'Preview token has expired.');
+    assert.equal(src.searchParams.get('token'), crypto.createHash('sha256').update(videoSigningKey + videoId + expires).digest('hex'));
+    return 'Chrome opened the instructor preview with a fresh signature for the saved video. The fixture does not represent a hosted video asset.';
   });
   for(const [caseId,title,planIds,reason] of [
     ['SEL-X01','Delivered OTP signup/login',['AUTH-03'],'No configured SMS provider and controlled receiving phone. No SMS was sent; fixture session setup does not verify OTP delivery.'],

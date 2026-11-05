@@ -96,19 +96,7 @@ export default async function AdminDashboardPage() {
         }
       }
     ]);
-    if (commissionAgg && commissionAgg[0] && commissionAgg[0].totalRevenue > 0) {
-      finStats = commissionAgg[0];
-    } else {
-      const coursesForRev = await Course.find({}).select('price studentsEnrolled').lean();
-      const calculatedTotal = coursesForRev.reduce((sum: number, c: any) => sum + ((c.price || 0) * (c.studentsEnrolled || 0)), 0);
-      if (calculatedTotal > 0) {
-        finStats = {
-          totalRevenue: calculatedTotal,
-          platformCommission: Math.round(calculatedTotal * 0.2),
-          instructorEarnings: Math.round(calculatedTotal * 0.8),
-        };
-      }
-    }
+    if (commissionAgg[0]) finStats = commissionAgg[0];
 
     const rawPayouts = await PayoutRequest.find().sort({ createdAt: -1 }).lean();
     payoutRequests = JSON.parse(JSON.stringify(rawPayouts || [])).map((r: any) => ({ ...r, id: r._id, userId: String(r.userId) }));

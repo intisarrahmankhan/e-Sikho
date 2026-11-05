@@ -8,7 +8,7 @@ import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import User from '@/models/User';
 import { uploadToR2 } from '@/lib/r2';
-import { parseBunnyVideoUrl, generateBunnySignedEmbedUrl } from '@/lib/bunny';
+import { parseBunnyVideoUrl } from '@/lib/bunny';
 import { getCourseById } from '@/lib/courses-data';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
@@ -560,9 +560,7 @@ export async function getCourseCurriculum(courseId: string) {
           _id: mod._id.toString(),
           lessons: lessons.map((l: any) => {
             const bunnyVideo = parseBunnyVideoUrl(l.videoUrl);
-            const videoUrl = bunnyVideo && process.env.BUNNY_STREAM_TOKEN_KEY
-              ? generateBunnySignedEmbedUrl(bunnyVideo.libraryId, bunnyVideo.videoId).embedUrl
-              : l.videoUrl || '';
+            const videoUrl = bunnyVideo ? `bunny:${bunnyVideo.libraryId}:${bunnyVideo.videoId}` : l.videoUrl || '';
             return { ...l, videoUrl, id: l._id.toString(), _id: l._id.toString() };
           }),
         };

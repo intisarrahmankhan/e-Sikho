@@ -50,9 +50,11 @@ vi.mock('@/models/Course', () => ({
 }));
 
 const mockPlatformCommissionCreate = vi.fn().mockResolvedValue([{}]);
+const mockCommissionExists = vi.fn().mockResolvedValue(null);
 vi.mock('@/models/PlatformCommission', () => ({
   default: {
     create: (...args: any[]) => mockPlatformCommissionCreate(...args),
+    exists: vi.fn(() => ({ session: mockCommissionExists })),
     find: vi.fn().mockReturnValue({
       sort: vi.fn().mockReturnValue({
         populate: vi.fn().mockReturnValue({
@@ -72,12 +74,15 @@ vi.mock('@/models/User', () => ({
   },
 }));
 
-const mockEnrollmentFindByIdAndUpdate = vi.fn().mockResolvedValue({});
+const mockEnrollmentFindOneAndUpdate = vi.fn().mockResolvedValue({});
 vi.mock('@/models/Enrollment', () => ({
   default: {
-    findByIdAndUpdate: (...args: any[]) => mockEnrollmentFindByIdAndUpdate(...args),
+    findOne: vi.fn(query => ({ session: vi.fn().mockResolvedValue({ userId: '65f000000000000000000099', amountPaid: query.amountPaid }) })),
+    findOneAndUpdate: (...args: any[]) => mockEnrollmentFindOneAndUpdate(...args),
   },
 }));
+const mockPaymentLookup = vi.fn((query: { amount: number }) => ({ session: vi.fn().mockResolvedValue({ amount: query.amount }) }));
+vi.mock('@/models/Payment', () => ({ default: { findOne: (query: { amount: number }) => mockPaymentLookup(query) } }));
 
 describe('Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%)', () => {
   beforeEach(() => {
@@ -220,6 +225,16 @@ describe('Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%)', () => {
       expect(mockPlatformCommissionCreate).not.toHaveBeenCalled();
       expect(mockUserFindByIdAndUpdate).not.toHaveBeenCalled();
     });
+    it('rejects missing payments and duplicate commission records before crediting the instructor', async () => {
+      mockCourseFindByIdResult = { createdById: '65f000000000000000000020' };
+      mockPaymentLookup.mockReturnValueOnce({ session: vi.fn().mockResolvedValue(null) });
+      const args = ['65f000000000000000000001', '65f000000000000000000010', 5000] as const;
+      expect((await processEnrollmentCommission(...args)).success).toBe(false);
+      mockCommissionExists.mockResolvedValueOnce({ _id: 'existing' });
+      expect((await processEnrollmentCommission(...args)).success).toBe(false);
+      expect(mockPlatformCommissionCreate).not.toHaveBeenCalled();
+      expect(mockUserFindByIdAndUpdate).not.toHaveBeenCalled();
+    });
     it('creates PLATFORM_COMMISSION entity with DEFAULT 10% rule tracking', async () => {
       const oldDate = new Date(Date.now() - 100 * 86400000);
       mockCourseFindByIdResult = {
@@ -315,11 +330,10 @@ describe('Platform Commission Rules (DEFAULT 10% & EARLY_BIRD 5%)', () => {
       );
 
       // Verify enrollment tracking
-      expect(mockEnrollmentFindByIdAndUpdate).toHaveBeenCalledWith(
-        '65f000000000000000000002',
+      expect(mockEnrollmentFindOneAndUpdate).toHaveBeenCalledWith(
+        { _id: '65f000000000000000000002', commissionProcessedAt: null },
         {
-          isEarlyBird: true,
-          commissionRule: 'EARLY_BIRD',
+          $set: { isEarlyBird: true, commissionRule: 'EARLY_BIRD', commissionProcessedAt: expect.any(Date) },
         },
         { session: mockSession }
       );

@@ -207,8 +207,8 @@ function LoginForm() {
       } else {
         const msg = res.devCode
           ? (language === 'en'
-              ? `Verification code sent! Demo OTP: ${res.devCode}`
-              : `ভেরিফিকেশন কোড পাঠানো হয়েছে! ডেমো কোড: ${res.devCode}`)
+              ? `Local demo code: ${res.devCode}`
+              : `লোকাল ডেমো কোড: ${res.devCode}`)
           : t('auth.otpSentSuccess', 'ভেরিফিকেশন কোড পাঠানো হয়েছে!');
         setSuccess(msg);
         setTargetPhone(cleanPhone);
