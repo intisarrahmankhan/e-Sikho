@@ -1,22 +1,24 @@
+'use client';
+
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-200 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent font-medium whitespace-nowrap transition-all duration-150 ease-in-out active:scale-[0.98] outline-none select-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ring-offset-white disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 aria-invalid:border-red-500 aria-invalid:ring-2 aria-invalid:ring-red-200 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-700",
+        default: "bg-primary-600 text-white hover:bg-primary-700 shadow-xs hover:shadow-sm",
         outline:
-          "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 aria-expanded:bg-slate-100",
+          "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 aria-expanded:bg-slate-100 shadow-xs",
         secondary:
           "bg-slate-100 text-slate-800 hover:bg-slate-200 aria-expanded:bg-slate-200",
         ghost:
           "text-slate-700 hover:bg-slate-100 aria-expanded:bg-slate-100",
         destructive:
-          "bg-red-50 text-red-700 hover:bg-red-100 focus-visible:ring-red-500",
-        link: "text-blue-700 underline-offset-4 hover:underline",
+          "bg-red-50 text-red-700 hover:bg-red-100 focus-visible:ring-red-500 border border-red-200",
+        link: "text-primary-600 underline-offset-4 hover:underline",
       },
       size: {
         default:

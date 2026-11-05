@@ -9,7 +9,9 @@ import {
   Sliders,
   Zap,
   RotateCcw,
-  Sparkles,
+  Clock,
+  BookOpen,
+  Star,
   Target,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -28,6 +30,13 @@ export interface CourseProps {
   progressPercentage: number;
   targetCompletionDate: string;
   paceMode?: string;
+  category?: string;
+  level?: string;
+  duration?: string;
+  totalLessons?: number;
+  rating?: number;
+  price?: number;
+  originalPrice?: number;
 }
 
 export function CourseCard({ course }: { course: CourseProps }) {
@@ -45,17 +54,23 @@ export function CourseCard({ course }: { course: CourseProps }) {
     setCurrentPaceMode(newPlan.paceMode);
   };
 
+  const discountPercent =
+    course.originalPrice && course.price && course.originalPrice > course.price
+      ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
+      : 0;
+
   return (
     <>
-      <Card className="overflow-hidden border border-slate-200/90 rounded-2xl bg-white hover:shadow-lg transition-all duration-300 flex flex-col group">
-        {/* Thumbnail banner */}
-        <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+      <Card className="overflow-hidden border border-slate-200/90 rounded-2xl bg-white hover:shadow-card-hover transition-all duration-300 flex flex-col group">
+        {/* Strict 16:9 aspect ratio thumbnail banner with lazy loading */}
+        <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
           <img
             src={displayThumbnail}
             alt={displayTitle}
+            loading="lazy"
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/25 to-transparent" />
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 items-center">
@@ -74,6 +89,12 @@ export function CourseCard({ course }: { course: CourseProps }) {
               <Badge className="bg-emerald-400 text-slate-950 font-bold text-[10px] shadow-xs flex items-center gap-1">
                 <RotateCcw className="h-3 w-3" />
                 <span>{language === 'en' ? 'Rebalanced' : 'রুটিন অ্যাডজাস্টেড'}</span>
+              </Badge>
+            )}
+
+            {discountPercent > 0 && (
+              <Badge className="bg-rose-500 text-white font-bold text-[10px] shadow-xs">
+                -{discountPercent}%
               </Badge>
             )}
           </div>
@@ -101,6 +122,30 @@ export function CourseCard({ course }: { course: CourseProps }) {
               {displayTitle}
             </h3>
 
+            {/* Optional Metadata Row (duration, lessons, rating) */}
+            {(course.duration || course.totalLessons || (course.rating && course.rating > 0)) && (
+              <div className="flex items-center gap-3 text-xs text-slate-500 pt-0.5">
+                {course.duration && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{course.duration}</span>
+                  </span>
+                )}
+                {course.totalLessons && (
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{course.totalLessons} {language === 'en' ? 'lessons' : 'লেসন'}</span>
+                  </span>
+                )}
+                {course.rating && course.rating > 0 && (
+                  <span className="flex items-center gap-1 font-medium text-amber-600">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span>{course.rating.toFixed(1)}</span>
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Progress Bar */}
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
@@ -114,13 +159,29 @@ export function CourseCard({ course }: { course: CourseProps }) {
                 />
               </div>
             </div>
+
+            {/* Price display if available and not enrolled or enrolled preview */}
+            {typeof course.price === 'number' && (
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-base font-extrabold text-slate-900">
+                  {course.price === 0
+                    ? (language === 'en' ? 'Free' : 'বিনামূল্যে')
+                    : `৳${course.price.toLocaleString('bn-BD')}`}
+                </span>
+                {course.originalPrice && course.originalPrice > course.price && (
+                  <span className="text-xs text-slate-400 line-through">
+                    ৳{course.originalPrice.toLocaleString('bn-BD')}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Target Date & Reschedule Action */}
           <div className="pt-2 border-t border-slate-100 space-y-3">
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+                <Calendar className="h-3.5 w-3.5 text-primary-500" />
                 <span>
                   {language === 'en' ? 'Target: ' : 'টার্গেট: '}
                   <strong className="text-slate-800">
@@ -135,7 +196,7 @@ export function CourseCard({ course }: { course: CourseProps }) {
 
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
+                className="text-[11px] font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1 transition"
               >
                 <Sliders className="h-3 w-3" />
                 <span>{language === 'en' ? 'Adjust Routine' : 'রুটিন পরিবর্তন'}</span>
@@ -145,14 +206,14 @@ export function CourseCard({ course }: { course: CourseProps }) {
             {/* Actions */}
             <div className="flex gap-2 pt-1">
               <Link href={`/courses/${course.id}`} className="flex-1">
-                <Button className="w-full gap-1.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs py-2 rounded-xl shadow-sm">
+                <Button className="w-full gap-1.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs py-2 rounded-xl shadow-xs active:scale-[0.98]">
                   <PlayCircle className="h-4 w-4" />
                   <span>{language === 'en' ? 'Start Class' : 'ক্লাস শুরু করুন'}</span>
                 </Button>
               </Link>
               <Button
                 variant="outline"
-                className="px-3 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl"
+                className="px-3 text-xs border-primary-200 text-primary-700 hover:bg-primary-50 rounded-xl"
                 onClick={() => setIsModalOpen(true)}
                 title={language === 'en' ? 'Reschedule Routine' : 'রুটিন স্বয়ংক্রিয় সমন্বয়'}
               >

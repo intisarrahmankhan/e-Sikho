@@ -121,14 +121,14 @@ export function CoursesCatalog({
     <div className="space-y-8 pb-16 max-w-7xl mx-auto px-4 sm:px-6">
 
       {/* ── Page Header ── */}
-      <div className="pt-6 pb-2 border-b border-gray-200">
+      <div className="pt-6 pb-2 border-b border-slate-200">
         <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-1">
           {t("courses.explore", "এক্সপ্লোর করুন")}
         </p>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
           {t("courses.catalogTitle", "কোর্স ক্যাটালগ")}
         </h1>
-        <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+        <p className="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
           {t(
             "courses.catalogSubtitle",
             "প্রফেশনাল সফটওয়্যার ক্যারিয়ারের জন্য তৈরি আমাদের হ্যান্ডস-অন কোর্সগুলো ব্রাউজ করুন এবং আপনার উপযুক্ত কোর্সটি বেছে নিন।"
@@ -145,24 +145,24 @@ export function CoursesCatalog({
       )}
 
       {/* ── Search Bar ── */}
-      <div className="relative flex items-center bg-white border border-gray-200 rounded-xl shadow-card overflow-hidden max-w-2xl">
-        <Search className="h-4 w-4 text-gray-400 ml-3.5 shrink-0" />
+      <div className="relative flex items-center bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden max-w-2xl focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500 transition-all">
+        <Search className="h-4 w-4 text-slate-400 ml-3.5 shrink-0" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("courses.searchPlaceholder", "কোর্সের নাম, টপিক বা ইন্সট্রাক্টর সার্চ করুন...")}
-          className="w-full px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent"
+          className="w-full px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none bg-transparent"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 mr-1"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 mr-1"
           >
             <X className="h-4 w-4" />
           </button>
         )}
-        <button className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold px-4 py-2.5 shrink-0">
+        <button className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold px-4 py-2.5 shrink-0 transition active:scale-[0.98]">
           {language === "en" ? "Search" : "খুঁজুন"}
         </button>
       </div>
@@ -175,13 +175,13 @@ export function CoursesCatalog({
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap border transition ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all ${
                 isSelected
-                  ? "bg-primary-600 text-white border-primary-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600"
+                  ? "bg-primary-600 text-white border-primary-600 shadow-xs"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-primary-300 hover:text-primary-600"
               }`}
             >
-              <cat.icon className={`h-3.5 w-3.5 ${isSelected ? "text-white" : "text-gray-400"}`} />
+              <cat.icon className={`h-3.5 w-3.5 ${isSelected ? "text-white" : "text-slate-400"}`} />
               {cat.label}
             </button>
           );
@@ -189,9 +189,9 @@ export function CoursesCatalog({
       </div>
 
       {/* ── Filter & Sort Bar ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-card">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
             {language === "en" ? "Level:" : "লেভেল:"}
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -199,10 +199,10 @@ export function CoursesCatalog({
               <button
                 key={lvl.id}
                 onClick={() => setSelectedLevel(lvl.id)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                   selectedLevel === lvl.id
-                    ? "bg-primary-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-primary-600 text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 {lvl.label}
@@ -211,14 +211,14 @@ export function CoursesCatalog({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
-          <span className="text-xs text-gray-500 font-medium">
+        <div className="flex items-center gap-3 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+          <span className="text-xs text-slate-500 font-medium">
             {language === "en" ? "Sort By:" : "সর্ট করুন:"}
           </span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="text-xs font-semibold bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="popular">{t("courses.sortPopular", "সর্বাধিক জনপ্রিয়")}</option>
             <option value="rating">{t("courses.sortRating", "সেরা রেটিং")}</option>
@@ -227,7 +227,7 @@ export function CoursesCatalog({
           </select>
 
           {hasActiveFilters && (
-            <button onClick={resetFilters} className="text-xs text-red-500 hover:text-red-600 font-medium underline">
+            <button onClick={resetFilters} className="text-xs text-rose-500 hover:text-rose-600 font-medium underline">
               {t("courses.resetFilters", "ফিল্টার মুছুন")}
             </button>
           )}
@@ -235,27 +235,27 @@ export function CoursesCatalog({
       </div>
 
       {/* ── Results Count ── */}
-      <p className="text-xs text-gray-500 px-1">
+      <p className="text-xs text-slate-500 px-1">
         {language === "en" ? (
-          <>Total <strong className="text-gray-900 font-bold">{filteredCourses.length}</strong> courses found</>
+          <>Total <strong className="text-slate-900 font-bold">{filteredCourses.length}</strong> courses found</>
         ) : (
-          <>মোট <strong className="text-gray-900 font-bold">{filteredCourses.length}</strong> টি কোর্স পাওয়া গেছে</>
+          <>মোট <strong className="text-slate-900 font-bold">{filteredCourses.length}</strong> টি কোর্স পাওয়া গেছে</>
         )}
       </p>
 
       {/* ── Courses Grid ── */}
       {filteredCourses.length === 0 ? (
-        <div className="p-12 text-center bg-white border border-gray-200 rounded-xl space-y-4">
-          <div className="h-12 w-12 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+        <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl space-y-4">
+          <div className="h-12 w-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
             <Search className="h-5 w-5" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-semibold text-slate-900">
             {t("courses.noCourses", "কোনো কোর্স পাওয়া যায়নি")}
           </h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
             {t("courses.tryDifferentFilter", "আপনার অনুসন্ধান বা ফিল্টারের সাথে মিলে এমন কোনো কোর্স পাওয়া যায়নি।")}
           </p>
-          <Button onClick={resetFilters} variant="outline" size="sm" className="border-gray-300 text-gray-700">
+          <Button onClick={resetFilters} variant="outline" size="sm" className="border-slate-300 text-slate-700 rounded-xl">
             {t("courses.allCourses", "সকল কোর্স দেখুন")}
           </Button>
         </div>
@@ -276,24 +276,27 @@ export function CoursesCatalog({
             return (
               <Card
                 key={course.id}
-                className="overflow-hidden border border-gray-200 rounded-xl hover:border-primary-300 hover:shadow-card-hover transition-all duration-200 flex flex-col bg-white group"
+                className="overflow-hidden border border-slate-200/90 rounded-2xl hover:border-primary-300 hover:shadow-card-hover transition-all duration-300 flex flex-col bg-white group"
               >
-                {/* Thumbnail */}
-                <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+                {/* Thumbnail with strict 16:9 aspect ratio and lazy loading */}
+                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
                   <img
                     src={displayThumbnail}
                     alt={displayTitle}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3">
-                    <span className="text-xs font-semibold bg-primary-600 text-white px-2.5 py-1 rounded-md">
+                    <span className="text-xs font-semibold bg-white/95 backdrop-blur-md text-slate-800 border border-slate-200/80 px-2.5 py-1 rounded-full shadow-xs">
                       {displayCategory}
                     </span>
                   </div>
-                  <div className="absolute top-3 right-3 flex items-center gap-2">
-                    <span className="text-xs font-bold bg-red-500 text-white px-2 py-1 rounded-md">
-                      {discount}% OFF
-                    </span>
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    {discount > 0 && (
+                      <span className="text-[11px] font-bold bg-rose-500/90 backdrop-blur-xs text-white px-2 py-0.5 rounded-full shadow-xs">
+                        -{discount}%
+                      </span>
+                    )}
                     <WishlistButton
                       courseId={course.id}
                       initialWishlisted={userWishlistIds.includes(course.id)}
@@ -301,11 +304,11 @@ export function CoursesCatalog({
                     />
                   </div>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                    <span className="text-xs bg-gray-900/70 text-white px-2.5 py-1 rounded-md font-medium">
+                    <span className="text-[11px] bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full font-medium shadow-xs">
                       {displayLevel}
                     </span>
-                    <span className="flex items-center gap-1 text-xs bg-gray-900/70 text-white px-2.5 py-1 rounded-md">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <span className="flex items-center gap-1 text-[11px] bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full shadow-xs">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                       {course.rating.toFixed(1)} ({course.totalRatings})
                     </span>
                   </div>
@@ -314,52 +317,55 @@ export function CoursesCatalog({
                 {/* Content */}
                 <CardContent className="p-5 flex-1 flex flex-col gap-4">
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-base leading-snug line-clamp-2 group-hover:text-primary-600 transition">
+                    <h3 className="font-bold text-slate-900 text-base leading-snug line-clamp-2 group-hover:text-primary-600 transition-colors">
                       {displayTitle}
                     </h3>
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">{displayTagline}</p>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{displayTagline}</p>
                   </div>
 
                   {/* Instructor */}
-                  <div className="flex items-center gap-2.5 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-2.5 pt-2 border-t border-slate-100">
                     <img
                       src={course.instructor.avatar}
                       alt={course.instructor.name}
-                      className="h-8 w-8 rounded-full object-cover border border-gray-200"
+                      loading="lazy"
+                      className="h-8 w-8 rounded-full object-cover border border-slate-200"
                     />
                     <div className="text-xs">
-                      <p className="font-semibold text-gray-800 leading-tight">{course.instructor.name}</p>
-                      <p className="text-gray-400 text-[11px] truncate max-w-[180px]">
+                      <p className="font-semibold text-slate-800 leading-tight">{course.instructor.name}</p>
+                      <p className="text-slate-400 text-[11px] truncate max-w-[180px]">
                         {(language === 'en' && course.instructor.roleEn) ? course.instructor.roleEn : course.instructor.role}
                       </p>
                     </div>
                   </div>
 
                   {/* Meta & Price */}
-                  <div className="pt-3 border-t border-gray-100 space-y-3 mt-auto">
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="pt-3 border-t border-slate-100 space-y-3 mt-auto">
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
                         {formatBilingualDuration(course.duration, course.durationEn, language)}
                       </span>
-                      <span className="text-gray-300">·</span>
+                      <span className="text-slate-300">·</span>
                       <span className="flex items-center gap-1">
-                        <BookOpen className="h-3.5 w-3.5" />
+                        <BookOpen className="h-3.5 w-3.5 text-slate-400" />
                         {language === 'en' ? `${course.totalLessons} lessons` : `${course.totalLessons} টি লেসন`}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xl font-bold text-primary-700">
+                        <span className="text-xl font-extrabold text-slate-900">
                           {language === 'en' ? `BDT ${course.price.toLocaleString()}` : `৳${course.price.toLocaleString('bn-BD')}`}
                         </span>
-                        <span className="text-xs text-gray-400 line-through ml-2">
-                          {language === 'en' ? `BDT ${course.originalPrice.toLocaleString()}` : `৳${course.originalPrice.toLocaleString('bn-BD')}`}
-                        </span>
+                        {course.originalPrice > course.price && (
+                          <span className="text-xs text-slate-400 line-through ml-2">
+                            {language === 'en' ? `BDT ${course.originalPrice.toLocaleString()}` : `৳${course.originalPrice.toLocaleString('bn-BD')}`}
+                          </span>
+                        )}
                       </div>
                       <Link href={`/courses/${course.id}`}>
-                        <Button size="sm" className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs px-4 py-2 rounded-lg">
+                        <Button size="sm" className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-xs active:scale-[0.98]">
                           {language === "en" ? "View Details" : "বিস্তারিত দেখুন"}
                         </Button>
                       </Link>

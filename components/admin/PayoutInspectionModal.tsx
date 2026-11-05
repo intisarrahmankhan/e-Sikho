@@ -248,15 +248,45 @@ export default function PayoutInspectionModal({
 
           {/* Key Figures Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-emerald-50/60 dark:bg-emerald-950/20 p-3.5">
-              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 block mb-1">
+            <div className={`rounded-xl border p-3.5 ${
+              isDisbursed
+                ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20'
+                : isApproved
+                ? 'border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20'
+                : isRejected
+                ? 'border-rose-200 dark:border-rose-800 bg-rose-50/60 dark:bg-rose-950/20'
+                : 'border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20'
+            }`}>
+              <span className={`text-[11px] font-semibold block mb-1 ${
+                isDisbursed
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : isApproved
+                  ? 'text-blue-700 dark:text-blue-400'
+                  : isRejected
+                  ? 'text-rose-700 dark:text-rose-400'
+                  : 'text-amber-700 dark:text-amber-400'
+              }`}>
                 Requested Payout Amount
               </span>
-              <p className="text-2xl font-extrabold text-emerald-900 dark:text-emerald-300">
+              <p className={`text-2xl font-extrabold ${
+                isDisbursed
+                  ? 'text-emerald-900 dark:text-emerald-300'
+                  : isApproved
+                  ? 'text-blue-900 dark:text-blue-300'
+                  : isRejected
+                  ? 'text-rose-900 dark:text-rose-300'
+                  : 'text-amber-900 dark:text-amber-300'
+              }`}>
                 ৳{payout.amount.toLocaleString()}
               </p>
-              <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">
-                Full 100% net withdrawal
+              <span className="text-[10px] font-medium block mt-0.5 opacity-90">
+                {isDisbursed
+                  ? '✓ Disbursed & Completed'
+                  : isApproved
+                  ? '⏳ Approved — Awaiting Cash Disbursal'
+                  : isRejected
+                  ? '✗ Rejected & Returned to Wallet'
+                  : '🔒 In Escrow Hold (Pending Review)'}
               </span>
             </div>
 
@@ -552,6 +582,12 @@ export default function PayoutInspectionModal({
                 <Send className="h-4 w-4 text-emerald-600" />
                 <span>Execute Disbursement via Financial Ledger</span>
               </h5>
+              {errorMsg && (
+                <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-rose-500" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
               <p className="text-xs text-emerald-800/90 dark:text-emerald-200">
                 Enter the external transaction reference from your bKash/Nagad Merchant portal or Bank transfer receipt. This will create an immutable cleared outflow entry in the Financial Ledger.
               </p>

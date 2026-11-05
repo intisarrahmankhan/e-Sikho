@@ -23,7 +23,9 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import {
   loginWithGoogle,
+  signUpWithPhone,
   signUpWithPhoneOtp,
+  loginWithPhone,
   loginWithPhoneOtp,
 } from '@/actions/auth';
 import { requestSignupOtp, verifyPasswordAndSendLoginOtp } from '@/actions/otp';
@@ -128,6 +130,53 @@ function LoginForm() {
     }
   };
 
+  // SIGN UP: Direct / Fast Submit
+  const handleDirectSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    const cleanPhone = phone.replace(/\D/g, '').trim();
+    if (!name.trim()) {
+      setError(t('auth.nameRequired', 'অনুগ্রহ করে আপনার পুরো নাম লিখুন।'));
+      return;
+    }
+    if (!cleanPhone || cleanPhone.length < 11) {
+      setError(t('auth.phoneRequired', 'অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)।'));
+      return;
+    }
+    if (password && password.length < 6) {
+      setError(t('auth.passwordLength', 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।'));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await signUpWithPhone({
+        name: name.trim(),
+        phone: cleanPhone,
+        password,
+        role,
+        callbackUrl,
+      });
+
+      if (res && !res.success) {
+        return handleSendSignupOtp();
+      } else {
+        setSuccess(language === 'en' ? 'Sign up successful! Logging in...' : 'সাইন আপ সফল হয়েছে! লগইন করা হচ্ছে...');
+        if (res?.redirectTo) {
+          window.location.href = res.redirectTo;
+        }
+      }
+    } catch (err: any) {
+      if (err?.message !== 'NEXT_REDIRECT' && !err?.digest?.startsWith('NEXT_REDIRECT')) {
+        return handleSendSignupOtp();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ──────────────────────────────────────────────
   // SIGN UP: Step 1 (Send OTP)
   // ──────────────────────────────────────────────
@@ -156,8 +205,16 @@ function LoginForm() {
       if (!res.success) {
         setError(res.error || (language === 'en' ? 'Failed to send OTP.' : 'ওটিপি পাঠাতে ব্যর্থ হয়েছে।'));
       } else {
-        setSuccess(t('auth.otpSentSuccess', 'ভেরিফিকেশন কোড পাঠানো হয়েছে!'));
+        const msg = res.devCode
+          ? (language === 'en'
+              ? `Verification code sent! Demo OTP: ${res.devCode}`
+              : `ভেরিফিকেশন কোড পাঠানো হয়েছে! ডেমো কোড: ${res.devCode}`)
+          : t('auth.otpSentSuccess', 'ভেরিফিকেশন কোড পাঠানো হয়েছে!');
+        setSuccess(msg);
         setTargetPhone(cleanPhone);
+        if (res.devCode) {
+          setOtp(res.devCode);
+        }
         setSignupStep('otp');
         setResendCountdown(60);
       }
@@ -231,6 +288,22 @@ function LoginForm() {
 
     setIsLoading(true);
     try {
+      const directRes = await loginWithPhone({
+        phone: cleanIdentifier,
+        password,
+        callbackUrl,
+      });
+
+      if (directRes && directRes.success) {
+        setSuccess(language === 'en' ? 'Login successful!' : 'লগইন সফল হয়েছে!');
+        if (directRes?.redirectTo) {
+          window.location.href = directRes.redirectTo;
+        }
+        return;
+      }
+    } catch {}
+
+    try {
       // 1. Verify password & send OTP
       const res = await verifyPasswordAndSendLoginOtp({
         identifier: cleanIdentifier,
@@ -240,8 +313,18 @@ function LoginForm() {
       if (!res.success) {
         setError(res.error || (language === 'en' ? 'Login failed.' : 'লগইন ব্যর্থ হয়েছে।'));
       } else {
-        setSuccess(language === 'en' ? 'Password verified! An OTP has been sent to your phone.' : 'পাসওয়ার্ড যাচাই হয়েছে! আপনার মোবাইল নম্বরে ওটিপি পাঠানো হয়েছে।');
+        const msg = res.devCode
+          ? (language === 'en'
+              ? `Password verified! Demo OTP: ${res.devCode}`
+              : `পাসওয়ার্ড যাচাই হয়েছে! ডেমো ওটিপি কোড: ${res.devCode}`)
+          : (language === 'en'
+              ? 'Password verified! An OTP has been sent to your phone.'
+              : 'পাসওয়ার্ড যাচাই হয়েছে! আপনার মোবাইল নম্বরে ওটিপি পাঠানো হয়েছে।');
+        setSuccess(msg);
         setTargetPhone(res.phone || cleanIdentifier);
+        if (res.devCode) {
+          setOtp(res.devCode);
+        }
         setLoginStep('otp');
         setResendCountdown(60);
       }
@@ -429,7 +512,7 @@ function LoginForm() {
         {activeTab === 'signup' && (
           <>
             {signupStep === 'form' ? (
-              <form onSubmit={handleSendSignupOtp} className="space-y-4">
+              <form onSubmit={handleDirectSignUp} className="space-y-4">
                 {/* Account Type / Role */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">

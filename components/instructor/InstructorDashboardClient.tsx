@@ -8,7 +8,8 @@ import {
   PlusCircle, BarChart2, ArrowUpRight, ArrowDownRight, Layers,
   Award, Zap, Target, DollarSign, Eye, Activity, UserMinus, Settings,
   GraduationCap, PlayCircle, Search, Filter, Sparkles, SlidersHorizontal,
-  Rocket, ExternalLink, Github, AlertTriangle, Check
+  Rocket, ExternalLink, Github, AlertTriangle, Check,
+  ChevronDown, ChevronRight, FolderTree, Video, FileText, HelpCircle, FolderGit2
 } from 'lucide-react';
 import { BarChart, DonutChart, ProgressBar } from '@/components/instructor/Charts';
 import InstructorPayout from '@/components/instructor/InstructorPayout';
@@ -27,6 +28,23 @@ export interface EnrolledCourseItem extends CourseProps {
   enrolledAt?: string;
 }
 
+export interface CourseLectureItem {
+  id: string;
+  title: string;
+  type?: string;
+  duration?: string;
+  isFree?: boolean;
+  order?: number;
+  videoUrl?: string;
+}
+
+export interface CourseModuleItem {
+  id: string;
+  title: string;
+  order?: number;
+  lessons: CourseLectureItem[];
+}
+
 export interface CreatedCourseItem {
   id: string;
   _id?: string;
@@ -41,6 +59,8 @@ export interface CreatedCourseItem {
   createdAt: string | Date;
   category: string;
   level: string;
+  modules?: CourseModuleItem[];
+  totalLecturesCount?: number;
 }
 
 interface InstructorDashboardClientProps {
@@ -98,6 +118,31 @@ export function InstructorDashboardClient({
         ? 'projects'
         : 'teaching'
   );
+
+  // Expandable course child branch state (defaults to expanding the active course)
+  const [expandedCourseIds, setExpandedCourseIds] = useState<Set<string>>(
+    new Set(courses.length > 0 ? [courses[0].id] : [])
+  );
+
+  const toggleCourseExpanded = (courseId: string) => {
+    setExpandedCourseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseId)) {
+        next.delete(courseId);
+      } else {
+        next.add(courseId);
+      }
+      return next;
+    });
+  };
+
+  const expandAllCourses = () => {
+    setExpandedCourseIds(new Set(courses.map((c) => c.id)));
+  };
+
+  const collapseAllCourses = () => {
+    setExpandedCourseIds(new Set());
+  };
 
   useEffect(() => {
     if (urlTab === 'enrolled') {
@@ -689,7 +734,7 @@ export function InstructorDashboardClient({
 
           {/* ── Engagement & Drop-off Row ── */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="border-gray-200/80 p-6 shadow-sm">
+            <Card id="courses" className="border-gray-200/80 p-6 shadow-sm scroll-mt-24">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <UserMinus className="h-5 w-5 text-red-500" />
@@ -824,9 +869,25 @@ export function InstructorDashboardClient({
                   {language === 'en' ? 'All My Courses' : 'সকল তৈরিকৃত কোর্স'}
                 </h2>
               </div>
-              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">
-                {courses.length} {language === 'en' ? 'total' : 'টি মোট'}
-              </span>
+              <div className="flex items-center gap-2">
+                {courses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={expandedCourseIds.size === courses.length ? collapseAllCourses : expandAllCourses}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1.5"
+                  >
+                    <FolderTree className="h-3.5 w-3.5" />
+                    <span>
+                      {expandedCourseIds.size === courses.length
+                        ? (language === 'en' ? 'Collapse All' : 'সব সংকুচিত করুন')
+                        : (language === 'en' ? 'Expand All Lectures' : 'সকল লেকচার শাখা দেখান')}
+                    </span>
+                  </button>
+                )}
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-500">
+                  {courses.length} {language === 'en' ? 'total' : 'টি মোট'}
+                </span>
+              </div>
             </div>
 
             {courses.length === 0 ? (
@@ -875,68 +936,204 @@ export function InstructorDashboardClient({
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {courses.map((course) => (
-                      <tr key={course.id} className="hover:bg-gray-50/60 transition-colors">
-                        <td className="py-3.5 pr-4">
-                          <p className="text-sm font-semibold text-gray-800 truncate max-w-[260px]">{course.title}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{course.category} · {course.level}</p>
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <span className="text-sm font-bold text-gray-700">{(course.studentsEnrolled ?? 0).toLocaleString()}</span>
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <span className="text-sm font-medium text-red-600">
-                            <span title={language === 'en' ? 'Course drop-off data is not available' : 'কোর্সের ড্রপ-অফের তথ্য নেই'}>—</span>
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-center">
-                          {(course.rating ?? 0) > 0 ? (
-                            <div className="inline-flex items-center gap-1">
-                              <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                              <span className="text-sm font-semibold text-gray-700">{(course.rating ?? 0).toFixed(1)}</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-300">—</span>
+                  <tbody className="divide-y divide-gray-100">
+                    {courses.map((course) => {
+                      const isExpanded = expandedCourseIds.has(course.id);
+                      return (
+                        <React.Fragment key={course.id}>
+                          <tr className={`hover:bg-gray-50/70 transition-colors ${isExpanded ? 'bg-indigo-50/20' : ''}`}>
+                            <td className="py-3.5 pr-4">
+                              <div className="flex items-start gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCourseExpanded(course.id)}
+                                  className="mt-0.5 p-1 rounded-lg hover:bg-indigo-100 text-gray-400 hover:text-indigo-600 transition shrink-0"
+                                  title={isExpanded ? (language === 'en' ? 'Hide lecture branch' : 'লেকচার শাখা লুকান') : (language === 'en' ? 'View curriculum & lecture branch' : 'লেকচার ও কারিকুলাম শাখা দেখুন')}
+                                  aria-expanded={isExpanded}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4 text-indigo-600" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                  )}
+                                </button>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-gray-800 truncate max-w-[240px]">{course.title}</p>
+                                    {(course.totalLecturesCount ?? 0) > 0 && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                                        {course.totalLecturesCount} {language === 'en' ? 'Lectures' : 'টি লেকচার'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-400 mt-0.5">{course.category} · {course.level}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 text-center">
+                              <span className="text-sm font-bold text-gray-700">{(course.studentsEnrolled ?? 0).toLocaleString()}</span>
+                            </td>
+                            <td className="py-3.5 text-center">
+                              <span className="text-sm font-medium text-red-600">
+                                <span title={language === 'en' ? 'Course drop-off data is not available' : 'কোর্সের ড্রপ-অফের তথ্য নেই'}>—</span>
+                              </span>
+                            </td>
+                            <td className="py-3.5 text-center">
+                              {(course.rating ?? 0) > 0 ? (
+                                <div className="inline-flex items-center gap-1">
+                                  <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                                  <span className="text-sm font-semibold text-gray-700">{(course.rating ?? 0).toFixed(1)}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-300">—</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 text-center">
+                              {course.price === 0 ? (
+                                <Badge variant="secondary" className="text-xs font-semibold text-emerald-700 bg-emerald-50">
+                                  {language === 'en' ? 'Free' : 'ফ্রি'}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm font-bold text-violet-700">৳{(course.earnedRevenue ?? 0).toLocaleString()}</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 text-center">
+                              <Badge variant="outline" className={`gap-1.5 text-[10px] font-semibold ${statusBadgeClass(course.status)}`}>
+                                {statusIcon(course.status)}
+                                {statusLabel(course.status, language)}
+                              </Badge>
+                            </td>
+                            <td className="py-3.5 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Link
+                                  href={`/instructor/courses/${course.id}/lectures`}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition"
+                                  title={language === 'en' ? 'Manage Curriculum & Lectures' : 'কারিকুলাম ও লেকচার সাজান'}
+                                >
+                                  <Layers className="h-3.5 w-3.5" />
+                                  <span>{language === 'en' ? 'Curriculum' : 'কারিকুলাম'}</span>
+                                </Link>
+                                <Link
+                                  href={`/courses/${course.id}`}
+                                  target="_blank"
+                                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition"
+                                  title={language === 'en' ? 'Preview Course' : 'কোর্স প্রিভিউ দেখুন'}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* ── Child Branch: Course Modules & Lectures ── */}
+                          {isExpanded && (
+                            <tr className="bg-slate-50/70 border-b border-indigo-100/60">
+                              <td colSpan={7} className="py-3 px-4 pl-8 sm:pl-12">
+                                <div className="border-l-2 border-indigo-400/80 pl-4 py-1.5 space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FolderTree className="h-4 w-4 text-indigo-600" />
+                                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                                        {language === 'en' ? 'Course Curriculum & Lectures Branch' : 'কোর্স কারিকুলাম ও লেকচার শাখা'}
+                                      </span>
+                                    </div>
+                                    <Link
+                                      href={`/instructor/courses/${course.id}/lectures`}
+                                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                                    >
+                                      <PlusCircle className="h-3.5 w-3.5" />
+                                      {language === 'en' ? '+ Add/Manage Lectures' : '+ নতুন লেকচার যোগ / সাজান'}
+                                    </Link>
+                                  </div>
+
+                                  {course.modules && course.modules.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {course.modules.map((mod, modIdx) => (
+                                        <div key={mod.id || modIdx} className="bg-white rounded-lg border border-slate-200/90 p-3 shadow-xs">
+                                          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                                            <div className="flex items-center gap-2">
+                                              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-50 text-[11px] font-bold text-indigo-700">
+                                                {modIdx + 1}
+                                              </span>
+                                              <span className="text-xs font-bold text-gray-800">
+                                                {mod.title}
+                                              </span>
+                                              <span className="text-[11px] text-gray-400">
+                                                ({mod.lessons?.length || 0} {language === 'en' ? 'lectures' : 'টি লেকচার'})
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          {mod.lessons && mod.lessons.length > 0 ? (
+                                            <div className="space-y-1.5 pl-2">
+                                              {mod.lessons.map((lesson, lIdx) => {
+                                                const isLast = lIdx === mod.lessons.length - 1;
+                                                return (
+                                                  <div key={lesson.id || lIdx} className="flex items-center justify-between text-xs py-1 px-2 rounded-md hover:bg-slate-50 transition">
+                                                    <div className="flex items-center gap-2 text-gray-700 min-w-0">
+                                                      <span className="text-slate-300 font-mono select-none">{isLast ? '└─' : '├─'}</span>
+                                                      {lesson.type === 'VIDEO' ? (
+                                                        <Video className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                                      ) : lesson.type === 'QUIZ' || lesson.type === 'EXAM' ? (
+                                                        <HelpCircle className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                                                      ) : lesson.type === 'PROJECT' || lesson.type === 'ASSIGNMENT' ? (
+                                                        <FolderGit2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                                      ) : (
+                                                        <FileText className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                      )}
+                                                      <span className="truncate max-w-[320px] font-medium text-slate-800">
+                                                        {lesson.title}
+                                                      </span>
+                                                      {lesson.isFree && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                          {language === 'en' ? 'Free Preview' : 'ফ্রি প্রিভিউ'}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 shrink-0 text-slate-400">
+                                                      {lesson.duration && (
+                                                        <span className="text-[11px] font-mono">{lesson.duration}</span>
+                                                      )}
+                                                      <Link
+                                                        href={`/instructor/courses/${course.id}/lectures`}
+                                                        className="text-[11px] text-indigo-600 hover:text-indigo-800 hover:underline"
+                                                      >
+                                                        {language === 'en' ? 'Edit' : 'সম্পাদনা'}
+                                                      </Link>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          ) : (
+                                            <p className="text-xs text-slate-400 pl-4 py-1 italic">
+                                              {language === 'en' ? 'No lectures inside this module yet.' : 'এই মডিউলে এখনও কোনো লেকচার যোগ করা হয়নি।'}
+                                            </p>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="bg-white rounded-lg border border-dashed border-slate-300 p-4 text-center">
+                                      <p className="text-xs text-slate-500 mb-2">
+                                        {language === 'en' ? 'No modules or lectures created yet for this course.' : 'এই কোর্সে এখনও কোনো মডিউল বা লেকচার যোগ করা হয়নি।'}
+                                      </p>
+                                      <Link
+                                        href={`/instructor/courses/${course.id}/lectures`}
+                                        className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition"
+                                      >
+                                        <PlusCircle className="h-3.5 w-3.5" />
+                                        {language === 'en' ? 'Create Modules & Lectures' : 'মডিউল ও লেকচার তৈরি করুন'}
+                                      </Link>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="py-3.5 text-center">
-                          {course.price === 0 ? (
-                            <Badge variant="secondary" className="text-xs font-semibold text-emerald-700 bg-emerald-50">
-                              {language === 'en' ? 'Free' : 'ফ্রি'}
-                            </Badge>
-                          ) : (
-                            <span className="text-sm font-bold text-violet-700">৳{(course.earnedRevenue ?? 0).toLocaleString()}</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <Badge variant="outline" className={`gap-1.5 text-[10px] font-semibold ${statusBadgeClass(course.status)}`}>
-                            {statusIcon(course.status)}
-                            {statusLabel(course.status, language)}
-                          </Badge>
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Link
-                              href={`/instructor/courses/${course.id}/lectures`}
-                              className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition"
-                              title={language === 'en' ? 'Manage Curriculum & Lectures' : 'কারিকুলাম ও লেকচার সাজান'}
-                            >
-                              <Layers className="h-3.5 w-3.5" />
-                              <span>{language === 'en' ? 'Curriculum' : 'কারিকুলাম'}</span>
-                            </Link>
-                            <Link
-                              href={`/courses/${course.id}`}
-                              target="_blank"
-                              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition"
-                              title={language === 'en' ? 'Preview Course' : 'কোর্স প্রিভিউ দেখুন'}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -17,7 +17,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="bn" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-sans">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Hind+Siliguri:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-full flex flex-col font-sans tracking-[-0.01em] bg-slate-50 text-slate-900 selection:bg-primary-100 selection:text-primary-900">
         <LanguageProvider>
           <AuthProvider>
             <AppShell>{children}</AppShell>

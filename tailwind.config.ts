@@ -9,7 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)", "Open Sans", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "Inter", "Hind Siliguri", "Open Sans", "system-ui", "sans-serif"],
+        bengali: ["var(--font-bengali)", "Hind Siliguri", "system-ui", "sans-serif"],
       },
       colors: {
         primary: {
@@ -23,14 +24,16 @@ const config: Config = {
           700: "#1d4ed8",
           800: "#1e40af",
           900: "#1e3a8a",
+          950: "#172554",
         },
       },
       borderRadius: {
         DEFAULT: "0.5rem",
       },
       boxShadow: {
+        xs: "0 1px 2px 0 rgb(0 0 0 / 0.04)",
         card: "0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
-        "card-hover": "0 4px 12px 0 rgb(0 0 0 / 0.08)",
+        "card-hover": "0 6px 16px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.04)",
       },
     },
   },

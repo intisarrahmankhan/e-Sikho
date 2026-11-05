@@ -15,7 +15,7 @@ import Module from '@/models/Module';
 import Lesson from '@/models/Lesson';
 import AuditLog from '@/models/AuditLog';
 import { COURSES_DATA, getCourseById } from '@/lib/courses-data';
-import { hashPassword, normalizePhone } from '@/lib/auth-helpers';
+import { hashPassword, normalizePhone, verifyPassword, isValidBDPhone } from '@/lib/auth-helpers';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 
@@ -1612,4 +1612,146 @@ export async function getModerationTicketsAction(filters?: {
  */
 export async function seedDemoModerationReportsAction() {
   return { success: false, error: 'Sample data creation has been removed.', message: undefined };
+}
+
+
+/**
+ * Fetches current authenticated admin / superadmin profile
+ */
+export async function getAdminProfileAction() {
+  try {
+    const adminId = await checkAdminOrSuperadmin();
+    await dbConnect();
+
+    const user = (await User.findById(adminId).select('-password').lean()) as any;
+    if (!user) {
+      return { success: false, error: 'অ্যাডমিন অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
+    }
+
+    return {
+      success: true,
+      profile: {
+        id: user._id.toString(),
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        role: user.role || 'ADMIN',
+        status: user.status || 'APPROVED',
+        image: user.image || '',
+        headline: user.headline || '',
+        bio: user.bio || '',
+        organization: user.organization || 'e-Sikho Administration',
+        createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+      },
+    };
+  } catch (err: any) {
+    console.error('Failed to get admin profile:', err);
+    return { success: false, error: err?.message || 'অ্যাডমিন প্রোফাইল লোড করা যায়নি।' };
+  }
+}
+
+/**
+ * Updates administrator personal & organizational profile
+ */
+export async function updateAdminProfileAction(data: {
+  name?: string;
+  phone?: string;
+  headline?: string;
+  bio?: string;
+  organization?: string;
+}) {
+  try {
+    const adminId = await checkAdminOrSuperadmin();
+    await dbConnect();
+
+    const updateFields: Record<string, any> = {};
+    if (typeof data.name === 'string' && data.name.trim()) {
+      updateFields.name = data.name.trim();
+    }
+    if (typeof data.phone === 'string') {
+      const clean = normalizePhone(data.phone);
+      if (clean && !isValidBDPhone(clean)) {
+        return { success: false, error: 'অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)।' };
+      }
+      updateFields.phone = clean || undefined;
+    }
+    if (typeof data.headline === 'string') {
+      updateFields.headline = data.headline.trim();
+    }
+    if (typeof data.bio === 'string') {
+      updateFields.bio = data.bio.trim();
+    }
+    if (typeof data.organization === 'string') {
+      updateFields.organization = data.organization.trim();
+    }
+
+    const updated = await User.findByIdAndUpdate(adminId, { $set: updateFields }, { new: true }).select('-password');
+    if (!updated) {
+      return { success: false, error: 'ইউজার পাওয়া যায়নি।' };
+    }
+
+    try {
+      revalidatePath('/admin/settings');
+      revalidatePath('/admin');
+    } catch {}
+
+    return {
+      success: true,
+      message: 'অ্যাডমিন প্রোফাইল সফলভাবে আপডেট করা হয়েছে।',
+      profile: {
+        id: updated._id.toString(),
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone || '',
+        role: updated.role,
+        status: updated.status,
+        headline: updated.headline || '',
+        bio: updated.bio || '',
+        organization: updated.organization || '',
+      },
+    };
+  } catch (err: any) {
+    console.error('Failed to update admin profile:', err);
+    return { success: false, error: err?.message || 'প্রোফাইল আপডেট করতে সমস্যা হয়েছে।' };
+  }
+}
+
+/**
+ * Securely updates admin account password
+ */
+export async function updateAdminPasswordAction(data: {
+  currentPassword?: string;
+  newPassword: string;
+}) {
+  try {
+    const adminId = await checkAdminOrSuperadmin();
+    await dbConnect();
+
+    if (!data.newPassword || data.newPassword.length < 6) {
+      return { success: false, error: 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' };
+    }
+
+    const user = await User.findById(adminId);
+    if (!user) {
+      return { success: false, error: 'ইউজার পাওয়া যায়নি।' };
+    }
+
+    if (user.password) {
+      if (!data.currentPassword) {
+        return { success: false, error: 'অনুগ্রহ করে আপনার বর্তমান পাসওয়ার্ড দিন।' };
+      }
+      const isMatch = verifyPassword(data.currentPassword, user.password);
+      if (!isMatch) {
+        return { success: false, error: 'বর্তমান পাসওয়ার্ডটি সঠিক নয়।' };
+      }
+    }
+
+    user.password = hashPassword(data.newPassword);
+    await user.save();
+
+    return { success: true, message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।' };
+  } catch (err: any) {
+    console.error('Failed to update admin password:', err);
+    return { success: false, error: err?.message || 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।' };
+  }
 }

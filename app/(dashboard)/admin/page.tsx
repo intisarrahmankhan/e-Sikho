@@ -96,8 +96,18 @@ export default async function AdminDashboardPage() {
         }
       }
     ]);
-    if (commissionAgg && commissionAgg[0]) {
+    if (commissionAgg && commissionAgg[0] && commissionAgg[0].totalRevenue > 0) {
       finStats = commissionAgg[0];
+    } else {
+      const coursesForRev = await Course.find({}).select('price studentsEnrolled').lean();
+      const calculatedTotal = coursesForRev.reduce((sum: number, c: any) => sum + ((c.price || 0) * (c.studentsEnrolled || 0)), 0);
+      if (calculatedTotal > 0) {
+        finStats = {
+          totalRevenue: calculatedTotal,
+          platformCommission: Math.round(calculatedTotal * 0.2),
+          instructorEarnings: Math.round(calculatedTotal * 0.8),
+        };
+      }
     }
 
     const rawPayouts = await PayoutRequest.find().sort({ createdAt: -1 }).lean();
@@ -152,7 +162,7 @@ export default async function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-8 pb-16 max-w-7xl mx-auto">
+    <div className="space-y-8 pb-16 w-full mx-auto">
       {dataUnavailable && (
         <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           Some dashboard data could not be loaded. Refresh the page before using these figures or approval queues.
@@ -221,6 +231,13 @@ export default async function AdminDashboardPage() {
                   <span>Audit Trail</span>
                 </a>
               )}
+              <Link
+                href="/admin/settings"
+                className="flex items-center gap-1.5 rounded-xl bg-slate-700/60 border border-slate-600/60 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                <span>Admin Settings</span>
+              </Link>
             </div>
             {totalAlerts > 0 && (
               <div className="flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-500/30 px-4 py-2 text-sm font-semibold text-amber-300">

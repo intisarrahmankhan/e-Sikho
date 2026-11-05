@@ -50,13 +50,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const isWideDashboard = pathname?.startsWith('/admin') || pathname?.startsWith('/instructor');
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <Suspense fallback={null}>
         <NavigationProgressBar />
       </Suspense>
       <Navbar />
-      <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+      <main
+        className={`flex-1 p-3 sm:p-5 lg:p-6 w-full ${
+          isWideDashboard ? 'max-w-[1600px] mx-auto' : 'max-w-7xl mx-auto'
+        }`}
+      >
         {children}
       </main>
     </div>

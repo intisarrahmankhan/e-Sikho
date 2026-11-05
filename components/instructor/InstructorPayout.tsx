@@ -57,13 +57,30 @@ export default function InstructorPayout({
   const [bankAccountName, setBankAccountName] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const [availableBalance, setAvailableBalance] = useState(initialAvailable);
-  const [totalEarnings, setTotalEarnings] = useState(initialEarnings);
+  const [availableBalance, setAvailableBalance] = useState(initialAvailable || 0);
+  const [totalEarnings, setTotalEarnings] = useState(initialEarnings || 0);
   const [requests, setRequests] = useState<PayoutHistoryItem[]>(initialRequests);
 
-  // Compute pending balance in escrow hold
+  React.useEffect(() => {
+    if (typeof initialAvailable === 'number') {
+      setAvailableBalance(initialAvailable);
+    }
+  }, [initialAvailable]);
+
+  React.useEffect(() => {
+    if (typeof initialEarnings === 'number') {
+      setTotalEarnings(initialEarnings);
+    }
+  }, [initialEarnings]);
+
+  // Compute pending balance in escrow hold (both pending review and approved awaiting disbursal)
   const pendingAmount = requests
-    .filter((r) => r.status === 'PENDING' || r.status === 'REQUESTED')
+    .filter((r) => ['PENDING', 'REQUESTED', 'APPROVED'].includes((r.status || '').toUpperCase()))
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+
+  // Compute successfully disbursed funds
+  const disbursedAmount = requests
+    .filter((r) => (r.status || '').toUpperCase() === 'DISBURSED')
     .reduce((sum, r) => sum + (r.amount || 0), 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,28 +122,32 @@ export default function InstructorPayout({
     try {
       const res = await requestPayout(userId, reqAmount, provider, number.trim(), bankDetails);
       if (!res.success) {
-        setMessage({ type: 'error', text: res.error });
+        setMessage({ type: 'error', text: res.error || 'উইথড্রয়াল আবেদন ব্যর্থ হয়েছে।' });
         return;
       }
       setMessage({
         type: 'success',
         text: `৳${reqAmount.toLocaleString()} এর উইথড্রয়াল আবেদন সফলভাবে গ্রহণ করা হয়েছে। অ্যাডমিন রিভিউয়ের পর অ্যাকাউন্টে পাঠানো হবে।`,
       });
-      setAvailableBalance(res.availableBalance);
-      setRequests((prev) => [
-        {
-          id: res.payoutRequest.id,
-          amount: reqAmount,
-          mfsProvider: provider,
-          mfsNumber: number.trim(),
-          status: 'PENDING',
-          bankName,
-          bankBranch,
-          bankAccountName,
-          requestedAt: res.payoutRequest.requestedAt,
-        },
-        ...prev,
-      ]);
+      if (typeof res.availableBalance === 'number') {
+        setAvailableBalance(res.availableBalance);
+      }
+      if (res.payoutRequest) {
+        setRequests((prev) => [
+          {
+            id: res.payoutRequest.id,
+            amount: reqAmount,
+            mfsProvider: provider,
+            mfsNumber: number.trim(),
+            status: 'PENDING',
+            bankName,
+            bankBranch,
+            bankAccountName,
+            requestedAt: res.payoutRequest.requestedAt,
+          },
+          ...prev,
+        ]);
+      }
       setAmount('');
     } catch {
       setMessage({ type: 'error', text: 'আবেদনের অবস্থা নিশ্চিত করা যায়নি। আবার চেষ্টা করার আগে পেজ রিফ্রেশ করে ইতিহাস দেখুন।' });
@@ -173,12 +194,12 @@ export default function InstructorPayout({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl">
               <p className="text-xs text-indigo-700 dark:text-indigo-400 font-semibold mb-1">
                 উত্তোলনযোগ্য ব্যালেন্স
               </p>
-              <h3 className="text-2xl font-extrabold text-indigo-900 dark:text-indigo-200">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-indigo-900 dark:text-indigo-200">
                 ৳{availableBalance.toLocaleString()}
               </h3>
               <span className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 mt-1 block">
@@ -186,26 +207,38 @@ export default function InstructorPayout({
               </span>
             </div>
 
-            <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 rounded-xl">
+            <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 rounded-xl">
               <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mb-1">
-                প্রক্রিয়াধীন উইথড্রয়াল
+                হোল্ড / প্রক্রিয়াধীন
               </p>
-              <h3 className="text-2xl font-extrabold text-amber-900 dark:text-amber-200">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-amber-900 dark:text-amber-200">
                 ৳{pendingAmount.toLocaleString()}
               </h3>
               <span className="text-[10px] text-amber-600/80 dark:text-amber-400/80 mt-1 block">
-                In-review / Held in escrow
+                Pending & Awaiting transfer
               </span>
             </div>
 
-            <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 rounded-xl">
+            <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 rounded-xl">
               <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold mb-1">
-                সর্বমোট উপার্জিত আয়
+                পরিশোধিত পেআউট
               </p>
-              <h3 className="text-2xl font-extrabold text-emerald-900 dark:text-emerald-200">
-                ৳{totalEarnings.toLocaleString()}
+              <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-900 dark:text-emerald-200">
+                ৳{disbursedAmount.toLocaleString()}
               </h3>
               <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 block">
+                Disbursed to Bank/MFS
+              </span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                সর্বমোট উপার্জিত আয়
+              </p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+                ৳{totalEarnings.toLocaleString()}
+              </h3>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
                 Lifetime net earnings
               </span>
             </div>
@@ -229,9 +262,20 @@ export default function InstructorPayout({
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-600 dark:text-slate-400 mb-1 block font-medium">
-                  পরিমাণ (৳ Amount)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-gray-600 dark:text-slate-400 font-medium">
+                    পরিমাণ (৳ Amount)
+                  </label>
+                  {availableBalance > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAmount(String(availableBalance))}
+                      className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      সর্বোচ্চ (Max: ৳{availableBalance.toLocaleString()})
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">৳</span>
                   <input
@@ -241,7 +285,7 @@ export default function InstructorPayout({
                     max={availableBalance}
                     min={1}
                     step="0.01"
-                    placeholder="৫০০"
+                    placeholder={availableBalance > 0 ? String(availableBalance) : '৫০০'}
                     className="w-full text-sm pl-7 pr-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                     required
                   />
@@ -306,8 +350,8 @@ export default function InstructorPayout({
             )}
 
             {availableBalance < 1 && (
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                অন্তত ৳১ উত্তোলনযোগ্য ব্যালেন্স প্রয়োজন। A withdrawable balance of at least ৳1 is required.
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                অন্তত ৳১ উত্তোলনযোগ্য ব্যালেন্স প্রয়োজন। আপনার বর্তমান ব্যালেন্স ৳{availableBalance.toLocaleString()}।
               </p>
             )}
             <button
@@ -315,7 +359,7 @@ export default function InstructorPayout({
               disabled={loading || availableBalance < 1}
               className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-xs sm:text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition shadow-sm mt-1"
             >
-              {loading ? 'প্রক্রিয়াধীন...' : 'উইথড্রয়াল আবেদন জমা দিন'}
+              {loading ? 'প্রক্রিয়াধীন...' : `উইথড্রয়াল আবেদন জমা দিন ${amount ? `(৳${Number(amount).toLocaleString()})` : `(ব্যালেন্স: ৳${availableBalance.toLocaleString()})`}`}
             </button>
 
             {message && (
@@ -413,9 +457,9 @@ export default function InstructorPayout({
                               : 'bg-rose-100 text-rose-800 border-rose-300'
                           }`}
                         >
-                          {isPending && 'প্রক্রিয়াধীন (Pending)'}
-                          {isApproved && 'অনুমোদিত (Approved)'}
-                          {isDisbursed && 'পরিশোধিত (Disbursed)'}
+                          {isPending && 'প্রক্রিয়াধীন (Pending Review)'}
+                          {isApproved && 'অনুমোদিত — টাকা পাঠানো বাকি (Awaiting Transfer)'}
+                          {isDisbursed && 'পরিশোধ সম্পন্ন (Disbursed)'}
                           {isRejected && 'বাতিল / প্রত্যাখ্যাত'}
                         </Badge>
                       </td>

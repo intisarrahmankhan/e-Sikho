@@ -57,21 +57,93 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
       redirect('/student');
     }
 
-    const rawCourses = await Course.find({ createdById: userId })
+    const userObjectId = isValidMongoObjectId(userId) ? new mongoose.Types.ObjectId(userId) : null;
+    const rawCourses = await Course.find({
+      $or: [
+        { createdById: userId },
+        ...(userObjectId ? [{ createdById: userObjectId }, { instructorUserIds: userObjectId }] : []),
+        ...(effectiveRole === 'ADMIN' || effectiveRole === 'SUPERADMIN' ? [{}] : [])
+      ]
+    })
       .sort({ createdAt: -1 })
       .select('_id title status approvalStatus price studentsEnrolled rating totalRatings createdAt category level')
       .lean();
 
-    const earningsByCourse = isValidMongoObjectId(userId) ? await PlatformCommission.aggregate([
-      { $match: { instructorUserId: new mongoose.Types.ObjectId(userId) } },
+    const { default: Module } = await import('@/models/Module');
+    const { default: Lesson } = await import('@/models/Lesson');
+
+    const courseIds = (rawCourses || []).map((c: any) => c._id);
+    const rawModules = await Module.find({ courseId: { $in: courseIds } })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
+    const moduleIds = (rawModules || []).map((m: any) => m._id);
+    const rawLessons = await Lesson.find({
+      $or: [
+        { courseId: { $in: courseIds } },
+        { moduleId: { $in: moduleIds } }
+      ]
+    })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
+    const lessonsByModule = new Map<string, any[]>();
+    (rawLessons || []).forEach((l: any) => {
+      const mId = l.moduleId ? String(l.moduleId) : '';
+      if (mId) {
+        if (!lessonsByModule.has(mId)) lessonsByModule.set(mId, []);
+        lessonsByModule.get(mId)!.push({
+          id: l._id.toString(),
+          title: l.title,
+          type: l.type || 'VIDEO',
+          duration: l.duration || '15:00',
+          isFree: Boolean(l.isFree),
+          order: l.order || 0,
+          videoUrl: l.videoUrl || '',
+        });
+      }
+    });
+
+    const modulesByCourse = new Map<string, any[]>();
+    (rawModules || []).forEach((m: any) => {
+      const cId = m.courseId ? String(m.courseId) : '';
+      if (cId) {
+        if (!modulesByCourse.has(cId)) modulesByCourse.set(cId, []);
+        const mId = m._id.toString();
+        modulesByCourse.get(cId)!.push({
+          id: mId,
+          title: m.title,
+          order: m.order || 0,
+          lessons: lessonsByModule.get(mId) || [],
+        });
+      }
+    });
+
+    const earningsByCourse = userObjectId ? await PlatformCommission.aggregate([
+      { $match: { instructorUserId: userObjectId } },
       ...paidCommissionStages(),
       { $group: { _id: '$courseId', earnedRevenue: { $sum: '$instructorEarnings' } } },
     ]) : [];
     const courseEarnings = new Map(earningsByCourse.map((entry: any) => [String(entry._id), entry.earnedRevenue as number]));
-    totalEarnings = earningsByCourse.reduce((sum: number, entry: any) => sum + entry.earnedRevenue, 0);
-    courses = (rawCourses || []).map((c: any) => ({
-      ...c, id: c._id.toString(), earnedRevenue: courseEarnings.get(String(c._id)) || 0,
-    }));
+    
+    const sanitizedCourses = JSON.parse(JSON.stringify(rawCourses || []));
+    courses = sanitizedCourses.map((c: any) => {
+      const cId = c._id.toString();
+      const courseModules = modulesByCourse.get(cId) || [];
+      const totalLecturesCount = courseModules.reduce((sum: number, m: any) => sum + (m.lessons?.length || 0), 0);
+      const recorded = courseEarnings.get(cId);
+      const calculatedRevenue = (c.price || 0) * (c.studentsEnrolled || 0);
+      const earnedRevenue = typeof recorded === 'number' && recorded > 0 ? recorded : calculatedRevenue;
+      return {
+        ...c,
+        id: cId,
+        _id: cId,
+        earnedRevenue,
+        modules: courseModules,
+        totalLecturesCount,
+      };
+    });
+    totalEarnings = courses.reduce((sum: number, c: any) => sum + (c.earnedRevenue || 0), 0);
 
     const { default: PayoutRequest } = await import('@/models/PayoutRequest');
     const rawPayoutRequests = await PayoutRequest.find({ userId })
@@ -81,6 +153,21 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
       id: r._id.toString(),
       ...r,
     }));
+
+    const withdrawnOrPending = payoutRequests
+      .filter((p: any) => ['PENDING', 'REQUESTED', 'APPROVED', 'DISBURSED', 'COMPLETED'].includes((p.status || '').toUpperCase()))
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+    if (!availableBalance && totalEarnings > 0) {
+      availableBalance = Math.max(0, totalEarnings - withdrawnOrPending);
+      if (isValidMongoObjectId(userId)) {
+        await User.findByIdAndUpdate(userId, {
+          $set: {
+            availableBalance,
+            totalEarnings: Math.max(userDoc?.totalEarnings || 0, totalEarnings)
+          }
+        });
+      }
+    }
   } catch (err: any) {
     if (err?.digest?.startsWith('NEXT_REDIRECT') || err?.message === 'NEXT_REDIRECT') {
       throw err;

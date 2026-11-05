@@ -18,7 +18,7 @@ import {
   Layers,
   Zap,
   Code2,
-  ExternalLink,
+  PlayCircle,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -91,94 +91,160 @@ export function StudentDashboardClient({
 
   const firstName = userName ? userName.split(' ')[0] : language === 'en' ? 'Student' : 'শিক্ষার্থী';
   const hasEnrollments = enrolledCourses.length > 0;
+  const activeCourse = hasEnrollments ? enrolledCourses[0] : null;
 
+  const averageProgress = hasEnrollments
+    ? Math.round(
+        enrolledCourses.reduce((sum, c) => sum + (c.progressPercentage || 0), 0) / enrolledCourses.length
+      )
+    : 0;
+
+  // Uniform, elevated white stat cards with consistent monochrome/primary icon badges
   const statCards = [
     {
       label: language === 'en' ? 'Enrolled Courses' : 'এনরোল করা কোর্স',
       value: enrolledCourses.length,
       icon: BookOpen,
-      bg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      border: 'border-blue-100',
     },
     {
       label: language === 'en' ? 'Ongoing Lessons' : 'চলমান লেসন',
       value: ongoingLessonsCount,
       icon: Play,
-      bg: 'bg-violet-50',
-      iconColor: 'text-violet-600',
-      border: 'border-violet-100',
     },
     {
       label: language === 'en' ? 'Completed Quizzes' : 'সম্পন্ন কুইজ',
       value: completedQuizzesCount,
       icon: CheckCircle2,
-      bg: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-      border: 'border-emerald-100',
     },
     {
       label: language === 'en' ? 'Passed Exam Attempts' : 'উত্তীর্ণ পরীক্ষার প্রচেষ্টা',
       value: passedExamAttemptsCount,
       icon: Award,
-      bg: 'bg-amber-50',
-      iconColor: 'text-amber-600',
-      border: 'border-amber-100',
     },
   ];
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
-      {/* ── Hero Welcome Banner ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white px-7 py-7 shadow-xl border border-slate-800">
-        <div className="pointer-events-none absolute -top-12 -right-12 h-64 w-64 rounded-full bg-indigo-600/10" />
-        <div className="pointer-events-none absolute -bottom-8 left-1/3 h-40 w-40 rounded-full bg-violet-600/10" />
+      {/* ── Airy, Modern Hero Header ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 sm:p-7 shadow-xs">
+        {/* Subtle accent line at top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-600 via-indigo-600 to-primary-500" />
 
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold mb-3">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-300" />
-              <span>{language === 'en' ? 'Student Portal' : 'স্টুডেন্ট পোর্টাল'}</span>
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Left Greeting & CTAs */}
+          <div className="space-y-3 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 border border-primary-100 px-3 py-1 text-xs font-semibold text-primary-700">
+                <Sparkles className="h-3.5 w-3.5 text-primary-600" />
+                <span>{language === 'en' ? 'Student Portal' : 'স্টুডেন্ট পোর্টাল'}</span>
+              </span>
+
+              {streak > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-bold text-rose-600">
+                  <Flame className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
+                  <span>{language === 'en' ? `${streak} Day Streak` : `${streak} দিনের স্ট্রিক`}</span>
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {language === 'en' ? `Welcome, ${firstName}! 👋` : `স্বাগতম, ${firstName}! 👋`}
+
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              {language === 'en' ? `Welcome back, ${firstName}!` : `স্বাগতম, ${firstName}!`}
             </h1>
-            <p className="mt-1.5 text-slate-300 text-sm max-w-md leading-relaxed">
+
+            <p className="text-slate-600 text-sm leading-relaxed">
               {language === 'en'
-                ? 'Continue your courses on your learning dashboard and reach your weekly targets.'
-                : 'আপনার লার্নিং ড্যাশবোর্ডে কোর্সসমূহ চালিয়ে যান এবং সাপ্তাহিক লক্ষ্য পূরণ করুন।'}
+                ? 'Continue your learning journey, maintain your study streak, and advance towards your target goals.'
+                : 'আপনার শেখার যাত্রা অব্যাহত রাখুন, স্ট্রিক ধরে রাখুন এবং নির্ধারিত লক্ষ্য অর্জনে এগিয়ে যান।'}
             </p>
-            <p className="text-xs text-slate-500 mt-2">
-              {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'bn-BD', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
+
+            {/* Resume Learning or Browse Button */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              {activeCourse ? (
+                <Link href={`/courses/${activeCourse.id}`}>
+                  <Button className="gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-xs active:scale-[0.98]">
+                    <PlayCircle className="h-4 w-4" />
+                    <span>
+                      {language === 'en'
+                        ? `Resume: ${activeCourse.titleEn || activeCourse.title}`
+                        : `শেখা চালিয়ে যান: ${activeCourse.title}`}
+                    </span>
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/courses">
+                  <Button className="gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-xs active:scale-[0.98]">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{language === 'en' ? 'Browse Catalog' : 'কোর্সসমূহ দেখুন'}</span>
+                  </Button>
+                </Link>
+              )}
+
+              <Link href="/student/goals">
+                <Button variant="outline" className="text-xs font-semibold py-2.5 px-4 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50">
+                  <Target className="h-3.5 w-3.5 text-primary-600 mr-1.5" />
+                  <span>{language === 'en' ? 'Study Routine' : 'পড়ার রুটিন'}</span>
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          {/* ELO + Streak badges */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <div className="flex items-center gap-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md px-4 py-3 shadow-inner">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
-                <Trophy className="h-5 w-5" />
+          {/* Right: Circular Progress Ring & Stats Widget */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+            {/* Circular Progress Card */}
+            <div className="flex items-center gap-4 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 shadow-2xs min-w-[200px]">
+              <div className="relative h-14 w-14 flex items-center justify-center shrink-0">
+                <svg className="h-14 w-14 -rotate-90 transform" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-200"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-primary-600 transition-all duration-1000 ease-out"
+                    strokeDasharray={`${averageProgress}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span className="absolute text-xs font-black text-slate-900">{averageProgress}%</span>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900">
+                  {language === 'en' ? 'Course Target' : 'কোর্সের অগ্রগতি'}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-0.5">
+                  {language === 'en'
+                    ? `${enrolledCourses.length} active course${enrolledCourses.length === 1 ? '' : 's'}`
+                    : `${enrolledCourses.length}টি সক্রিয় কোর্স`}
+                </div>
+              </div>
+            </div>
+
+            {/* Elo Rating Card */}
+            <div className="flex items-center gap-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
+              <div className="h-11 w-11 rounded-xl bg-primary-100/60 border border-primary-200/50 flex items-center justify-center text-primary-700 shrink-0">
+                <Trophy className="h-5 w-5 text-primary-600" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-slate-300 font-medium">Elo Rating</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                  <span className="text-[11px] text-slate-500 font-medium">Elo Rating</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
                     {language === 'en' ? tier.titleEn : tier.titleBn}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xl font-black text-amber-300 leading-tight">{elo}</span>
+                  <span className="text-xl font-black text-slate-900 leading-tight">{elo}</span>
                   {latestEloChange && (
                     <span
-                      className={`text-[11px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
                         latestEloChange.delta >= 0
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
                       {latestEloChange.delta >= 0 ? (
@@ -194,34 +260,19 @@ export function StudentDashboardClient({
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center gap-2.5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md px-4 py-3">
-              <div className="h-10 w-10 rounded-xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-300">
-                <Flame className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-[11px] text-slate-300 font-medium">
-                  {language === 'en' ? 'Streak' : 'স্ট্রিক'}
-                </div>
-                <div className="text-xl font-extrabold text-rose-300 leading-tight">
-                  {language === 'en' ? `${streak} Days 🔥` : `${streak} দিন 🔥`}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* ── KPI Stat Cards ── */}
+      {/* ── KPI Stat Cards: Uniform, elevated white cards ── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {statCards.map((stat, i) => (
-          <Card key={i} className={`relative overflow-hidden border ${stat.border} p-5 shadow-sm hover:shadow-md transition-shadow`}>
-            <div className={`absolute top-0 right-0 h-20 w-20 rounded-bl-full ${stat.bg} opacity-50`} />
-            <div className={`flex items-center justify-center h-10 w-10 rounded-xl ${stat.bg} border ${stat.border} mb-3`}>
-              <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
+          <Card key={i} className="p-5 border border-slate-200/80 bg-white rounded-xl shadow-xs hover:shadow-md hover:border-primary-200 transition-all">
+            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary-50 text-primary-600 border border-primary-100/60 mb-3">
+              <stat.icon className="h-5 w-5" />
             </div>
-            <div className="text-3xl font-extrabold text-gray-900">{stat.value}</div>
-            <div className={`text-xs font-semibold uppercase tracking-wide mt-0.5 ${stat.iconColor}`}>{stat.label}</div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{stat.value}</div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">{stat.label}</div>
           </Card>
         ))}
       </div>
@@ -238,7 +289,7 @@ export function StudentDashboardClient({
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <div className="h-10 w-10 rounded-xl bg-primary-50 border border-primary-100 flex items-center justify-center text-primary-600">
               <Trophy className="h-5 w-5" />
             </div>
             <div>
@@ -280,25 +331,25 @@ export function StudentDashboardClient({
           </div>
 
           {/* 2. Course Completion Bonus */}
-          <div className="p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100">
-            <div className="flex items-center justify-between text-xs text-indigo-700 mb-1">
+          <div className="p-3.5 rounded-xl bg-primary-50/40 border border-primary-100">
+            <div className="flex items-center justify-between text-xs text-primary-700 mb-1">
               <span className="font-medium">{language === 'en' ? 'Courses Bonus' : 'কোর্স মাস্টার বোনাস'}</span>
-              <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
+              <BookOpen className="h-3.5 w-3.5 text-primary-500" />
             </div>
-            <div className="text-xl font-extrabold text-indigo-900">+{courseBonus}</div>
-            <p className="text-[10px] text-indigo-600 mt-1">
+            <div className="text-xl font-extrabold text-primary-900">+{courseBonus}</div>
+            <p className="text-[10px] text-primary-600 mt-1">
               {completedCoursesCount} {language === 'en' ? 'enrolled tracks (+25/course, max 150)' : 'কোর্স সম্পন্ন (+২৫/কোর্স)'}
             </p>
           </div>
 
           {/* 3. Problems Solved Volume Bonus */}
-          <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
-            <div className="flex items-center justify-between text-xs text-emerald-700 mb-1">
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
               <span className="font-medium">{language === 'en' ? 'Solved Problems Bonus' : 'সমস্যা সমাধান বোনাস'}</span>
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
             </div>
-            <div className="text-xl font-extrabold text-emerald-900">+{problemBonus}</div>
-            <p className="text-[10px] text-emerald-600 mt-1">
+            <div className="text-xl font-extrabold text-slate-900">+{problemBonus}</div>
+            <p className="text-[10px] text-slate-500 mt-1">
               {problemsSolved} {language === 'en' ? 'problems solved (+2/problem, max 100)' : 'সমস্যা সমাধান (+২/সমস্যা)'}
             </p>
           </div>
@@ -428,7 +479,7 @@ export function StudentDashboardClient({
       )}
 
       {/* ── Daily Goal Banner ── */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20">
             <Target className="h-6 w-6 text-white" />
@@ -437,13 +488,13 @@ export function StudentDashboardClient({
             <h4 className="text-sm font-bold">
               {language === 'en' ? 'Your study routine' : 'আপনার পড়ার রুটিন'}
             </h4>
-            <p className="text-xs text-indigo-200 mt-0.5">
+            <p className="text-xs text-indigo-100 mt-0.5">
               {language === 'en' ? 'Plan your next session. Course progress comes from your completed lessons and routine.' : 'পরবর্তী পড়ার সময় পরিকল্পনা করুন। কোর্সের অগ্রগতি আপনার সম্পন্ন লেসন ও রুটিন থেকে দেখানো হয়।'}
             </p>
           </div>
         </div>
         <Link href="/student/goals">
-          <Button size="sm" className="bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shrink-0">
+          <Button size="sm" className="bg-white text-primary-700 hover:bg-primary-50 font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs shrink-0 active:scale-[0.98]">
             {language === 'en' ? 'View Daily Routine →' : 'দৈনিক রুটিন দেখুন →'}
           </Button>
         </Link>
@@ -455,15 +506,15 @@ export function StudentDashboardClient({
         <div className="lg:col-span-2 space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-indigo-600" />
-              <h2 className="text-base font-bold text-gray-900">
+              <BookOpen className="h-5 w-5 text-primary-600" />
+              <h2 className="text-base font-bold text-slate-900">
                 {language === 'en' ? 'My Ongoing Courses' : 'আমার চলমান কোর্সসমূহ'}
               </h2>
-              <Badge variant="outline" className="text-xs font-bold text-indigo-700 bg-indigo-50 border-indigo-200">
+              <Badge variant="outline" className="text-xs font-bold text-primary-700 bg-primary-50 border-primary-200">
                 {language === 'en' ? `${enrolledCourses.length} Active` : `${enrolledCourses.length} সক্রিয়`}
               </Badge>
             </div>
-            <Link href="/courses" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition">
+            <Link href="/courses" className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 transition">
               {language === 'en' ? 'Browse Courses' : 'নতুন কোর্স'} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -487,13 +538,13 @@ export function StudentDashboardClient({
       </div>
 
       {/* ── Become an Instructor / Active Instructor Status ── */}
-      <section className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 p-6 shadow-sm">
+      <section className="rounded-2xl border border-primary-100 bg-gradient-to-br from-primary-50/50 to-slate-50 p-6 shadow-xs">
         <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white shadow-xs">
             <GraduationCap className="h-6 w-6" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-gray-900">
+            <h2 className="text-base font-bold text-slate-900">
               {isInstructor
                 ? language === 'en'
                   ? 'Instructor Studio & Teaching Hub'
@@ -502,7 +553,7 @@ export function StudentDashboardClient({
                 ? 'Become an Instructor'
                 : 'ইন্সট্রাক্টর হোন'}
             </h2>
-            <p className="mt-1 mb-4 text-sm text-gray-600 max-w-xl leading-relaxed">
+            <p className="mt-1 mb-4 text-sm text-slate-600 max-w-xl leading-relaxed">
               {isInstructor
                 ? language === 'en'
                   ? 'Your account is an approved instructor. You can create courses, conduct live classes, and inspect payouts in the Instructor Studio while retaining full access to your learning journey.'
@@ -516,7 +567,7 @@ export function StudentDashboardClient({
                 <Link
                   href="/instructor"
                   id="btn-goto-instructor-studio"
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 text-sm font-semibold shadow-sm transition"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 text-sm font-semibold shadow-xs transition active:scale-[0.98]"
                 >
                   <Layers className="h-4 w-4" />
                   <span>{language === 'en' ? 'Open Instructor Studio' : 'ইন্সট্রাক্টর স্টুডিও খুলুন'}</span>
@@ -524,7 +575,7 @@ export function StudentDashboardClient({
                 </Link>
                 <Link
                   href="/instructor/create-course"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 px-4 py-2.5 text-sm font-semibold shadow-sm transition"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white border border-primary-200 hover:bg-primary-50 text-primary-700 px-4 py-2.5 text-sm font-semibold shadow-xs transition"
                 >
                   <span>{language === 'en' ? 'Create New Course' : 'নতুন কোর্স তৈরি করুন'}</span>
                 </Link>

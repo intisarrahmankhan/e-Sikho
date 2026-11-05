@@ -159,17 +159,17 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
       )}
 
       {/* Header controls: Search, Filters, Add Course, Sync */}
-      <div className="flex flex-col lg:flex-row gap-3 justify-between items-start lg:items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+      <div className="flex flex-col lg:flex-row gap-3 justify-between items-start lg:items-center bg-slate-50/80 p-3 rounded-xl border border-slate-200/80">
         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           {/* Search bar */}
           <div className="relative w-full sm:w-64">
-            <Search className="h-4 w-4 absolute left-3 top-2.5 text-gray-400" />
+            <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Search courses or instructors..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none bg-white"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white placeholder:text-slate-400"
             />
           </div>
 
@@ -177,7 +177,7 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 font-medium"
+            className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium text-slate-700"
           >
             <option value="ALL">All Categories (সব বিষয়)</option>
             <option value="web-dev">Web Development</option>
@@ -191,7 +191,7 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 font-medium"
+            className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium text-slate-700"
           >
             <option value="ALL">All Statuses</option>
             <option value="PUBLISHED">Published (লাইভ)</option>
@@ -209,17 +209,17 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
                 type="button"
                 onClick={handleSyncCatalog}
                 disabled={isSyncing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-xs active:scale-[0.98]"
                 title="Sync default catalog courses into MongoDB"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin text-violet-600' : 'text-gray-500'}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin text-primary-600' : 'text-slate-500'}`} />
                 <span>{isSyncing ? 'Syncing...' : 'Sync Catalog'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center gap-1.5 bg-violet-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold hover:bg-violet-700 transition shadow-sm shrink-0"
+                className="inline-flex items-center gap-1.5 bg-primary-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold hover:bg-primary-700 transition shadow-xs shrink-0 active:scale-[0.98]"
               >
                 <BookPlus className="h-3.5 w-3.5" />
                 <span>Add New Course</span>
@@ -229,33 +229,32 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
         </div>
       </div>
 
-      {/* Courses Table */}
-      <div className="overflow-x-auto relative rounded-xl border border-gray-200 bg-white">
+      {/* Courses Table: Compact, responsive, no forced horizontal scroll */}
+      <div className="overflow-x-auto relative rounded-xl border border-slate-200/80 bg-white shadow-2xs">
         {loading && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10 min-h-[160px]">
-            <span className="flex items-center gap-2 text-violet-600 font-semibold text-xs">
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10 min-h-[160px]">
+            <span className="flex items-center gap-2 text-primary-600 font-semibold text-xs">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading courses...
             </span>
           </div>
         )}
 
-        <table className="w-full text-left text-sm text-gray-600 min-h-[160px]">
-          <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-gray-700 border-b border-gray-200">
+        <table className="w-full text-left text-xs sm:text-sm text-slate-600 min-h-[160px]">
+          <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-700 border-b border-slate-200">
             <tr>
               <th className="px-4 py-3 font-bold">Course</th>
-              <th className="px-4 py-3 font-bold">Category</th>
-              <th className="px-4 py-3 font-bold">Instructor</th>
-              <th className="px-4 py-3 font-bold">Price</th>
-              <th className="px-4 py-3 font-bold">Students</th>
-              <th className="px-4 py-3 font-bold">Status</th>
+              <th className="px-3 py-3 font-bold">Instructor</th>
+              <th className="px-3 py-3 font-bold">Price</th>
+              <th className="px-3 py-3 font-bold">Students</th>
+              <th className="px-3 py-3 font-bold">Status</th>
               <th className="px-4 py-3 text-right font-bold">Course Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-slate-100">
             {filteredCourses.length === 0 && !loading ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-xs text-gray-500">
+                <td colSpan={6} className="text-center py-10 text-xs text-slate-500">
                   No courses found matching your criteria.
                 </td>
               </tr>
@@ -267,73 +266,73 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
 
                 return (
                   <tr key={course.id} className="hover:bg-slate-50/70 transition">
-                    {/* Course Title & Thumbnail */}
+                    {/* Course Title, Thumbnail & Category Badge */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {course.thumbnailUrl ? (
                           <img
                             src={course.thumbnailUrl}
                             alt={course.title}
-                            className="h-10 w-16 rounded-lg object-cover shrink-0 border border-gray-200 shadow-xs"
+                            className="h-10 w-16 rounded-lg object-cover shrink-0 border border-slate-200 shadow-2xs"
                           />
                         ) : (
-                          <div className="h-10 w-16 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 shrink-0 border border-violet-200 font-bold text-xs">
+                          <div className="h-10 w-16 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 shrink-0 border border-primary-200 font-bold text-xs">
                             Course
                           </div>
                         )}
-                        <div>
-                          <div className="font-bold text-gray-900 text-sm leading-tight hover:text-violet-700 transition">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 text-sm leading-snug hover:text-primary-600 transition truncate max-w-[220px] sm:max-w-[320px]" title={course.title}>
                             {course.title}
                           </div>
                           {course.titleEn && (
-                            <div className="text-[11px] text-gray-500 font-normal mt-0.5">
+                            <div className="text-[11px] text-slate-400 font-normal truncate max-w-[220px] sm:max-w-[320px]">
                               {course.titleEn}
                             </div>
                           )}
-                          <div className="text-[10px] text-gray-400 mt-0.5">
-                            Level: <span className="font-semibold text-gray-600">{course.level}</span>
-                            {course.duration && <> · {course.duration}</>}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 shrink-0">
+                              {course.categoryBangla || course.category}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              · {course.level}
+                              {course.duration ? ` · ${course.duration}` : ''}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </td>
 
-                    {/* Category */}
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700">
-                        {course.categoryBangla || course.category}
+                    {/* Instructor */}
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="text-xs font-medium text-slate-800 truncate block max-w-[130px]" title={course.instructorName || 'e-Shikho Faculty'}>
+                        {course.instructorName || 'e-Shikho Faculty'}
                       </span>
                     </td>
 
-                    {/* Instructor */}
-                    <td className="px-4 py-3 text-xs font-semibold text-gray-800">
-                      {course.instructorName || 'e-Shikho Faculty'}
-                    </td>
-
                     {/* Price */}
-                    <td className="px-4 py-3">
-                      <div className="font-extrabold text-sm text-gray-900">
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="font-extrabold text-sm text-slate-900">
                         ৳{course.price.toLocaleString()}
                       </div>
                       {course.originalPrice && course.originalPrice > course.price && (
-                        <div className="text-[10px] text-gray-400 line-through">
+                        <div className="text-[10px] text-slate-400 line-through">
                           ৳{course.originalPrice.toLocaleString()}
                         </div>
                       )}
                     </td>
 
                     {/* Students */}
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700">
-                        <Users className="h-3 w-3 text-gray-400" />
-                        {course.studentsEnrolled || 0}
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700">
+                        <Users className="h-3 w-3 text-slate-400" />
+                        {(course.studentsEnrolled || 0).toLocaleString()}
                       </span>
                     </td>
 
                     {/* Status */}
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] rounded-full font-bold border ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs rounded-full font-bold border ${
                           isPublished
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : isDraft
@@ -348,28 +347,28 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1 sm:gap-1.5">
                         {/* Preview Course Link */}
                         <Link
                           href={`/courses/${course.id}`}
                           target="_blank"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg transition bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
                           title="Preview public course page"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">View</span>
+                          <span className="hidden xl:inline">View</span>
                         </Link>
 
                         {/* Edit Course Button */}
                         {isSuperadmin && (
                           <button
                             onClick={() => setEditingCourse(course)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg transition bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200"
                             title="Edit course details"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Edit</span>
+                            <span className="hidden xl:inline">Edit</span>
                           </button>
                         )}
 
@@ -377,11 +376,11 @@ export default function CourseManagement({ isSuperadmin = true }: CourseManageme
                         {isSuperadmin && (
                           <button
                             onClick={() => setDeletingCourse(course)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-lg transition bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg transition bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
                             title="Delete course permanently"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Remove</span>
+                            <span className="hidden xl:inline">Remove</span>
                           </button>
                         )}
                       </div>

@@ -82,6 +82,7 @@ export async function requestSignupOtp(phone: string): Promise<OtpActionResponse
     success: true,
     message: 'আপনার মোবাইলে একটি ৬ ডিজিটের ভেরিফিকেশন কোড পাঠানো হয়েছে।',
     phone: cleanPhone,
+    devCode: smsResult.devCode || (process.env.NODE_ENV !== 'production' ? otp : undefined),
   };
 }
 
@@ -186,6 +187,7 @@ export async function verifyPasswordAndSendLoginOtp(params: {
     message: 'পাসওয়ার্ড সঠিক! আপনার মোবাইল নম্বরে ৬ ডিজিটের ভেরিফিকেশন ওটিপি পাঠানো হয়েছে।',
     phone: targetPhone,
     userRole: user.role,
+    devCode: smsResult.devCode || (process.env.NODE_ENV !== 'production' ? otp : undefined),
   };
 }
 

@@ -32,6 +32,7 @@ import {
   Eye,
   Layers,
   Rocket,
+  ShieldCheck,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
@@ -1461,6 +1462,12 @@ export default function CourseDetailsPage() {
                           : 'LaTeX সূত্রসহ কুইজ ও অনলাইন মূল্যায়ন'}
                       </span>
                     </div>
+                  </div>
+
+                  {/* 30-Day Money-Back Guarantee */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-2 text-xs font-semibold text-slate-600">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    <span>{language === 'en' ? '30-Day Money-Back Guarantee' : '৩০ দিনের টাকা ফেরত গ্যারান্টি'}</span>
                   </div>
                 </div>
 

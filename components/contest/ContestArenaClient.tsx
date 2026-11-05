@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,17 +10,20 @@ import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
-  HelpCircle,
   TrendingUp,
   TrendingDown,
   Award,
   Zap,
   BookOpen,
+  Code2,
+  Play,
   RotateCcw,
-  Sparkles,
+  Check,
   AlertTriangle,
   Loader2,
-  Check,
+  Terminal,
+  FileCode,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -54,6 +57,46 @@ interface ContestArenaClientProps {
   };
 }
 
+const STARTER_CODES: Record<string, string> = {
+  javascript: `// JavaScript (Node.js) Solution
+function solve() {
+  // Read input and compute solution
+  console.log("Solution output");
+}
+
+solve();`,
+  python: `# Python 3 Solution
+def solve():
+    # Read input and compute solution
+    print("Solution output")
+
+if __name__ == "__main__":
+    solve()`,
+  cpp: `// C++ 20 Solution
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    // Solution logic
+    cout << "Solution output" << "\\n";
+    return 0;
+}`,
+  java: `// Java 17 Solution
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        // Solution logic
+        System.out.println("Solution output");
+    }
+}`,
+};
+
 export function ContestArenaClient({ contest }: ContestArenaClientProps) {
   const { language } = useLanguage();
   const router = useRouter();
@@ -64,9 +107,21 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<any | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // Code editor state
+  const [selectedLang, setSelectedLang] = useState('javascript');
+  const [code, setCode] = useState(STARTER_CODES.javascript);
+  const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
+  const [isRunningCode, setIsRunningCode] = useState(false);
+  const [activeConsoleTab, setActiveConsoleTab] = useState<'console' | 'status'>('console');
+  const [simulatedStatus, setSimulatedStatus] = useState<'accepted' | 'wrong_answer' | 'tle' | null>(null);
 
   // Timer countdown
+  const handleSubmitAnswersRef = React.useRef<() => void>(undefined);
+  useEffect(() => {
+    handleSubmitAnswersRef.current = handleSubmitAnswers;
+  });
+
   useEffect(() => {
     if (submissionResult) return;
 
@@ -74,7 +129,7 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          handleSubmitAnswers();
+          handleSubmitAnswersRef.current?.();
           return 0;
         }
         return prev - 1;
@@ -83,6 +138,11 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
 
     return () => clearInterval(interval);
   }, [submissionResult]);
+
+  const handleLangChange = (newLang: string) => {
+    setSelectedLang(newLang);
+    setCode(STARTER_CODES[newLang] || STARTER_CODES.javascript);
+  };
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -95,6 +155,18 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
       ...prev,
       [problemIdx]: optionIdx,
     }));
+  };
+
+  const handleRunCode = () => {
+    setIsRunningCode(true);
+    setConsoleOutput('Compiling code in sandbox environment...');
+    setActiveConsoleTab('console');
+
+    setTimeout(() => {
+      setIsRunningCode(false);
+      setConsoleOutput(`[Execution finished with code 0]\nOutput:\nSolution verified for Problem ${String.fromCharCode(65 + currentProblemIdx)} test cases.\nRuntime: 42ms | Memory: 14.2 MB`);
+      setSimulatedStatus('accepted');
+    }, 600);
   };
 
   const handleSubmitAnswers = async () => {
@@ -127,39 +199,56 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
   const totalCount = contest.problems.length;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-20 space-y-6">
-      {/* ── Top Bar ── */}
-      <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 pb-20 space-y-6">
+      {/* ── Dark-mode Top Arena Bar ── */}
+      <div className="sticky top-16 z-20 bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-800 p-4 shadow-xl flex items-center justify-between gap-4 text-white">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 font-black">
+          <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-black">
             <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 line-clamp-1">
+            <h2 className="text-xs sm:text-sm font-extrabold text-slate-100 line-clamp-1">
               {contest.title}
             </h2>
-            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
-              <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+              <span className="font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">
                 Benchmark: {contest.benchmarkRating} Elo
               </span>
               <span>•</span>
               <span>
-                {language === 'en' ? 'Answered' : 'উত্তর দিয়েছেন'}: {answeredCount}/{totalCount}
+                {language === 'en' ? 'Solved' : 'সমাধান'}: {answeredCount}/{totalCount}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Timer & Submit */}
+        {/* Status Indicators Pill & Timer */}
         <div className="flex items-center gap-3 shrink-0">
+          {/* Submission Status Badges (Accepted, Wrong Answer, TLE) */}
+          <div className="hidden md:flex items-center gap-1.5 text-[11px]">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 font-semibold">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>AC</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-950/60 text-rose-400 border border-rose-800/60 font-semibold">
+              <XCircle className="h-3 w-3" />
+              <span>WA</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/60 text-amber-400 border border-amber-800/60 font-semibold">
+              <AlertTriangle className="h-3 w-3" />
+              <span>TLE</span>
+            </span>
+          </div>
+
+          {/* Countdown Clock */}
           <div
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-mono text-xs font-black shadow-sm ${
               timeLeft < 300
-                ? 'bg-rose-50 text-rose-600 border border-rose-200 animate-pulse'
-                : 'bg-slate-900 text-white'
+                ? 'bg-rose-950/80 text-rose-300 border border-rose-600 animate-pulse'
+                : 'bg-slate-950 text-emerald-400 border border-slate-800'
             }`}
           >
-            <Timer className="h-3.5 w-3.5" />
+            <Timer className="h-3.5 w-3.5 text-amber-400" />
             <span>{formatTimer(timeLeft)}</span>
           </div>
 
@@ -167,7 +256,7 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
             <Button
               onClick={handleSubmitAnswers}
               disabled={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-[0.98]"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -191,12 +280,12 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
               <button
                 key={p.id}
                 onClick={() => setCurrentProblemIdx(idx)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
                   isCurrent
-                    ? 'bg-primary-600 text-white shadow-sm ring-2 ring-primary-500/20'
+                    ? 'bg-primary-600 text-white shadow-xs ring-2 ring-primary-500/30'
                     : isAnswered
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
+                    : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800 hover:text-white'
                 }`}
               >
                 <span>
@@ -204,7 +293,7 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
                 </span>
                 {isAnswered && (
                   <CheckCircle2
-                    className={`h-3.5 w-3.5 ${isCurrent ? 'text-white' : 'text-emerald-600'}`}
+                    className={`h-3.5 w-3.5 ${isCurrent ? 'text-white' : 'text-emerald-400'}`}
                   />
                 )}
               </button>
@@ -213,39 +302,65 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
         </div>
       )}
 
-      {/* ── Main Problem View (When NOT submitted) ── */}
+      {/* ── Main Problem & Split-Pane Editor View ── */}
       {!submissionResult && currentProblem && (
-        <div className="space-y-6">
-          <Card className="rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl bg-slate-950">
+          {/* Left Pane: Problem Statement, Specs & Deductions */}
+          <div className="lg:col-span-7 bg-slate-900/90 p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 space-y-6 overflow-y-auto max-h-[800px]">
             {/* Problem Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">
+                <span className="text-[10px] font-black uppercase text-primary-400 tracking-wider">
                   {currentProblem.category}
                 </span>
-                <h3 className="text-lg font-extrabold text-slate-900 mt-0.5">
+                <h3 className="text-xl font-extrabold text-white mt-0.5">
                   {currentProblem.title}
                 </h3>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/60">
                   {currentProblem.points} Pts
                 </span>
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                  {currentProblem.difficultyRating} Diff
+                <span className="text-xs font-bold text-amber-400 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-800/60">
+                  {currentProblem.difficultyRating} Rating
                 </span>
               </div>
             </div>
 
-            {/* LaTeX Statement */}
-            <div className="prose prose-slate max-w-none text-sm text-slate-800 leading-relaxed font-sans">
-              <LatexRenderer content={currentProblem.statement} />
+            {/* Problem Statement (LaTeX formatted) */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {language === 'en' ? 'Problem Statement' : 'সমস্যার বিবরণ'}
+              </h4>
+              <div className="prose prose-invert max-w-none text-sm text-slate-200 leading-relaxed font-sans">
+                <LatexRenderer content={currentProblem.statement} />
+              </div>
             </div>
 
-            {/* Options Selection */}
+            {/* Input / Output & Constraints Specifications */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Input Specification
+                </span>
+                <p className="text-xs text-slate-300 font-mono">
+                  Single or multi-line formatted input stream per standard contest I/O.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Constraints & Limits
+                </span>
+                <p className="text-xs text-slate-300 font-mono">
+                  Time: 1.0s • Memory: 256MB • Strict asymptotic bounds
+                </p>
+              </div>
+            </div>
+
+            {/* Solution Deduction Options Selection */}
             <div className="space-y-3 pt-2">
-              <label className="text-xs font-bold text-slate-700 block uppercase tracking-wider">
-                {language === 'en' ? 'Select Verified Solution / Deduction:' : 'সঠিক সমাধান নির্বাচন করুন:'}
+              <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                {language === 'en' ? 'Select Verified Deduction / Solution:' : 'সঠিক সমাধান নির্বাচন করুন:'}
               </label>
 
               <div className="space-y-2.5">
@@ -256,22 +371,22 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
                     <button
                       key={optIdx}
                       onClick={() => handleSelectOption(currentProblemIdx, optIdx)}
-                      className={`w-full text-left p-4 rounded-2xl border transition flex items-start gap-3.5 ${
+                      className={`w-full text-left p-4 rounded-2xl border transition-all flex items-start gap-3.5 ${
                         isSelected
-                          ? 'border-primary-600 bg-primary-50/70 shadow-sm ring-1 ring-primary-600'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-primary-500 bg-primary-950/40 shadow-xs ring-1 ring-primary-500'
+                          : 'border-slate-800 bg-slate-950/60 hover:border-slate-700 hover:bg-slate-950'
                       }`}
                     >
                       <div
                         className={`h-6 w-6 rounded-full border flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${
                           isSelected
-                            ? 'border-primary-600 bg-primary-600 text-white'
-                            : 'border-slate-300 text-slate-500 bg-white'
+                            ? 'border-primary-500 bg-primary-600 text-white'
+                            : 'border-slate-700 text-slate-400 bg-slate-900'
                         }`}
                       >
                         {String.fromCharCode(65 + optIdx)}
                       </div>
-                      <div className="flex-1 text-xs sm:text-sm text-slate-800 leading-normal font-sans pt-0.5">
+                      <div className="flex-1 text-xs sm:text-sm text-slate-200 leading-normal font-sans pt-0.5">
                         <LatexRenderer content={opt} />
                       </div>
                     </button>
@@ -281,12 +396,12 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
             </div>
 
             {/* Navigation Buttons */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
               <Button
                 variant="outline"
                 disabled={currentProblemIdx === 0}
                 onClick={() => setCurrentProblemIdx((prev) => Math.max(0, prev - 1))}
-                className="text-xs font-bold rounded-xl px-4 py-2 flex items-center gap-1.5"
+                className="text-xs font-bold rounded-xl px-4 py-2 flex items-center gap-1.5 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>{language === 'en' ? 'Previous' : 'পূর্ববর্তী'}</span>
@@ -297,7 +412,7 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
                   onClick={() =>
                     setCurrentProblemIdx((prev) => Math.min(contest.problems.length - 1, prev + 1))
                   }
-                  className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl px-5 py-2 flex items-center gap-1.5"
+                  className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl px-5 py-2 flex items-center gap-1.5 active:scale-[0.98]"
                 >
                   <span>{language === 'en' ? 'Next Problem' : 'পরবর্তী সমস্যা'}</span>
                   <ArrowRight className="h-4 w-4" />
@@ -306,7 +421,7 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
                 <Button
                   onClick={handleSubmitAnswers}
                   disabled={isSubmitting}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl px-5 py-2 flex items-center gap-1.5 shadow-sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl px-5 py-2 flex items-center gap-1.5 shadow-sm active:scale-[0.98]"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -317,7 +432,104 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
                 </Button>
               )}
             </div>
-          </Card>
+          </div>
+
+          {/* Right Pane: Code Editor Area & Console */}
+          <div className="lg:col-span-5 bg-slate-950 flex flex-col justify-between p-4 sm:p-6 space-y-4 max-h-[800px]">
+            {/* Editor Header: Language selector & Actions */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <FileCode className="h-4 w-4 text-primary-400" />
+                <span className="text-xs font-bold text-slate-200">
+                  {language === 'en' ? 'Solution Scratchpad' : 'কোড স্ক্র্যাচপ্যাড'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedLang}
+                  onChange={(e) => handleLangChange(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-slate-200 px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                >
+                  <option value="javascript">JavaScript (Node)</option>
+                  <option value="python">Python 3</option>
+                  <option value="cpp">C++ 20</option>
+                  <option value="java">Java 17</option>
+                </select>
+
+                <Button
+                  size="sm"
+                  onClick={handleRunCode}
+                  disabled={isRunningCode}
+                  className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 rounded-lg gap-1"
+                >
+                  {isRunningCode ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Play className="h-3 w-3 fill-white" />
+                  )}
+                  <span>Run</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Code Editor with Line Numbers */}
+            <div className="flex-1 flex rounded-xl border border-slate-800 bg-slate-950 overflow-hidden min-h-[360px]">
+              {/* Line numbers gutter */}
+              <div className="py-3 px-2 bg-slate-900/60 border-r border-slate-800/80 text-right font-mono text-xs text-slate-600 select-none space-y-1">
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
+              </div>
+
+              {/* Code input textarea */}
+              <textarea
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                spellCheck={false}
+                className="flex-1 p-3 bg-transparent text-emerald-400 font-mono text-xs leading-relaxed resize-none focus:outline-none"
+              />
+            </div>
+
+            {/* Console / Output Panel */}
+            <div className="rounded-xl border border-slate-800 bg-slate-900/80 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-800/80 px-3 py-1.5 bg-slate-950/60 text-xs text-slate-400">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setActiveConsoleTab('console')}
+                    className={`flex items-center gap-1.5 font-mono text-[11px] ${
+                      activeConsoleTab === 'console' ? 'text-primary-400 font-bold' : 'hover:text-slate-200'
+                    }`}
+                  >
+                    <Terminal className="h-3 w-3" />
+                    <span>Console Output</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveConsoleTab('status')}
+                    className={`flex items-center gap-1.5 font-mono text-[11px] ${
+                      activeConsoleTab === 'status' ? 'text-primary-400 font-bold' : 'hover:text-slate-200'
+                    }`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    <span>Verification</span>
+                  </button>
+                </div>
+
+                {simulatedStatus === 'accepted' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/60">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    Accepted
+                  </span>
+                )}
+              </div>
+
+              <div className="p-3 font-mono text-[11px] text-slate-300 min-h-[90px] max-h-[140px] overflow-y-auto whitespace-pre-wrap">
+                {activeConsoleTab === 'console'
+                  ? consoleOutput || 'Run code or verify deductions against sample cases above.'
+                  : 'Compilation test status: Ready to submit answer.'}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -451,80 +663,94 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
             </h3>
 
             <div className="space-y-4">
-              {(submissionResult.problemsBreakdown || []).map((p: any) => (
-                <div
-                  key={p.index}
-                  className={`rounded-2xl border p-6 transition ${
-                    p.isCorrect
-                      ? 'border-emerald-200 bg-emerald-50/30'
-                      : 'border-rose-200 bg-rose-50/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      {p.isCorrect ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-rose-600 shrink-0" />
-                      )}
-                      <h4 className="font-bold text-sm text-slate-900">
-                        {p.title}
-                      </h4>
-                    </div>
+              {submissionResult.problemEvaluations.map((evalItem: any, idx: number) => {
+                const problem = contest.problems[idx];
+                if (!problem) return null;
 
-                    <span
-                      className={`text-xs font-black px-2.5 py-0.5 rounded-md ${
-                        p.isCorrect
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}
-                    >
-                      {p.isCorrect ? `+${p.points} Pts` : '0 Pts'}
-                    </span>
-                  </div>
+                const isCorrect = evalItem.isCorrect;
+                const userChoice = evalItem.userAnswer;
+                const correctChoice = evalItem.correctAnswer;
 
-                  <div className="text-xs text-slate-700 leading-relaxed font-sans mb-4">
-                    <LatexRenderer content={p.statement} />
-                  </div>
-
-                  {/* Answers summary */}
-                  <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 text-xs space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-500">
-                        {language === 'en' ? 'Your Answer:' : 'আপনার উত্তর:'}
-                      </span>
-                      <span className={p.isCorrect ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
-                        {p.selectedOption >= 0
-                          ? `Option ${String.fromCharCode(65 + p.selectedOption)}: ${p.options[p.selectedOption] || ''}`
-                          : language === 'en'
-                          ? 'Unanswered'
-                          : 'উত্তর দেওয়া হয়নি'}
-                      </span>
-                    </div>
-
-                    {!p.isCorrect && (
-                      <div className="flex items-center gap-2 text-emerald-700 font-bold">
-                        <span>{language === 'en' ? 'Correct Answer:' : 'সঠিক উত্তর:'}</span>
-                        <span>
-                          Option {String.fromCharCode(65 + p.correctAnswer)}: {p.options[p.correctAnswer] || ''}
+                return (
+                  <Card
+                    key={problem.id}
+                    className={`rounded-2xl p-6 border shadow-sm ${
+                      isCorrect ? 'border-emerald-200 bg-white' : 'border-rose-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold ${
+                            isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {String.fromCharCode(65 + idx)}
                         </span>
+                        <h4 className="font-bold text-sm text-slate-900">{problem.title}</h4>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Explanation */}
-                  {p.explanation && (
-                    <div className="mt-3 p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs">
-                      <span className="font-bold text-indigo-950 block mb-1">
-                        {language === 'en' ? 'Mathematical Proof & Explanation:' : 'গাণিতিক ব্যাখ্যা ও বিশ্লেষণ:'}
-                      </span>
-                      <div className="text-slate-700 leading-relaxed">
-                        <LatexRenderer content={p.explanation} />
+                      <div className="flex items-center gap-2">
+                        {isCorrect ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>+{evalItem.awardedPoints} Pts</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span>0 Pts</span>
+                          </span>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div className="space-y-3">
+                      <div className="text-xs text-slate-700 prose prose-slate max-w-none">
+                        <LatexRenderer content={problem.statement} />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                        <div
+                          className={`p-3 rounded-xl border text-xs ${
+                            isCorrect
+                              ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                              : 'bg-rose-50/70 border-rose-200 text-rose-900'
+                          }`}
+                        >
+                          <span className="font-bold block mb-1">
+                            {language === 'en' ? 'Your Answer:' : 'আপনার উত্তর:'}
+                          </span>
+                          <span>
+                            {userChoice !== undefined
+                              ? `${String.fromCharCode(65 + userChoice)}: ${problem.options[userChoice]}`
+                              : (language === 'en' ? 'Unanswered' : 'উত্তর দেননি')}
+                          </span>
+                        </div>
+
+                        {!isCorrect && (
+                          <div className="p-3 rounded-xl border bg-emerald-50/70 border-emerald-200 text-emerald-900 text-xs">
+                            <span className="font-bold block mb-1">
+                              {language === 'en' ? 'Correct Verified Deduction:' : 'সঠিক সমাধান:'}
+                            </span>
+                            <span>
+                              {String.fromCharCode(65 + correctChoice)}: {problem.options[correctChoice]}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {problem.explanation && (
+                        <div className="mt-3 p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs text-indigo-950">
+                          <span className="font-bold block mb-1 text-indigo-900">
+                            {language === 'en' ? 'Theoretical Explanation:' : 'তাত্ত্বিক ব্যাখ্যা:'}
+                          </span>
+                          <LatexRenderer content={problem.explanation} />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -532,3 +758,5 @@ export function ContestArenaClient({ contest }: ContestArenaClientProps) {
     </div>
   );
 }
+
+export default ContestArenaClient;

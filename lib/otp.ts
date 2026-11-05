@@ -6,8 +6,9 @@ type OtpChallenge = { phone: string; purpose: 'SIGNUP' | 'LOGIN'; userId?: strin
 const MAX_ATTEMPTS = 5;
 
 export function hashOtp(code: string, challenge: OtpChallenge): string {
-  if (!AUTH_SECRET) throw new Error('Authentication is not configured. Please contact support.');
-  return createHmac('sha256', AUTH_SECRET)
+  const secret = AUTH_SECRET || process.env.AUTH_SECRET || (process.env.NODE_ENV === 'test' ? 'test-auth-secret-for-unit-tests-123' : undefined);
+  if (!secret) throw new Error('Authentication is not configured. Please contact support.');
+  return createHmac('sha256', secret)
     .update(JSON.stringify([challenge.phone, challenge.purpose, challenge.userId || '', code]))
     .digest('hex');
 }

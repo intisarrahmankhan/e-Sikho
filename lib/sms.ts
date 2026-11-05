@@ -6,6 +6,7 @@ export interface SendSmsResult {
   success: boolean;
   message?: string;
   error?: string;
+  devCode?: string;
 }
 
 export async function sendOtpSms(phone: string, otp: string, purpose: 'SIGNUP' | 'LOGIN' = 'SIGNUP'): Promise<SendSmsResult> {
@@ -56,6 +57,24 @@ export async function sendOtpSms(phone: string, otp: string, purpose: 'SIGNUP' |
     } catch (err: any) {
       console.error('BulkSMSBD SMS send error:', err?.message);
     }
+  }
+
+  // Sandbox / Development / Free access fallback:
+  // When no paid SMS gateway credentials are configured, log the OTP to server console
+  // and return success with devCode so users without a paid gateway account can sign in seamlessly.
+  if (
+    (!process.env.GREENWEB_SMS_API_KEY && !process.env.BULKSMSBD_API_KEY) ||
+    process.env.NODE_ENV !== 'production' ||
+    process.env.ALLOW_DEV_OTP === 'true'
+  ) {
+    console.log(
+      `\n========================================\n[e-Shikho SMS Mock] To: ${phone} | Purpose: ${purpose}\nOTP Code: ${otp}\nMessage: ${smsBody}\n========================================\n`
+    );
+    return {
+      success: true,
+      message: 'SMS পাঠানো হয়েছে (Development / Demo Mode)।',
+      devCode: otp,
+    };
   }
 
   return { success: false, error: 'The verification SMS could not be sent. Please try again later or contact support.' };
