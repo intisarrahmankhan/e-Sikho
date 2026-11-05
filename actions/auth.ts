@@ -105,16 +105,17 @@ export async function signUpWithPhoneOtp(formData: {
   const target = callbackUrl || (role === 'INSTRUCTOR' ? '/instructor' : '/student');
 
   try {
-    await signIn('credentials', {
+    const redirectTo = await signIn('credentials', {
       name: name.trim(),
       phone: cleanPhone,
       otp: cleanOtp,
       password: password || '',
       role,
       isSignUp: 'true',
+      redirect: false,
       redirectTo: target,
     });
-    return { success: true, redirectTo: target };
+    return { success: true, redirectTo };
   } catch (error: any) {
     if (error?.message === 'NEXT_REDIRECT' || error?.digest?.startsWith('NEXT_REDIRECT')) {
       throw error;
