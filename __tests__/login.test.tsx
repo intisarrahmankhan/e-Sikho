@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LoginPage from '@/app/login/page';
-import { loginWithGoogle, signUpWithPhone, loginWithPhone } from '@/actions/auth';
+import { loginWithGoogle, signUpWithPhone, signUpWithPhoneOtp, loginWithPhone } from '@/actions/auth';
+import { requestSignupOtp } from '@/actions/otp';
 import { useSearchParams } from 'next/navigation';
 
 // Mock server actions and next/navigation
@@ -9,7 +10,14 @@ vi.mock('@/actions/auth', () => ({
   loginWithGoogle: vi.fn(),
   loginAsDeveloper: vi.fn(),
   signUpWithPhone: vi.fn(),
+  signUpWithPhoneOtp: vi.fn(),
   loginWithPhone: vi.fn(),
+  loginWithPhoneOtp: vi.fn(),
+}));
+
+vi.mock('@/actions/otp', () => ({
+  requestSignupOtp: vi.fn(),
+  verifyPasswordAndSendLoginOtp: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -81,11 +89,12 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: 'লগইন করুন' })).toBeTruthy();
   });
 
-  it('submits phone signup with valid information', async () => {
+  it('requests and verifies an OTP when signing up with valid information', async () => {
     (useSearchParams as any).mockReturnValue({
       get: vi.fn().mockReturnValue(null),
     });
-    (signUpWithPhone as any).mockResolvedValue({ success: true });
+    vi.mocked(requestSignupOtp).mockResolvedValue({ success: true, phone: '01712345678' });
+    vi.mocked(signUpWithPhoneOtp).mockResolvedValue({ success: false, error: 'Invalid verification code' });
 
     render(<LoginPage />);
 
@@ -103,15 +112,25 @@ describe('LoginPage', () => {
     const submitBtn = screen.getByRole('button', { name: 'সাইন আপ করুন' });
     fireEvent.click(submitBtn);
 
+    const otpInput = await screen.findByPlaceholderText('------');
+    expect(requestSignupOtp).toHaveBeenCalledWith('01712345678');
+    expect(signUpWithPhone).not.toHaveBeenCalled();
+    expect(signUpWithPhoneOtp).not.toHaveBeenCalled();
+
+    fireEvent.change(otpInput, { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: 'যাচাই সম্পন্ন ও সাইন আপ করুন' }));
+
     await waitFor(() => {
-      expect(signUpWithPhone).toHaveBeenCalledWith({
+      expect(signUpWithPhoneOtp).toHaveBeenCalledWith({
         name: 'আহমেদ রাজিব',
         phone: '01712345678',
+        otp: '123456',
         password: 'password123',
         role: 'STUDENT',
         callbackUrl: '/student',
       });
     });
+    expect(await screen.findByText('Invalid verification code')).toBeTruthy();
   });
 
   it('submits phone login with phone and password', async () => {
