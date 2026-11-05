@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Video,
@@ -100,6 +100,12 @@ export interface LectureManagerProps {
   quizzes?: QuizOption[];
 }
 
+function lessonVideoSource(lesson: Lesson) {
+  return lesson.bunnyVideoId
+    ? `bunny:${lesson.bunnyLibraryId || ''}:${lesson.bunnyVideoId}`
+    : lesson.videoUrl || '';
+}
+
 export default function LectureManager({
   course: initialCourse,
   quizzes = [],
@@ -119,7 +125,7 @@ export default function LectureManager({
   const [isAddLectureOpen, setIsAddLectureOpen] = useState(false);
   const [isAddModuleOpen, setIsAddModuleOpen] = useState(false);
   const [activeLectureForEdit, setActiveLectureForEdit] = useState<Lesson | null>(null);
-  const [activePreviewVideo, setActivePreviewVideo] = useState<{ title: string; url: string } | null>(null);
+  const [activePreviewVideo, setActivePreviewVideo] = useState<Lesson | null>(null);
 
   // Form states for adding lecture
   const [targetModuleId, setTargetModuleId] = useState<string>(
@@ -143,6 +149,15 @@ export default function LectureManager({
   const [videoUrl, setVideoUrl] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewSrc, setVideoPreviewSrc] = useState('');
+  useEffect(() => {
+    if (!videoFile) {
+      setVideoPreviewSrc('');
+      return;
+    }
+    const objectUrl = URL.createObjectURL(videoFile);
+    setVideoPreviewSrc(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [videoFile]);
   const [bunnyVideoId, setBunnyVideoId] = useState('');
   const [bunnyLibraryId, setBunnyLibraryId] = useState('');
   const [uploadToBunny, setUploadToBunny] = useState(true);
@@ -189,12 +204,7 @@ export default function LectureManager({
   };
 
   const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setVideoFile(file);
-      const blobUrl = URL.createObjectURL(file);
-      setVideoPreviewSrc(blobUrl);
-    }
+    setVideoFile(e.target.files?.[0] ?? null);
   };
 
   const handlePdfFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -610,7 +620,7 @@ export default function LectureManager({
                     ) : (
                       mod.lessons.map((lesson, lIdx) => {
                         const lId = lesson._id || lesson.id || '';
-                        const hasVideo = !!lesson.videoUrl;
+                        const hasVideo = !!lessonVideoSource(lesson);
                         const hasPdf = !!lesson.pdfUrl;
                         const hasQuiz = !!lesson.quizId;
                         const isQuiz = lesson.type === 'QUIZ' || hasQuiz;
@@ -696,12 +706,7 @@ export default function LectureManager({
                               {hasVideo && (
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    setActivePreviewVideo({
-                                      title: lesson.title,
-                                      url: lesson.videoUrl!,
-                                    })
-                                  }
+                                  onClick={() => setActivePreviewVideo(lesson)}
                                   className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
                                 >
                                   <PlayCircle className="h-3.5 w-3.5" />
@@ -1010,10 +1015,13 @@ export default function LectureManager({
                   )}
 
                   {/* Instant Video Preview Box */}
-                  {(videoUrl || videoPreviewSrc) && (
+                  {((videoMode === 'url' && videoUrl) || (videoMode === 'file' && videoPreviewSrc) || (videoMode === 'bunny' && bunnyVideoId.trim())) && (
                     <div className="pt-2">
                       <p className="text-xs font-semibold text-gray-600 mb-1.5">ভিডিও প্রিভিউ:</p>
-                      <VideoEmbedPlayer url={videoPreviewSrc || videoUrl} title={lectureTitle} />
+                      <VideoEmbedPlayer
+                        url={videoMode === 'url' ? videoUrl : videoMode === 'file' ? videoPreviewSrc : `bunny:${bunnyLibraryId}:${bunnyVideoId.trim()}`}
+                        title={lectureTitle}
+                      />
                     </div>
                   )}
                 </div>
@@ -1547,10 +1555,15 @@ export default function LectureManager({
                     </div>
                   </div>
 
-                  {activeLectureForEdit.videoUrl && (
+                  {(videoPreviewSrc || lessonVideoSource(activeLectureForEdit) || editBunnyVideoId.trim()) && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-1.5">বর্তমান ভিডিও প্রিভিউ:</p>
-                      <VideoEmbedPlayer url={activeLectureForEdit.videoUrl} title={activeLectureForEdit.title} />
+                      <p className="text-xs font-semibold text-gray-600 mb-1.5">ভিডিও প্রিভিউ:</p>
+                      <VideoEmbedPlayer
+                        url={videoPreviewSrc || (editBunnyVideoId.trim() ? `bunny:${editBunnyLibraryId}:${editBunnyVideoId.trim()}` : activeLectureForEdit.videoUrl)}
+                        title={activeLectureForEdit.title}
+                        courseId={course.id || course._id}
+                        lessonId={editBunnyVideoId === (activeLectureForEdit.bunnyVideoId || '') && editBunnyLibraryId === (activeLectureForEdit.bunnyLibraryId || '') ? activeLectureForEdit.id || activeLectureForEdit._id : undefined}
+                      />
                     </div>
                   )}
                 </div>
@@ -1806,7 +1819,7 @@ export default function LectureManager({
       {/* ── Modal: Preview Video Player ── */}
       {activePreviewVideo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-4xl rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-label={activePreviewVideo.title} className="relative max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto overscroll-contain rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
               <div className="flex items-center gap-2 text-white">
                 <PlayCircle className="h-5 w-5 text-indigo-400" />
@@ -1815,6 +1828,8 @@ export default function LectureManager({
                 </h3>
               </div>
               <button
+                type="button"
+                aria-label={language === 'en' ? 'Close preview' : 'প্রিভিউ বন্ধ করুন'}
                 onClick={() => setActivePreviewVideo(null)}
                 className="rounded-lg bg-slate-800 p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white"
               >
@@ -1823,8 +1838,10 @@ export default function LectureManager({
             </div>
             <div className="p-4 bg-black">
               <VideoEmbedPlayer
-                url={activePreviewVideo.url}
+                url={lessonVideoSource(activePreviewVideo)}
                 title={activePreviewVideo.title}
+                courseId={course.id || course._id}
+                lessonId={activePreviewVideo.id || activePreviewVideo._id}
                 autoPlay={true}
               />
             </div>

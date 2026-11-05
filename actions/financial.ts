@@ -39,6 +39,9 @@ export async function processEnrollmentCommission(
   if (!actor?.user || !['ADMIN', 'SUPERADMIN'].includes((actor.user as any).role)) {
     return { success: false, error: 'Administrator access is required for commission processing.' };
   }
+  if (!isValidMongoObjectId(enrollmentId) || !isValidMongoObjectId(courseId)) {
+    return { success: false, error: 'A valid enrollment and course are required.' };
+  }
   if (!Number.isFinite(price) || price <= 0) return { success: false, error: 'A positive payment amount is required.' };
   // Use a mongoose session for transaction
   await dbConnect();
@@ -49,9 +52,35 @@ export async function processEnrollmentCommission(
 
     const course = await Course.findById(courseId).session(dbSession);
     if (!course) throw new Error('Course not found');
+    const instructorId = String(course.createdById || '');
+    if (!isValidMongoObjectId(instructorId)) throw new Error('Course has no instructor account.');
+    const courseReferences = { $in: [courseId, new mongoose.Types.ObjectId(courseId)] };
+    const enrollment = await Enrollment.findOne({
+      _id: enrollmentId,
+      courseId: courseReferences,
+      paymentStatus: 'success',
+      amountPaid: price,
+      'demoPurchase.requestedAt': { $exists: false },
+    }).session(dbSession);
+    if (!enrollment) throw new Error('A matching paid enrollment is required.');
+    const payment = await Payment.findOne({
+      enrollmentId,
+      courseId: courseReferences,
+      userId: enrollment.userId,
+      amount: enrollment.amountPaid,
+      payment_status: /^completed$/i,
+    }).session(dbSession);
+    if (!payment) throw new Error('A completed payment is required.');
+    if (await PlatformCommission.exists({ enrollmentId }).session(dbSession)) throw new Error('Commission already recorded.');
 
     // Calculate commission using configured business rules (10% Default, 5% Early Bird)
-    const calc = calculatePlatformCommission(price, options, course);
+    const calc = calculatePlatformCommission(payment.amount, options, course);
+    const claimed = await Enrollment.findOneAndUpdate(
+      { _id: enrollmentId, commissionProcessedAt: null },
+      { $set: { commissionProcessedAt: new Date(), isEarlyBird: calc.isEarlyBird, commissionRule: calc.rule } },
+      { session: dbSession },
+    );
+    if (!claimed) throw new Error('Commission already recorded.');
 
     // Create the commission record with rule tracking
     await PlatformCommission.create(
@@ -59,7 +88,7 @@ export async function processEnrollmentCommission(
         {
           courseId,
           enrollmentId,
-          instructorUserId: course.createdById,
+          instructorUserId: instructorId,
           totalAmount: calc.totalAmount,
           commissionPercentage: calc.commissionPercentage,
           commissionAmount: calc.commissionAmount,
@@ -71,31 +100,17 @@ export async function processEnrollmentCommission(
       { session: dbSession }
     );
 
-    // Update enrollment with early bird / rule information if present
-    if (isValidMongoObjectId(enrollmentId)) {
-      await Enrollment.findByIdAndUpdate(
-        enrollmentId,
-        {
-          isEarlyBird: calc.isEarlyBird,
-          commissionRule: calc.rule,
+    const instructor = await User.findByIdAndUpdate(
+      instructorId,
+      {
+        $inc: {
+          availableBalance: calc.instructorEarnings,
+          totalEarnings: calc.instructorEarnings,
         },
-        { session: dbSession }
-      );
-    }
-
-    // Update the instructor's balance
-    if (course.createdById && isValidMongoObjectId(course.createdById)) {
-      await User.findByIdAndUpdate(
-        course.createdById,
-        {
-          $inc: {
-            availableBalance: calc.instructorEarnings,
-            totalEarnings: calc.instructorEarnings,
-          },
-        },
-        { session: dbSession }
-      );
-    }
+      },
+      { session: dbSession }
+    );
+    if (!instructor) throw new Error('Instructor account not found.');
 
     await dbSession.commitTransaction();
     return { success: true, commission: calc };
@@ -124,7 +139,8 @@ export async function requestPayout(
   }
 ) {
   const actor = (await auth())?.user as { id?: string; role?: string } | undefined;
-  if (!actor?.id || (actor.id !== userId && !['ADMIN', 'SUPERADMIN'].includes(actor.role || ''))) {
+  const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(actor?.role || '');
+  if (!actor?.id || (!isAdmin && (actor.role !== 'INSTRUCTOR' || actor.id !== userId))) {
     return { success: false, error: 'Unauthorized. You can only request payouts for your own account.' };
   }
 
@@ -132,45 +148,17 @@ export async function requestPayout(
   const dbSession = await mongoose.startSession();
 
   try {
+    await Promise.all([PayoutRequest.init(), FinancialLedger.init(), AuditLog.init()]);
     dbSession.startTransaction();
 
     if (!isValidMongoObjectId(userId)) throw new Error('Invalid user ID');
-    if (!amount || amount <= 0) throw new Error('Payout amount must be greater than zero');
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Payout amount must be greater than zero');
     if (!mfsNumber || !mfsNumber.trim()) throw new Error('Account/MFS number is required');
 
     const user = await User.findById(userId).session(dbSession);
     if (!user) throw new Error('User not found');
 
-    let currentBalance = typeof user.availableBalance === 'number' ? user.availableBalance : 0;
-    if (currentBalance < amount && process.env.NODE_ENV !== 'test') {
-      try {
-        // Dynamic fallback: compute available balance from course enrollments minus previous payout holds
-        const { default: Course } = await import('@/models/Course');
-        const userObjectId = isValidMongoObjectId(userId) ? new mongoose.Types.ObjectId(userId) : null;
-        const userCourses = await Course.find({
-          $or: [
-            { createdById: userId },
-            ...(userObjectId ? [{ createdById: userObjectId }, { instructorUserIds: userObjectId }] : [])
-          ]
-        }).select('price studentsEnrolled').session(dbSession).lean();
-        const calculatedRevenue = (userCourses || []).reduce((sum: number, c: any) => sum + ((c.price || 0) * (c.studentsEnrolled || 0)), 0);
-
-        const prevPayouts = await PayoutRequest.find({
-          userId,
-          status: { $in: ['PENDING', 'REQUESTED', 'APPROVED', 'DISBURSED'] }
-        }).session(dbSession).lean();
-        const heldOrWithdrawn = prevPayouts.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-
-        const realAvailable = Math.max(0, calculatedRevenue - heldOrWithdrawn);
-        if (realAvailable >= amount) {
-          currentBalance = realAvailable;
-          user.availableBalance = realAvailable;
-          if (!user.totalEarnings) user.totalEarnings = calculatedRevenue;
-        }
-      } catch {
-        // Ignore fallback errors and proceed to balance validation
-      }
-    }
+    const currentBalance = user.availableBalance || 0;
 
     if (currentBalance < amount) {
       throw new Error(`Insufficient balance. Available: ৳${currentBalance.toLocaleString()}, Requested: ৳${amount.toLocaleString()}`);
@@ -259,7 +247,7 @@ export async function requestPayout(
       },
     };
   } catch (error) {
-    await dbSession.abortTransaction();
+    if (dbSession.inTransaction()) await dbSession.abortTransaction();
     return { success: false, error: error instanceof Error ? error.message : 'Payout request failed' };
   } finally {
     dbSession.endSession();
@@ -814,33 +802,20 @@ export async function processRefundRequest(
         : 'Rejected';
 
     // 1. Locate Payment record (by ID or transactionId or enrollmentId)
-    let payment = await Payment.findById(paymentId);
+    const isRecordId = isValidMongoObjectId(paymentId);
+    let payment = isRecordId ? await Payment.findById(paymentId) : null;
     if (!payment) {
       payment = await Payment.findOne({
-        $or: [{ transactionId: paymentId }, { enrollmentId: paymentId }],
+        $or: [{ transactionId: paymentId }, ...(isRecordId ? [{ enrollmentId: paymentId }] : [])],
       });
     }
 
     if (!payment) {
-      // Check if paymentId was an Enrollment ID
-      const enr = await Enrollment.findById(paymentId);
-      if (enr?.demoPurchase?.requestedAt) {
-        return { success: false, error: 'Demo purchases have no payment to refund.' };
-      }
-      if (enr) {
-        payment = await Payment.create({
-          userId: enr.userId,
-          courseId: enr.courseId,
-          enrollmentId: enr._id,
-          amount: enr.amountPaid || 3500,
-          paymentMethod: 'BKASH',
-          transactionId: enr.transactionId || `TXN-REF-${Date.now()}`,
-          payment_status: 'Refund_Requested',
-          refundReason: refundReason || 'Disputed course purchase',
-        });
-      } else {
-        return { success: false, error: 'Payment record not found.' };
-      }
+      return { success: false, error: 'Payment record not found. Demo and free enrollments have no payment to refund.' };
+    }
+    const paymentStatus = payment.payment_status.toLowerCase();
+    if (payment.decision || !['completed', 'refund_requested', 'disputed'].includes(paymentStatus) || !(payment.amount > 0)) {
+      return { success: false, error: 'This payment is not eligible for a new refund decision.' };
     }
 
     const dbSession =
@@ -880,12 +855,11 @@ export async function processRefundRequest(
         }
 
         // 3. Adjust platform financial balance
-        const commission = await PlatformCommission.findOne({
-          $or: [
-            { enrollmentId: payment.enrollmentId },
-            { courseId: payment.courseId, totalAmount: payment.amount },
-          ],
-        }).session(dbSession || null);
+        const commission = payment.enrollmentId ? await PlatformCommission.findOne({
+          enrollmentId: payment.enrollmentId,
+          courseId: payment.courseId,
+          totalAmount: payment.amount,
+        }).session(dbSession || null) : null;
 
         if (commission && !commission.isRefunded) {
           // Deduct the instructor's earnings
@@ -905,22 +879,6 @@ export async function processRefundRequest(
           commission.isRefunded = true;
           commission.refundedAt = new Date();
           await commission.save(dbSession ? { session: dbSession } : undefined);
-        } else {
-          // If no commission document exists, check course instructor and adjust
-          const course = await Course.findById(payment.courseId).session(dbSession || null);
-          if (course?.createdById) {
-            const calculatedEarnings = (payment.amount * 80) / 100;
-            await User.findByIdAndUpdate(
-              course.createdById,
-              {
-                $inc: {
-                  availableBalance: -calculatedEarnings,
-                  totalEarnings: -calculatedEarnings,
-                },
-              },
-              dbSession ? { session: dbSession } : undefined
-            );
-          }
         }
 
         // 4. Log Audit
@@ -946,19 +904,10 @@ export async function processRefundRequest(
         payment.decision = 'Rejected';
         payment.refundReason = refundReason || 'Dispute rejected by administrator';
         payment.disputeNotes = refundReason || 'Payment dispute investigated and rejected.';
-        if (payment.payment_status === 'Refund_Requested') {
+        if (paymentStatus === 'refund_requested' || paymentStatus === 'disputed') {
           payment.payment_status = 'Completed';
         }
         await payment.save(dbSession ? { session: dbSession } : undefined);
-
-        // Keep enrollment active
-        if (payment.enrollmentId) {
-          await Enrollment.findByIdAndUpdate(
-            payment.enrollmentId,
-            { paymentStatus: 'success' },
-            dbSession ? { session: dbSession } : undefined
-          );
-        }
 
         // Audit Log
         await AuditLog.create(
@@ -1005,7 +954,7 @@ export async function processRefundRequest(
       message:
         normalizedDecision === 'Approved'
           ? 'Refund approved successfully. Course enrollment access revoked and financial balance adjusted.'
-          : 'Refund request rejected. Student enrollment access remains active.',
+          : 'Refund request rejected. The existing enrollment status was preserved.',
     };
   } catch (error: any) {
     console.error('Failed to process refund request:', error);
@@ -1104,6 +1053,11 @@ export async function seedDemoRefundRequestsAction() {
  */
 export async function getPlatformCommissionReportAction() {
   try {
+    const actor = (await auth())?.user as { id?: string; role?: string } | undefined;
+    const role = actor?.role;
+    if (!role || !['ADMIN', 'SUPERADMIN'].includes(role)) {
+      return { success: false, error: 'Administrator access is required.', commissions: [] };
+    }
     await dbConnect();
 
     const commissions = await PlatformCommission.find()
@@ -1370,6 +1324,10 @@ export async function seedDemoPayoutRequestsAction() {
  */
 export async function getInstructorPayoutOverviewAction(userId: string) {
   try {
+    const actor = (await auth())?.user as { id?: string; role?: string } | undefined;
+    if (!actor?.id || (actor.id !== userId && !['ADMIN', 'SUPERADMIN'].includes(actor.role || ''))) {
+      return { success: false, error: 'You do not have access to this payout overview.' };
+    }
     await dbConnect();
 
     if (!isValidMongoObjectId(userId)) {
@@ -1398,28 +1356,11 @@ export async function getInstructorPayoutOverviewAction(userId: string) {
       }
     });
 
-    let totalEarnings = user.totalEarnings || 0;
-    let availableBalance = user.availableBalance || 0;
-    if (totalEarnings === 0) {
-      const { default: Course } = await import('@/models/Course');
-      const userObjectId = isValidMongoObjectId(userId) ? new mongoose.Types.ObjectId(userId) : null;
-      const userCourses = await Course.find({
-        $or: [
-          { createdById: userId },
-          ...(userObjectId ? [{ createdById: userObjectId }, { instructorUserIds: userObjectId }] : [])
-        ]
-      }).select('price studentsEnrolled').lean();
-      totalEarnings = (userCourses || []).reduce((sum: number, c: any) => sum + ((c.price || 0) * (c.studentsEnrolled || 0)), 0);
-      if (availableBalance === 0 && totalEarnings > 0) {
-        availableBalance = Math.max(0, totalEarnings - pendingAmount - disbursedTotal);
-      }
-    }
-
     return {
       success: true,
       overview: {
-        availableBalance,
-        totalEarnings,
+        availableBalance: user.availableBalance || 0,
+        totalEarnings: user.totalEarnings || 0,
         pendingAmount,
         disbursedTotal,
         payoutMethod: user.payoutMethod || 'BKASH',

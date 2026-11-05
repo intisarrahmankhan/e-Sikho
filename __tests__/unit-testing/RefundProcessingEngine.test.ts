@@ -159,7 +159,9 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       return null;
     });
 
-    mockPaymentFindOne.mockImplementation(() => null);
+    mockPaymentFindOne.mockImplementation(query =>
+      query.$or?.some((item: { transactionId?: string }) => item.transactionId === 'payment-555') ? mockPaymentDoc : null,
+    );
 
     // Default commission document
     mockCommissionDoc = {
@@ -204,6 +206,7 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       );
 
       // 3. Platform Financial Balance Adjustments
+      expect(mockCommissionFindOne).toHaveBeenCalledWith({ enrollmentId: 'enrollment-202', courseId: 'course-101', totalAmount: 4000 });
       expect(mockUserFindByIdAndUpdate).toHaveBeenCalledWith(
         'instructor-1',
         {
@@ -239,27 +242,20 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/refunds');
     });
 
-    it('handles refund approval when no commission document exists by looking up course instructor', async () => {
+    it('does not debit an instructor when the payment has no matching commission', async () => {
       mockCommissionFindOne.mockReturnValue(null);
-      mockCourseFindById.mockResolvedValue({
-        _id: 'course-101',
-        createdById: 'instructor-fallback',
-      });
 
       const res = await processRefundRequest('payment-555', 'Approved', 'Refund without prior commission doc');
       expect(res.success).toBe(true);
 
-      // (4000 * 80) / 100 = 3200
-      expect(mockUserFindByIdAndUpdate).toHaveBeenCalledWith(
-        'instructor-fallback',
-        {
-          $inc: {
-            availableBalance: -3200,
-            totalEarnings: -3200,
-          },
-        },
-        undefined
-      );
+      expect(mockUserFindByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not apply another refund decision once the payment is refunded', async () => {
+      mockPaymentDoc.payment_status = 'Refunded';
+      expect((await processRefundRequest('payment-555', 'Approved')).success).toBe(false);
+      expect(mockPaymentDoc.save).not.toHaveBeenCalled();
+      expect(mockUserFindByIdAndUpdate).not.toHaveBeenCalled();
     });
 
     it('supports MODERATOR and SUPERADMIN roles', async () => {
@@ -290,12 +286,7 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       expect(mockPaymentDoc.refundReason).toContain('outside refund policy window');
       expect(mockPaymentDoc.save).toHaveBeenCalled();
 
-      // Enrollment remains active ('success')
-      expect(mockEnrollmentFindByIdAndUpdate).toHaveBeenCalledWith(
-        'enrollment-202',
-        { paymentStatus: 'success' },
-        undefined
-      );
+      expect(mockEnrollmentFindByIdAndUpdate).not.toHaveBeenCalled();
 
       // Instructor balance is NOT clawed back
       expect(mockUserFindByIdAndUpdate).not.toHaveBeenCalled();
@@ -339,7 +330,7 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       expect(res.error).toMatch(/Unauthorized/i);
     });
 
-    it('returns error when payment record is not found and cannot be created', async () => {
+    it('does not create a payment when there is no real payment record', async () => {
       mockPaymentFindById.mockReturnValueOnce(null);
       mockPaymentFindOne.mockReturnValueOnce(null);
       mockEnrollmentFindById.mockResolvedValueOnce(null);
@@ -347,6 +338,7 @@ describe('Task T-019: Refund Request Processing Engine & Reconciliation', () => 
       const res = await processRefundRequest('non-existent-id', 'Approved');
       expect(res.success).toBe(false);
       expect(res.error).toMatch(/Payment record not found/i);
+      expect(mockPaymentCreate).not.toHaveBeenCalled();
     });
   });
 

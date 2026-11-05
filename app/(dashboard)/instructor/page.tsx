@@ -131,14 +131,11 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
       const cId = c._id.toString();
       const courseModules = modulesByCourse.get(cId) || [];
       const totalLecturesCount = courseModules.reduce((sum: number, m: any) => sum + (m.lessons?.length || 0), 0);
-      const recorded = courseEarnings.get(cId);
-      const calculatedRevenue = (c.price || 0) * (c.studentsEnrolled || 0);
-      const earnedRevenue = typeof recorded === 'number' && recorded > 0 ? recorded : calculatedRevenue;
       return {
         ...c,
         id: cId,
         _id: cId,
-        earnedRevenue,
+        earnedRevenue: courseEarnings.get(cId) ?? 0,
         modules: courseModules,
         totalLecturesCount,
       };
@@ -154,20 +151,6 @@ export default async function InstructorDashboardPage({ searchParams }: PageProp
       ...r,
     }));
 
-    const withdrawnOrPending = payoutRequests
-      .filter((p: any) => ['PENDING', 'REQUESTED', 'APPROVED', 'DISBURSED', 'COMPLETED'].includes((p.status || '').toUpperCase()))
-      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-    if (!availableBalance && totalEarnings > 0) {
-      availableBalance = Math.max(0, totalEarnings - withdrawnOrPending);
-      if (isValidMongoObjectId(userId)) {
-        await User.findByIdAndUpdate(userId, {
-          $set: {
-            availableBalance,
-            totalEarnings: Math.max(userDoc?.totalEarnings || 0, totalEarnings)
-          }
-        });
-      }
-    }
   } catch (err: any) {
     if (err?.digest?.startsWith('NEXT_REDIRECT') || err?.message === 'NEXT_REDIRECT') {
       throw err;
